@@ -239,49 +239,36 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 }
 .admin-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  grid-template-rows: minmax(520px, 86%);
+  grid-template-columns: 1fr 1fr;
   gap: 18px;
   align-content: center;
   align-items: stretch;
-  margin-top: 0;
-  padding: 8px 0;
+  margin-top: 8px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 .admin-layout.is-waiting {
   grid-template-columns: minmax(0, 520px);
-  grid-template-rows: auto;
   justify-content: center;
-  align-content: center;
-  padding: 0;
-  overflow: auto;
 }
 .admin-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
   min-width: 0;
-  min-height: 0;
   margin: 0;
-  padding: 22px;
 }
-.admin-layout:not(.is-waiting) > .admin-pane:first-child { justify-content: space-evenly; }
-.admin-pane__block { display: grid; gap: 12px; }
-.admin-pane__foot { display: grid; gap: 14px; }
-.admin-note { margin: 0; color: var(--muted); line-height: 1.5; }
-.admin-page.landing h1 { font-size: clamp(1.9rem, 2.6vw, 2.6rem); line-height: 0.98; }
+.admin-page.landing h1 { font-size: clamp(2.1rem, 3.4vw, 3rem); line-height: 0.95; }
 .admin-pane .lede { margin-top: 0; font-size: 0.98rem; max-width: none; }
 .admin-pane .eyebrow { margin-bottom: 0; }
 .admin-pane form .btn { width: 100%; }
 .admin-pane .btn-row { display: flex; }
 .admin-pane .btn-row > button { flex: 1 1 0; min-width: 0; }
-.admin-layout > .admin-pane:first-child .btn-row { flex-direction: column; }
 .admin-code {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(2.6rem, 4vw, 3.4rem);
+  font-size: clamp(2.4rem, 4vw, 3.2rem);
   letter-spacing: 0.14em;
   line-height: 1;
 }
@@ -289,24 +276,21 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 .admin-roster {
-  flex: 1;
-  min-height: 120px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding-top: 14px;
+  padding-top: 12px;
+  max-height: 180px;
   overflow: auto;
 }
 .admin-roster h2 { margin: 0 0 8px; font-size: 1.15rem; }
-.admin-roster.is-empty { display: flex; flex-direction: column; }
-.admin-roster.is-empty .muted { margin: auto; }
 .admin-page .panel {
   background: rgba(4, 22, 34, 0.62);
   border-color: rgba(255, 255, 255, 0.14);
 }
-.admin-pane .qr-card { padding: 10px; }
-.admin-pane .qr-card svg { width: 132px; height: 132px; }
+.admin-pane .qr-card { padding: 8px; }
+.admin-pane .qr-card svg { width: 108px; height: 108px; }
 .admin-page .landing-tools .pill { display: inline-flex; }
 .landing-ui { position: relative; z-index: 2; }
 .landing-stage {
@@ -1055,16 +1039,8 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 
 @media (max-width: 860px) {
   .hero, .admin-grid, .admin-layout, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
-  .admin-layout, .admin-layout.is-waiting {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    justify-content: stretch;
-    align-content: start;
-    padding: 0;
-    overflow: auto;
-  }
-  .admin-layout > .admin-pane:first-child .btn-row { flex-direction: row; }
-  .admin-roster { flex: none; min-height: 0; max-height: 220px; }
+  .admin-layout, .admin-layout.is-waiting { grid-template-columns: 1fr; justify-content: stretch; align-content: start; overflow: auto; }
+  .admin-join { justify-content: space-between; }
   .landing .shell { width: min(100% - 28px, 1240px); }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }

@@ -116,15 +116,13 @@ export default function AdminPage() {
 
         <div className={session ? "admin-layout" : "admin-layout is-waiting"}>
           <section className="panel admin-pane" aria-labelledby="admin-title">
-            <div className="admin-pane__block">
-              <p className="eyebrow">Versus</p>
-              <h1 id="admin-title">Open a versus round.</h1>
-              <p className="lede">
-                Up to 10 players, each prompting on their own. The shared reef shows who made the model do less work.
-              </p>
-            </div>
+            <p className="eyebrow">Versus</p>
+            <h1 id="admin-title">Open a versus round.</h1>
+            <p className="lede">
+              Up to 10 players, each prompting on their own. The shared reef shows who made the model do less work.
+            </p>
             {error ? <p className="error">{error}</p> : null}
-            <form className="stack admin-pane__block" onSubmit={onCreate}>
+            <form className="stack" onSubmit={onCreate}>
               <label>
                 Challenge
                 <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
@@ -138,10 +136,9 @@ export default function AdminPage() {
               <button className="btn" disabled={busy} type="submit">
                 {saved ? "New versus round" : "Open a versus round"}
               </button>
-              <p className="admin-note">Each player prompts alone. Ending the round opens the top 3.</p>
             </form>
             {saved && session ? (
-              <div className="admin-pane__foot">
+              <>
                 <div className="health-inline">
                   <span>{reefLabel(session.reefBand)} · reef {session.reefHealth}</span>
                   <i><b style={{ width: `${session.reefHealth}%` }} /></i>
@@ -157,7 +154,7 @@ export default function AdminPage() {
                     End game
                   </button>
                 </div>
-              </div>
+              </>
             ) : null}
           </section>
 
@@ -189,7 +186,7 @@ export default function AdminPage() {
                   Open main stage
                 </button>
               </div>
-              <div className={roster.length ? "admin-roster" : "admin-roster is-empty"}>
+              <div className="admin-roster">
                 <h2>Players · {roster.length} / {playerMax}</h2>
                 {roster.length >= playerMax ? <p className="muted">This room is full.</p> : null}
                 {roster.length === 0 ? (
