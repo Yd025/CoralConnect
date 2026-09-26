@@ -1,7 +1,14 @@
 "use client";
 
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+
+const CODE_LIMIT = 6;
+
+function sanitizeCode(value: string) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LIMIT);
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -9,42 +16,82 @@ export default function HomePage() {
 
   function join(event: FormEvent) {
     event.preventDefault();
-    const next = code.trim().toUpperCase();
-    if (next) router.push(`/play/${next}`);
+    const next = sanitizeCode(code);
+    if (!next) return;
+    router.push(`/play/${next}`);
   }
 
   return (
-    <main className="shell">
-      <div className="topbar">
-        <span className="brand">CoralConnect</span>
-        <a className="btn-ghost" href="/admin">Admin</a>
-      </div>
-      <section className="hero">
-        <div>
-          <p className="eyebrow">HackGT · A Marina’s Mission</p>
-          <h1>Give the model the source, or it goes looking.</h1>
-          <p className="lede">
-            A vague prompt sends the model to the web. That lookup is the waste. Include the source in the message
-            and the shared reef stays alive.
-          </p>
-          <div className="actions">
-            <a className="btn" href="/admin">Open the booth console</a>
-          </div>
+    <main className="landing">
+      <AnimatedBackground />
+      <div className="shell landing-ui">
+        <div className="landing-stage">
+          <header className="landing-top">
+            <a className="brand" href="/">
+              <svg className="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+                <path d="M14 3 L16.2 11.2 L14 9.4 L11.8 11.2 Z" fill="currentColor" />
+                <path d="M6 8 L9.2 13.2 L8 12 L6.6 14.2 Z" fill="currentColor" />
+                <path d="M22 8 L18.8 13.2 L20 12 L21.4 14.2 Z" fill="currentColor" />
+                <path d="M14 10.5 V24" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+              CoralConnect
+            </a>
+            <nav className="landing-nav" aria-label="Site">
+              <a href="#explain">The reef</a>
+              <a href="#join">Join</a>
+            </nav>
+            <div className="landing-tools">
+              <span>HackGT booth</span>
+              <a className="btn-ghost" href="/admin">Admin</a>
+            </div>
+          </header>
+
+          <section className="hero" aria-labelledby="hero-title">
+            <p className="hero-kicker"><i />A Marina’s Mission</p>
+            <h1 id="hero-title">The hidden<br />cost.</h1>
+            <p className="lede">
+              CoralConnect is a HackGT booth game. A thin prompt makes the model search the web, and that lookup is the carbon cost. Include the source, and the shared reef shows the difference.
+            </p>
+            <form id="join" className="hero-join" onSubmit={join}>
+              <label className="hero-code" htmlFor="game-code">
+                <span>Booth code</span>
+                <input
+                  id="game-code"
+                  value={code}
+                  onChange={(event) => setCode(sanitizeCode(event.target.value))}
+                  maxLength={CODE_LIMIT}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="CODE"
+                />
+              </label>
+              <button className="btn" type="submit" disabled={!code}>Join the reef</button>
+            </form>
+          </section>
         </div>
-        <form className="panel stack" onSubmit={join}>
-          <p className="eyebrow">I have a code</p>
-          <label>
-            Game code
-            <input
-              value={code}
-              onChange={(event) => setCode(event.target.value.toUpperCase())}
-              maxLength={6}
-              autoCapitalize="characters"
-            />
-          </label>
-          <button className="btn" type="submit">Join on this phone</button>
-        </form>
-      </section>
+
+        <section className="explain" id="explain" aria-labelledby="explain-title">
+          <h2 id="explain-title">How the booth works</h2>
+          <ol className="steps">
+            <li className="panel">
+              <p className="eyebrow">01</p>
+              <h3>Join the reef</h3>
+              <p className="muted">Use the code on the laptop. Your phone is the controller. The laptop keeps the shared reef.</p>
+            </li>
+            <li className="panel">
+              <p className="eyebrow">02</p>
+              <h3>Put the source in the prompt</h3>
+              <p className="muted">The challenge already has the file. Include it so the model does no extra web search.</p>
+            </li>
+            <li className="panel">
+              <p className="eyebrow">03</p>
+              <h3>Watch the cost on the reef</h3>
+              <p className="muted">A thin prompt makes the model look the answer up. That lookup clouds the water. An adequate prompt leaves the reef alive.</p>
+            </li>
+          </ol>
+        </section>
+      </div>
     </main>
   );
 }
