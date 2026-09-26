@@ -62,10 +62,10 @@ export function getSession(code: string): Promise<GameSession> {
   return request<{ session: GameSession }>(`/api/sessions/${code}`).then((data) => data.session);
 }
 
-export function joinSession(code: string, name: string, lane: string, focus: string) {
+export function joinSession(code: string, name: string, builds: string, cares: string) {
   return request<{ playerToken: string; player: { id: string; name: string }; session: GameSession }>(
     `/api/sessions/${code}/join`,
-    { method: "POST", body: JSON.stringify({ name, lane, focus }) },
+    { method: "POST", body: JSON.stringify({ name, builds, cares }) },
   );
 }
 

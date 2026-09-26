@@ -37,27 +37,15 @@ def test_grade_bands_and_reef_thresholds():
     assert reef_band(24) == "dead"
 
 
-def test_pairing_bridges_climate_with_software_before_same_mission():
+def test_pairing_follows_join_order():
     players = [
-        Player(id="a", token="t", name="A", language="Python", lane="climate", focus="reef sensors"),
-        Player(id="b", token="t", name="B", language="Python", lane="climate", focus="carbon logs"),
-        Player(id="c", token="t", name="C", language="Go", lane="general", focus="payment APIs"),
-        Player(id="d", token="t", name="D", language="Rust", lane="general", focus="compilers"),
+        Player(id="a", token="t", name="A", language="Python", joined_at=1, builds="apis", cares="trust"),
+        Player(id="b", token="t", name="B", language="Python", joined_at=2, builds="sensors", cares="energy"),
+        Player(id="c", token="t", name="C", language="Go", joined_at=3, builds="models", cares="trust"),
+        Player(id="d", token="t", name="D", language="Rust", joined_at=4, builds="compilers", cares="speed"),
     ]
     squads = _pair(players)
-    assert len(squads) == 2
-    for group in squads:
-        assert {player.lane for player in group} == {"climate", "general"}
-
-
-def test_pairing_same_mission_when_the_table_shares_a_lane():
-    players = [
-        Player(id="a", token="t", name="A", language="Python", lane="climate", focus="reef sensors"),
-        Player(id="b", token="t", name="B", language="Python", lane="climate", focus="grid models"),
-    ]
-    squads = _pair(players)
-    assert len(squads) == 1
-    assert [player.lane for player in squads[0]] == ["climate", "climate"]
+    assert [[player.name for player in group] for group in squads] == [["A", "B"], ["C", "D"]]
 
 
 def test_compete_caps_at_ten_players():
@@ -93,7 +81,7 @@ def test_collaborate_requires_two_to_four_players():
     code = created["session"]["code"]
     admin = created["adminToken"]
     assert created["session"]["playerMin"] == 2
-    assert created["session"]["playerMax"] == 4
+    assert created["session"]["playerMax"] == 8
 
     alone = client.post(
         f"/api/sessions/{code}/join",
@@ -115,18 +103,18 @@ def test_collaborate_requires_two_to_four_players():
         json={"mode": "collaborate", "challengeId": "null-profile"},
     ).json()
     full_code = full["session"]["code"]
-    for name in ("Ada", "Grace", "Lin", "Kay"):
+    for name in ("Ada", "Grace", "Lin", "Kay", "Nia", "Owen", "Bea", "Cy"):
         joined = client.post(
             f"/api/sessions/{full_code}/join",
             json={"name": name, "language": "Python"},
         )
         assert joined.status_code == 200
-    fifth = client.post(
+    ninth = client.post(
         f"/api/sessions/{full_code}/join",
-        json={"name": "Nia", "language": "Python"},
+        json={"name": "Jin", "language": "Python"},
     )
-    assert fifth.status_code == 409
-    assert "4" in fifth.json()["error"]
+    assert ninth.status_code == 409
+    assert "8" in ninth.json()["error"]
 
 
 def test_compete_flow_grades_and_poisons_the_reef():
@@ -213,14 +201,19 @@ def test_collaborate_pairs_on_start_and_shares_a_score():
     session = started.json()["session"]
     assert len(session["squads"]) == 1
     assert set(session["squads"][0]["playerIds"]) == {ada["player"]["id"], grace["player"]["id"]}
-    assert session["squads"][0]["kind"] == "same_mission"
+    assert "Ada" in session["squads"][0]["shared"] or "Ada" in session["squads"][0]["name"]
+    assert session["players"][0]["piece"]["role"]
+    assert session["players"][0]["piece"]["body"] != session["players"][1]["piece"]["body"]
 
     submitted = client.post(
         f"/api/sessions/{code}/submit",
         json={
             "playerId": ada["player"]["id"],
             "playerToken": ada["playerToken"],
-            "prompt": "AccountHeader reads profile.user.name while user is null. Return early if profile.user is missing.",
+            "prompt": (
+                "AccountHeader reads profile.user.name while user is null. "
+                "The crash happens while the account request is still in flight."
+            ),
         },
     )
     assert submitted.status_code == 200
@@ -230,7 +223,42 @@ def test_collaborate_pairs_on_start_and_shares_a_score():
     assert scores["Ada"] > 0
 
 
-def test_collaborate_labels_a_bridge_between_lanes():
+def test_two_people_share_one_animal_and_a_third_waits():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    first = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Maya", "builds": "Apps", "cares": "Planet"},
+    ).json()["session"]
+    assert first["squads"][0]["creature"] == ""
+    second = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Jordan", "builds": "Systems", "cares": "Planet"},
+    ).json()["session"]
+    assert second["squads"][0]["creature"] == "Seagull"
+    assert len(second["squads"][0]["playerIds"]) == 2
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Ada", "builds": "Data", "cares": "Trust"},
+    )
+    waiting = client.get(f"/api/sessions/{code}").json()["session"]
+    assert sorted(squad.get("creature") for squad in waiting["squads"]) == ["", "Seagull"]
+    blocked = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    assert blocked.status_code == 409
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Grace", "builds": "Design", "cares": "People"},
+    )
+    paired = client.get(f"/api/sessions/{code}").json()["session"]
+    assert sorted(squad["creature"] for squad in paired["squads"]) == ["Seagull", "Turtle"]
+
+
+def test_questionnaire_shows_up_in_the_match():
     client = TestClient(app)
     created = client.post(
         "/api/sessions",
@@ -240,20 +268,48 @@ def test_collaborate_labels_a_bridge_between_lanes():
     admin = created["adminToken"]
     client.post(
         f"/api/sessions/{code}/join",
-        json={"name": "Maya", "lane": "climate", "focus": "reef sensors"},
+        json={"name": "Maya", "builds": "reef sensors", "cares": "the coast"},
     )
     client.post(
         f"/api/sessions/{code}/join",
-        json={"name": "Jordan", "lane": "general", "focus": "payment APIs"},
+        json={"name": "Jordan", "builds": "payment APIs", "cares": "customer trust"},
     )
     started = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
     squad = started.json()["session"]["squads"][0]
-    assert squad["kind"] == "bridge"
-    assert squad["name"] == "Climate × Software"
-    assert "Maya" in squad["icebreaker"]
-    assert "Jordan" in squad["icebreaker"]
-    assert "reef sensors" in squad["icebreaker"]
-    assert "payment APIs" in squad["icebreaker"]
+    text = f"{squad['shared']} {squad['distinct']}"
+    assert "reef sensors" in text
+    assert "payment APIs" in text
+    assert "the coast" in text
+    assert "customer trust" in text
+
+
+def test_collaborate_needs_both_pieces():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    ada = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Ada", "builds": "headers", "cares": "the crash"},
+    ).json()
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Grace", "builds": "support", "cares": "the reporter"},
+    )
+    client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    submitted = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "AccountHeader reads profile.user.name while user is null.",
+        },
+    )
+    assert submitted.status_code == 200
+    assert submitted.json()["submission"]["reasonable"] is False
 
 
 def test_follow_up_keeps_the_bloated_history_on_the_bill():

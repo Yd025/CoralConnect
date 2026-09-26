@@ -79,8 +79,9 @@ export default function AdminPage() {
   const stage = saved && origin ? stageUrl(origin, saved.code) : "";
   const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
   const playerMin = session?.playerMin ?? (session?.mode === "collaborate" ? 2 : 1);
-  const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 4 : 10);
-  const canStart = session?.status !== "playing" && roster.length >= playerMin && roster.length <= playerMax;
+  const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 8 : 10);
+  const evenPairs = session?.mode !== "collaborate" || roster.length % 2 === 0;
+  const canStart = session?.status !== "playing" && evenPairs && roster.length >= playerMin && roster.length <= playerMax;
 
   return (
     <main className="shell">
@@ -107,7 +108,7 @@ export default function AdminPage() {
           <div className="mode-grid">
             <button type="button" className={mode === "collaborate" ? "mode is-on" : "mode"} onClick={() => setMode("collaborate")}>
               <strong>Collaborate</strong>
-              <small>2 to 4 players. Match a climate engineer with a software engineer, or two people on the same mission. They share one prompt.</small>
+              <small>Pairs of 2. You get an animal, find that person in the room, then share one prompt.</small>
             </button>
             <button type="button" className={mode === "compete" ? "mode is-on" : "mode"} onClick={() => setMode("compete")}>
               <strong>Compete</strong>
@@ -179,7 +180,7 @@ export default function AdminPage() {
               {session.status === "lobby" && roster.length < playerMin ? (
                 <p className="muted">
                   {session.mode === "collaborate"
-                    ? "Collaborate starts with 2 to 4 players."
+                    ? "Collaborate starts with pairs of 2. An odd person is still looking for their match."
                     : "Compete starts once someone joins, up to 10."}
                 </p>
               ) : null}
@@ -192,7 +193,7 @@ export default function AdminPage() {
                     <li key={player.id}>
                       <span>
                         <strong>{player.name}</strong>
-                        <small>{personLine(player.lane, player.focus)}{player.connected ? "" : " · left"}</small>
+                        <small>{personLine(player.builds, player.cares)}{player.connected ? "" : " · left"}</small>
                       </span>
                       <b>{player.score}</b>
                     </li>
@@ -226,7 +227,7 @@ export default function AdminPage() {
         <summary>60 second pitch</summary>
         <p>
           A thin prompt that leaves out the source makes the model look the fact up. That extra work is the waste.
-          In collaborate, a climate engineer is matched with a software engineer, or two people on the same mission find each other. They have to agree on one prompt.
+          In collaborate, two people get the same animal and have to find each other in the room. They share one prompt, then talk about the environment.
           Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
         </p>
         {health ? (

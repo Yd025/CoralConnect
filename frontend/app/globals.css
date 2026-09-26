@@ -85,6 +85,24 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .mode strong { display: block; margin-bottom: 4px; }
 .mode small { color: var(--muted); display: block; line-height: 1.4; }
 .mode.is-on { border-color: var(--teal); background: rgba(61, 222, 200, 0.1); }
+.beacon { text-align: center; }
+.beacon strong {
+  display: block;
+  margin: 4px 0 8px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 3rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.chips { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chips legend { width: 100%; padding: 0; margin-bottom: 2px; font-size: 0.92rem; }
+.chips button {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(2, 16, 22, 0.4);
+  padding: 8px 12px;
+}
+.chips button.is-on { border-color: var(--teal); background: rgba(61, 222, 200, 0.1); }
 .lane-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .lane-grid .mode { padding: 10px; }
 .connection-people { margin: 8px 0; padding-left: 18px; color: var(--muted); }

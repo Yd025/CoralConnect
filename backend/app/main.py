@@ -36,8 +36,8 @@ class CreateBody(BaseModel):
 class JoinBody(BaseModel):
     name: str
     language: str = "Python"
-    lane: str = "general"
-    focus: str = ""
+    builds: str = ""
+    cares: str = ""
 
 
 class PlayerBody(BaseModel):
@@ -73,7 +73,7 @@ def health() -> dict:
         "grokRoles": [
             "answer the player's prompt",
             "judge that prompt from the solver API call",
-            "name why two people were matched",
+            "pair people from what they build and what they want the work to care about",
         ],
         "lanIp": game.lan_ip(),
         "formula": FORMULA,
@@ -105,7 +105,7 @@ def read_session(code: str):
 @app.post("/api/sessions/{code}/join")
 async def join(code: str, body: JoinBody):
     try:
-        session, player = await game.join(code, body.name, body.language, body.lane, body.focus)
+        session, player = await game.join(code, body.name, body.language, body.builds, body.cares)
     except GameError as exc:
         return _error(exc)
     return {
@@ -114,8 +114,8 @@ async def join(code: str, body: JoinBody):
             "id": player.id,
             "name": player.name,
             "language": player.language,
-            "lane": player.lane,
-            "focus": player.focus,
+            "builds": player.builds,
+            "cares": player.cares,
             "squadId": player.squad_id,
         },
         "session": public_session(session),

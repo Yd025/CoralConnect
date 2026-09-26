@@ -214,23 +214,20 @@ def _int_or_none(value: object) -> int | None:
     return value
 
 
-async def icebreaker(people: list[dict]) -> dict | None:
-    if not settings.xai_api_key or not people:
-        return None
+def _people_lines(people: list[dict]) -> str:
     lines = []
     for person in people:
-        focus = str(person.get("focus") or "").strip() or "unspecified"
-        lines.append(f"- {person.get('name')}, lane: {person.get('lane')}, works on: {focus}")
-    prompt = (
-        "These strangers were just paired. "
-        "If one lane is climate and another is general, this is a bridge between a climate engineer and a software engineer. "
-        "If every lane matches, this is two people on the same mission finding each other. "
-        "Write a squad name of at most 4 words and one sentence that says why these specific people should talk, using what they work on. "
-        "Do not mention reefs, carbon, tokens, or prompts. "
-        "People:\n"
-        + "\n".join(lines)
-        + '\nReturn only JSON: {"name": "...", "icebreaker": "..."}'
-    )
+        builds = str(person.get("builds") or "").strip() or "unspecified"
+        cares = str(person.get("cares") or "").strip() or "unspecified"
+        lines.append(
+            f"- id: {person.get('id')}; name: {person.get('name')}; builds: {builds}; wants the work to care about: {cares}"
+        )
+    return "\n".join(lines)
+
+
+async def _ask_json(prompt: str, label: str) -> dict | None:
+    if not settings.xai_api_key:
+        return None
     try:
         async with httpx.AsyncClient(timeout=12) as client:
             response = await client.post(
@@ -239,18 +236,82 @@ async def icebreaker(people: list[dict]) -> dict | None:
                     "Authorization": f"Bearer {settings.xai_api_key}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "model": settings.grok_model,
-                    "input": prompt,
-                },
+                json={"model": settings.grok_model, "input": prompt},
             )
         if response.status_code >= 400:
-            logger.warning("Grok icebreaker failed: %s", response.status_code)
+            logger.warning("Grok %s failed: %s", label, response.status_code)
             return None
-        return _parse_json_object(_output_text(response.json()))
+        return _json_object(_output_text(response.json()))
     except (httpx.HTTPError, json.JSONDecodeError) as exc:
-        logger.warning("Grok icebreaker error: %s", exc)
+        logger.warning("Grok %s error: %s", label, exc)
         return None
+
+
+def _connection_fields(data: dict) -> dict | None:
+    shared = str(data.get("shared", "")).strip()
+    distinct = str(data.get("distinct", "")).strip()
+    if not shared or not distinct:
+        return None
+    result = {"shared": shared[:240], "distinct": distinct[:240]}
+    name = str(data.get("name", "")).strip()
+    closing = str(data.get("closing", "")).strip()
+    if name:
+        result["name"] = name[:48]
+    if closing:
+        result["closing"] = closing[:280]
+    return result
+
+
+async def match_table(people: list[dict]) -> list[dict] | None:
+    if not settings.xai_api_key or len(people) < 2:
+        return None
+    prompt = (
+        "Pair these people for a short collaboration. Use every id exactly once. "
+        "Make groups of 2. If one person is left, add them to a group so it has 3. "
+        "Put people together when their answers overlap and each still knows something the other does not. "
+        "For each group write a name of at most 4 words, one sentence on what they share, "
+        "and one sentence on what only one of them brings. Use their words. "
+        "Do not sort them into opposing camps. Do not mention reefs, carbon, tokens, or prompts.\n"
+        f"People:\n{_people_lines(people)}\n"
+        'Return only JSON: {"squads": [{"playerIds": ["id"], "name": "...", "shared": "...", "distinct": "..."}]}'
+    )
+    data = await _ask_json(prompt, "match")
+    if not data:
+        return None
+    raw = data.get("squads")
+    if not isinstance(raw, list):
+        return None
+    squads = []
+    for item in raw:
+        if not isinstance(item, dict):
+            return None
+        ids = item.get("playerIds")
+        fields = _connection_fields(item)
+        if not isinstance(ids, list) or not fields:
+            return None
+        clean_ids = [str(player_id).strip() for player_id in ids if str(player_id).strip()]
+        if not clean_ids:
+            return None
+        squads.append({"playerIds": clean_ids, **fields})
+    return squads or None
+
+
+async def describe_pair(people: list[dict]) -> dict | None:
+    if not settings.xai_api_key or not people:
+        return None
+    prompt = (
+        "These two people have to find each other in a room, then work together. "
+        "Write one sentence on what they share, one sentence on what only one of them brings, "
+        "and one question they should ask each other out loud about the environment after the task. "
+        "Use what they build and what they care about. "
+        "Do not mention reefs, carbon, tokens, or prompts.\n"
+        f"People:\n{_people_lines(people)}\n"
+        'Return only JSON: {"shared": "...", "distinct": "...", "closing": "..."}'
+    )
+    data = await _ask_json(prompt, "connection")
+    if not data:
+        return None
+    return _connection_fields(data)
 
 
 def _json_object(text: str) -> dict | None:
@@ -264,17 +325,6 @@ def _json_object(text: str) -> dict | None:
     except json.JSONDecodeError:
         return None
     return data if isinstance(data, dict) else None
-
-
-def _parse_json_object(text: str) -> dict | None:
-    data = _json_object(text)
-    if not data:
-        return None
-    name = str(data.get("name", "")).strip()
-    line = str(data.get("icebreaker", "")).strip()
-    if not name or not line:
-        return None
-    return {"name": name[:48], "icebreaker": line[:240]}
 
 
 async def imagine(kind: str, actor: str) -> str | None:

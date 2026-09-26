@@ -33,12 +33,19 @@ export type Thread = {
   messages: ChatMessage[];
 };
 
+export type Piece = {
+  role: string;
+  title: string;
+  body: string;
+};
+
 export type Player = {
   id: string;
   name: string;
   language: string;
-  lane: string;
-  focus: string;
+  builds: string;
+  cares: string;
+  piece: Piece | null;
   squadId: string | null;
   score: number;
   lastGrade: Grade | null;
@@ -51,7 +58,10 @@ export type Squad = {
   name: string;
   playerIds: string[];
   memberNames: string[];
-  kind: string;
+  shared: string;
+  distinct: string;
+  creature: string;
+  closing: string;
   icebreaker: string;
   prompt: string;
   promptAuthorId: string | null;

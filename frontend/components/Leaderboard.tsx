@@ -1,5 +1,5 @@
 import { GradeBadge } from "@/components/GradeBadge";
-import { kindLabel, personLine } from "@/lib/connection";
+import { personLine } from "@/lib/connection";
 import type { GameSession, Player } from "@/lib/types";
 
 export function Leaderboard({ session, compact = false }: { session: GameSession; compact?: boolean }) {
@@ -14,9 +14,9 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
               .filter((player): player is Player => Boolean(player));
             return {
               id: squad.id,
-              name: `${kindLabel(squad.kind)} · ${squad.memberNames.join(" · ")}`,
-              detail: members.map((player) => personLine(player.lane, player.focus)).join("  ×  "),
-              why: squad.icebreaker,
+              name: squad.creature || squad.name || squad.memberNames.join(" · "),
+              detail: members.map((player) => personLine(player.builds, player.cares)).join("  ×  "),
+              why: [squad.shared, squad.distinct].filter(Boolean).join(" "),
               score: squad.score,
               grade: squad.lastGrade,
             };
@@ -26,7 +26,7 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
           .map((player) => ({
             id: player.id,
             name: player.name,
-            detail: personLine(player.lane, player.focus),
+            detail: personLine(player.builds, player.cares),
             why: "Waiting to be matched.",
             score: player.score,
             grade: player.lastGrade,
@@ -36,7 +36,7 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
         .map((player) => ({
           id: player.id,
           name: player.name,
-          detail: personLine(player.lane, player.focus),
+          detail: personLine(player.builds, player.cares),
           why: "",
           score: player.score,
           grade: player.lastGrade,
@@ -49,7 +49,7 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
         <h2>{connecting ? "Who's connecting" : "Carbon efficiency"}</h2>
         <p>
           {connecting
-            ? "A bridge pairs a climate engineer with a software engineer. Same mission pairs two people who already share the work."
+            ? "Same animal, same pair. Find that person in the room."
             : "Higher means the model did less extra work."}
         </p>
       </header>
