@@ -67,10 +67,8 @@ export default function HomePage() {
                 />
               </label>
               <button className="btn" type="submit" disabled={!code}>Join the reef</button>
-              <a className="hero-more" href="#explain">How the booth works</a>
             </form>
           </section>
-          <p className="scene-caption">The code is on the laptop at the booth.</p>
         </div>
 
         <section className="explain" id="explain" aria-labelledby="explain-title">

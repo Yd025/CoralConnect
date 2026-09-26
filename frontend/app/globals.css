@@ -191,11 +191,19 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
   padding: 10px 12px;
 }
 
-.landing { min-height: 100dvh; }
-.landing .shell { width: min(1240px, calc(100% - 56px)); padding-top: 22px; padding-bottom: 72px; }
+body:has(.landing) { height: 100dvh; overflow: hidden; }
+.landing { height: 100dvh; overflow: hidden; }
+.landing .shell {
+  width: min(1240px, calc(100% - 56px));
+  height: 100%;
+  padding: 16px 0 14px;
+  display: flex;
+  flex-direction: column;
+}
 .landing-ui { position: relative; z-index: 2; }
 .landing-stage {
-  min-height: calc(100dvh - 22px);
+  min-height: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -241,14 +249,14 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
   padding: 8px 14px;
 }
 .landing .hero {
-  max-width: 36rem;
+  max-width: 34rem;
   margin: 0;
-  padding: 0 0 6vh;
+  padding: 0;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding-top: 9vh;
+  justify-content: center;
 }
 .hero-kicker {
   display: flex;
@@ -268,7 +276,7 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .landing h1 {
   font-family: var(--font-sans), "Avenir Next", sans-serif;
   font-weight: 650;
-  font-size: clamp(4.4rem, 7.5vw, 6.8rem);
+  font-size: clamp(3.2rem, 5.6vw, 5.2rem);
   line-height: 0.9;
   letter-spacing: -0.048em;
   color: #f7fbff;
@@ -276,17 +284,17 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 .landing .lede {
   color: rgba(214, 232, 238, 0.78);
-  font-size: 1.05rem;
-  line-height: 1.45;
+  font-size: 1rem;
+  line-height: 1.4;
   max-width: 32rem;
-  margin: 18px 0 0;
+  margin: 12px 0 0;
 }
 .hero-join {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-top: 26px;
+  margin-top: 16px;
 }
 .hero-code {
   display: flex;
@@ -314,23 +322,19 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .hero-code input:focus { outline: none; }
 .hero-join .btn { padding: 14px 22px; box-shadow: 0 10px 28px rgba(8, 40, 56, 0.28); }
 .hero-more { color: rgba(244, 251, 255, 0.78); text-decoration: none; font-size: 0.95rem; }
-.scene-caption {
-  margin: 0;
-  color: rgba(231, 246, 242, 0.66);
+.scene-caption { display: none; }
+.landing .explain { margin-top: 8px; position: relative; }
+.landing .explain h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-sans), "Avenir Next", sans-serif;
   font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: 0;
 }
-.landing .explain { margin-top: 12vh; position: relative; }
-.landing .explain::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  left: -8vw;
-  right: -8vw;
-  top: -48px;
-  bottom: -80px;
-  background: linear-gradient(180deg, transparent, rgba(3, 16, 26, 0.9) 16%);
-  pointer-events: none;
-}
+.landing .steps { gap: 10px; }
+.landing .steps .panel { padding: 12px 14px; border-radius: 16px; }
+.landing .steps h3 { font-size: 1rem; }
+.landing .steps p:last-child { font-size: 0.88rem; line-height: 1.35; }
 .btn-warm { background: var(--sand); color: #2a2114; }
 .ambient-vignette {
   position: absolute;
@@ -389,12 +393,12 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .ambient-parallax.cast-whale { top: 7%; left: 56%; }
 .ambient-parallax.cast-turtle { top: 32%; left: 52%; }
 .ambient-parallax.cast-tang { top: 50%; left: 58%; }
-.ambient-parallax.cast-octopus { top: 58%; left: 38%; }
-.ambient-parallax.cast-crab { top: 68%; left: 15%; }
-.ambient-parallax.cast-coral { top: auto; bottom: 3%; left: 2%; }
-.ambient-parallax.cast-star { top: auto; bottom: 16%; left: 20%; }
-.ambient-parallax.cast-shell { top: auto; bottom: 18%; left: 70%; }
-.ambient-parallax.cast-kelp { top: auto; bottom: 1%; left: auto; right: 0; }
+.ambient-parallax.cast-octopus { top: 50%; left: 38%; }
+.ambient-parallax.cast-crab { top: 58%; left: 14%; }
+.ambient-parallax.cast-coral { top: auto; bottom: 18%; left: 1%; }
+.ambient-parallax.cast-star { top: auto; bottom: 22%; left: 18%; }
+.ambient-parallax.cast-shell { top: auto; bottom: 24%; left: 72%; }
+.ambient-parallax.cast-kelp { top: auto; bottom: 16%; left: auto; right: 0; }
 @keyframes scene-drift {
   0%, 100% { transform: translate3d(-12px, 5px, 0); }
   50% { transform: translate3d(16px, -8px, 0); }
@@ -668,10 +672,16 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 @media (max-width: 860px) {
   .hero, .admin-grid, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
   .landing .shell { width: min(100% - 28px, 1240px); }
-  .landing-top { display: flex; flex-wrap: wrap; }
-  .landing-nav { order: 3; width: 100%; gap: 18px; }
+  .landing-top { display: flex; flex-wrap: nowrap; }
+  .landing-nav { display: none; }
   .landing-tools span { display: none; }
-  .landing h1 { font-size: clamp(3.3rem, 14vw, 4.6rem); }
+  .landing h1 { font-size: clamp(2.5rem, 11vw, 3.4rem); }
+  .landing .lede { font-size: 0.9rem; }
+  .landing .steps { grid-template-columns: repeat(3, 1fr); }
+  .landing .steps .panel { padding: 8px 8px; }
+  .landing .steps h3 { font-size: 0.78rem; }
+  .landing .steps .eyebrow { display: none; }
+  .landing .steps p:last-child { font-size: 0.68rem; }
   .ambient-parallax.cast-whale { left: 46%; top: 8%; }
   .cast-whale img { width: 190px; }
   .ambient-parallax.cast-turtle { left: 52%; top: 28%; }
