@@ -82,6 +82,22 @@ function Cast({ src, flip }: { src: string; flip?: boolean }) {
   return <img className={flip ? "cast-art cast-flip" : "cast-art"} src={src} alt="" />;
 }
 
+function School({ flip, size, spots }: { flip?: boolean; size: number; spots: { x: number; y: number }[] }) {
+  return (
+    <span className="school">
+      {spots.map((spot, index) => (
+        <img
+          key={index}
+          className={flip ? "cast-art cast-flip school-fish" : "cast-art school-fish"}
+          src="/reef/04-pip-fish.svg"
+          alt=""
+          style={{ left: spot.x, top: spot.y, width: size }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function Mote({ size }: { size: number }) {
   return (
     <svg className="drifter-fish" width={size} height={size} viewBox="0 0 16 16">
@@ -167,13 +183,51 @@ export function AnimatedBackground() {
           <Cast src="/reef/06-winnie-whale.svg" flip />
         </Lane>
         <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={30} delay={-9}>
-          <Cast src="/reef/02-moss-turtle.svg" flip />
+          <Cast src="/reef/02-moss-turtle.svg" />
         </Lane>
         <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={22} delay={-7}>
           <Cast src="/reef/04-pip-fish.svg" flip />
         </Lane>
         <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={16} delay={-3} reverse>
           <Cast src="/reef/04-pip-fish.svg" />
+        </Lane>
+        <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={19} delay={-5}>
+          <School
+            flip
+            size={62}
+            spots={[
+              { x: 0, y: 8 },
+              { x: 46, y: -10 },
+              { x: 52, y: 26 },
+              { x: 96, y: 4 },
+              { x: 108, y: 30 },
+            ]}
+          />
+        </Lane>
+        <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={15} delay={-8} reverse>
+          <School
+            size={54}
+            spots={[
+              { x: 0, y: 6 },
+              { x: 40, y: -14 },
+              { x: 44, y: 24 },
+              { x: 82, y: 2 },
+            ]}
+          />
+        </Lane>
+        <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={26} delay={-12}>
+          <School
+            flip
+            size={48}
+            spots={[
+              { x: 0, y: 10 },
+              { x: 36, y: -6 },
+              { x: 34, y: 28 },
+              { x: 70, y: 8 },
+              { x: 78, y: 32 },
+              { x: 104, y: 0 },
+            ]}
+          />
         </Lane>
         <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={40} delay={-16} reverse>
           <Cast src="/reef/05-otto-octopus.svg" />
