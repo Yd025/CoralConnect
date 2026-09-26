@@ -31,6 +31,7 @@ export type Thread = {
   step: number;
   done: boolean;
   turnLimit: number;
+  cardId?: string;
   messages: ChatMessage[];
 };
 
@@ -188,6 +189,7 @@ export type Health = {
   imagesEnabled: boolean;
   grokRoles: string[];
   lanIp: string;
+  techDomain?: string;
   formula: {
     energyKwhPer1kTokens: number;
     carbonGramsPerKwh: number;

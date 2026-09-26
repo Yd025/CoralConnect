@@ -108,6 +108,7 @@ def public_thread(thread: Thread) -> dict:
         "step": thread.step,
         "done": thread.done,
         "turnLimit": thread.turn_limit,
+        "cardId": thread.card_id,
         "messages": [{"role": message.role, "content": message.content} for message in thread.messages],
     }
 

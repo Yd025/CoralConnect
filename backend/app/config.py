@@ -57,6 +57,7 @@ class Settings:
     # Append every judged prompt (credentials redacted) to data/judge-log.jsonl,
     # for labeling real prompts into the test set. Off unless JUDGE_LOG=true.
     judge_log: bool = False
+    tech_domain: str = ""
 
 
 def get_settings() -> Settings:
@@ -77,6 +78,7 @@ def get_settings() -> Settings:
         judge_api_key=os.environ.get("JUDGE_API_KEY", "").strip(),
         judge_full_per_minute=_int("JUDGE_FULL_PER_MINUTE", 20),
         judge_log=_flag("JUDGE_LOG", False),
+        tech_domain=os.environ.get("TECH_DOMAIN", "").strip().removeprefix("https://").removeprefix("http://").strip("/"),
     )
 
 

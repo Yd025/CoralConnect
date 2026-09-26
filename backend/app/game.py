@@ -328,12 +328,73 @@ async def join(
     return session, player
 
 
+def _match_score(player: Player, mate: Player) -> int:
+    """Same work counts more than the same care. Zero means they do not overlap."""
+    score = 0
+    if player.builds and player.builds == mate.builds:
+        score += 2
+    if player.cares and player.cares == mate.cares:
+        score += 1
+    return score
+
+
+def _pick_waiter(session: Session, player: Player) -> Squad | None:
+    """Prefer a waiting person who builds or cares about the same thing. Otherwise the one who has waited longest."""
+    waiters = [
+        squad
+        for squad in session.squads
+        if len(squad.player_ids) == 1 and squad.id != REHEARSAL_SQUAD_ID and player.id not in squad.player_ids
+    ]
+    if not waiters:
+        return None
+
+    def rank(squad: Squad) -> tuple[int, float]:
+        mate = next(person for person in session.players if person.id == squad.player_ids[0])
+        return (-_match_score(player, mate), mate.joined_at)
+
+    return min(waiters, key=rank)
+
+
+def _mint_card(session: Session, thread: Thread, squad: Squad | None, player: Player) -> None:
+    """A finished round gets a public card the player can show, and a row on the pair board."""
+    if thread.card_id:
+        return
+    challenge = get_challenge(session.challenge_id)
+    if squad is not None:
+        members = [person for person in session.players if person.id in squad.player_ids]
+        names = [person.name for person in members]
+        detail = "  ×  ".join(
+            f"{person.name} · {person.builds} · {person.cares}".strip(" ·") for person in members
+        )
+        score = squad.score
+        grade = squad.last_grade or ""
+        kind = "collaborate"
+    else:
+        names = [player.name]
+        detail = " · ".join(part for part in (player.builds, player.cares) if part)
+        score = player.score
+        grade = player.last_grade or ""
+        kind = "compete"
+    card_id = _code()
+    while card_id in store.cards or card_id in store.sessions:
+        card_id = _code()
+    store.cards[card_id] = {
+        "id": card_id,
+        "kind": kind,
+        "names": names,
+        "detail": detail,
+        "score": score,
+        "grade": grade,
+        "challenge": challenge.title if challenge else "",
+        "room": session.code,
+        "createdAt": time.time(),
+    }
+    thread.card_id = card_id
+
+
 def _seat_partner(session: Session, player: Player) -> str | None:
-    """Pair this person with whoever is waiting. Returns the squad id once both phones share an animal."""
-    waiting = next(
-        (squad for squad in session.squads if len(squad.player_ids) == 1 and squad.id != REHEARSAL_SQUAD_ID),
-        None,
-    )
+    """Pair this person with a similar waiter. Returns the squad id once both phones share an animal."""
+    waiting = _pick_waiter(session, player)
     if waiting:
         waiting.player_ids.append(player.id)
         player.squad_id = waiting.id
@@ -370,15 +431,13 @@ def _release_partner(session: Session, player_id: str) -> None:
 
 
 async def leave(code: str, player_id: str, player_token: str) -> Session:
+    """A person can walk away during the lobby or the round. A pair's finished card stays on the board."""
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
-        if session.status == "lobby":
-            session.players = [p for p in session.players if p.id != player.id]
-            if session.mode == "collaborate":
-                _release_partner(session, player.id)
-        else:
-            player.connected = False
+        session.players = [p for p in session.players if p.id != player.id]
+        if session.mode == "collaborate":
+            _release_partner(session, player.id)
         _persist(session)
     await _broadcast(session)
     return session
@@ -654,6 +713,8 @@ async def submit(
             player.last_grade = grade
             actor = player.name
             squad_id = None
+        if thread.done:
+            _mint_card(session, thread, squad if session.mode == "collaborate" else None, player)
 
         submission = Submission(
             id=_id("sub"),

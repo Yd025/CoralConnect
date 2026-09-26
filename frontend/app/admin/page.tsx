@@ -2,6 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Leaderboard } from "@/components/Leaderboard";
 import { apiBase, createSession, endSession, getChallenges, getHealth, setChallenge, simulate, startSession } from "@/lib/api";
@@ -16,6 +17,7 @@ const ADMIN_KEY = "coral-admin";
 type SavedAdmin = { code: string; adminToken: string };
 
 export default function AdminPage() {
+  const router = useRouter();
   const { origin, host, updateHost } = useBoothOrigin();
   const [health, setHealth] = useState<Health | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -82,6 +84,12 @@ export default function AdminPage() {
   const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 8 : 10);
   const canStart = session?.mode === "compete" && session.status === "lobby" && roster.length >= playerMin && roster.length <= playerMax;
 
+  useEffect(() => {
+    if (session?.status === "ended" && saved?.code) {
+      router.push(`/compete/${saved.code}`);
+    }
+  }, [router, saved?.code, session?.status]);
+
   return (
     <main className="landing admin-page">
       <AnimatedBackground />
@@ -110,7 +118,7 @@ export default function AdminPage() {
             <p className="hero-kicker"><i />Booth console</p>
             <h1 id="admin-title">Open a compete room.</h1>
             <p className="lede">
-              One round for this room, up to 10 people, started together from here. Pair finding is separate. People open Find a pair on their own phones and wait for someone else.
+              One live round, up to 10 people, each prompting alone. Ending the round opens the top 3. Pair finding is a different screen.
             </p>
             {error ? <p className="error">{error}</p> : null}
             <p className="muted">
@@ -143,7 +151,7 @@ export default function AdminPage() {
 
           <section className="panel stack admin-side">
             {!saved || !session ? (
-              <p className="muted">The QR code shows up here. Phones should be on the same Wi-Fi as this laptop.</p>
+              <p className="muted">The QR code shows up here. It uses the public site, so phones do not need this computer's Wi-Fi.</p>
             ) : (
               <>
                 <div className="code-block">

@@ -12,6 +12,7 @@ class Store:
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or settings.data_path
         self.sessions: dict[str, Session] = {}
+        self.cards: dict[str, dict] = {}
         self.lock = asyncio.Lock()
 
     def load(self) -> None:
@@ -30,12 +31,15 @@ class Store:
             except TypeError:
                 continue
         self.sessions = loaded
+        cards = raw.get("cards") or {}
+        self.cards = cards if isinstance(cards, dict) else {}
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "version": 1,
             "sessions": {code: session.to_dict() for code, session in self.sessions.items()},
+            "cards": self.cards,
         }
         temporary = self.path.with_suffix(self.path.suffix + ".tmp")
         temporary.write_text(json.dumps(payload), encoding="utf-8")

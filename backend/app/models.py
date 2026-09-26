@@ -73,6 +73,7 @@ class Thread:
     score_sum: int = 0
     turns_graded: int = 0
     turn_limit: int = 0
+    card_id: str = ""
 
 
 @dataclass

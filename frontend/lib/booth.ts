@@ -11,9 +11,13 @@ function isLocal(host: string) {
 
 export function originFor(host: string) {
   if (typeof window === "undefined") return "";
+  const hostName = host.replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
+  const isDomain = hostName.includes(".") && !/^\d+(\.\d+){3}$/.test(hostName);
+  const samePage = window.location.hostname === hostName;
+  if (isDomain && !samePage) return `http://${hostName}`;
   const protocol = window.location.protocol;
-  const port = window.location.port ? `:${window.location.port}` : "";
-  return `${protocol}//${host}${port}`;
+  const port = samePage && window.location.port ? `:${window.location.port}` : "";
+  return `${protocol}//${hostName}${port}`;
 }
 
 export function useBoothOrigin() {
@@ -26,7 +30,9 @@ export function useBoothOrigin() {
     getHealth()
       .then((health) => {
         if (cancel) return;
-        const next = saved || (isLocal(window.location.hostname) ? health.lanIp : window.location.hostname);
+        const domain = (health.techDomain || "").replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
+        const savedHost = saved && !isLocal(saved) ? saved : "";
+        const next = domain || savedHost || (isLocal(window.location.hostname) ? health.lanIp : window.location.hostname);
         setHost(next);
         setOrigin(originFor(next));
       })

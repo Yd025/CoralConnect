@@ -9,22 +9,24 @@ from fastapi.testclient import TestClient
 
 from app.carbon import grade_for, reef_band
 from app.models import turns_for_table
-from app.game import _pair
+from app.game import _pair, _pick_waiter
 from app.challenges import CHALLENGES
 from app.grading import add_live_call, grade_prompt
 from app.grok import call_trace, parse_review
 from app.main import app
-from app.models import Player
+from app.models import Player, Session, Squad
 from app.store import store
 
 
 @pytest.fixture(autouse=True)
 def clean_store():
     store.sessions.clear()
+    store.cards.clear()
     if store.path.exists():
         store.path.unlink()
     yield
     store.sessions.clear()
+    store.cards.clear()
 
 
 def test_smaller_tables_get_more_turns():
@@ -573,3 +575,75 @@ def test_submission_carries_a_receipt():
     assert leaked["leaked"] is True
     assert leaked["score"] == 0
     assert leaked["reefDelta"] < 0
+
+
+def test_a_newcomer_pairs_with_the_similar_waiter():
+    session = Session(
+        code="TEST",
+        admin_token="t",
+        mode="collaborate",
+        status="lobby",
+        challenge_id="farm-water",
+        reef_health=100,
+        players=[
+            Player(id="old", token="t", name="Ada", language="Python", builds="Data", cares="Trust", joined_at=1),
+            Player(id="fit", token="t", name="Maya", language="Python", builds="Apps", cares="Planet", joined_at=2),
+        ],
+        squads=[
+            Squad(id="s1", name="Looking", player_ids=["old"], icebreaker=""),
+            Squad(id="s2", name="Looking", player_ids=["fit"], icebreaker=""),
+        ],
+        submissions=[],
+        events=[],
+        created_at=0,
+    )
+    newcomer = Player(id="new", token="t", name="Jordan", language="Python", builds="Apps", cares="Speed", joined_at=3)
+    chosen = _pick_waiter(session, newcomer)
+    assert chosen is not None
+    assert chosen.player_ids == ["fit"]
+
+
+def test_a_player_can_leave_while_the_round_is_running():
+    client = TestClient(app)
+    created = client.post("/api/sessions", json={"mode": "compete", "challengeId": "farm-water"}).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    ada = client.post("/api/sessions/" + code + "/join", json={"name": "Ada", "builds": "Apps", "cares": "Planet"}).json()
+    client.post("/api/sessions/" + code + "/start", headers={"X-Admin-Token": admin})
+    left = client.post(
+        f"/api/sessions/{code}/leave",
+        json={"playerId": ada["player"]["id"], "playerToken": ada["playerToken"]},
+    )
+    assert left.status_code == 200
+    assert left.json()["session"]["players"] == []
+
+
+def test_a_finished_pair_lands_on_the_board_and_the_share_card():
+    client = TestClient(app)
+    created = client.post("/api/sessions", json={"mode": "collaborate", "challengeId": "null-profile"}).json()
+    code = created["session"]["code"]
+    client.post("/api/sessions/" + code + "/join", json={"name": "Maya", "builds": "Apps", "cares": "Planet"})
+    second = client.post(
+        "/api/sessions/" + code + "/join",
+        json={"name": "Jordan", "builds": "Systems", "cares": "Planet"},
+    ).json()
+    limit = second["session"]["turnsAllowed"]
+    token = second["playerToken"]
+    player_id = second["player"]["id"]
+    prompt = "AccountHeader reads profile.user.name while the request is still in flight."
+    last = None
+    for _ in range(limit):
+        last = client.post(
+            f"/api/sessions/{code}/submit",
+            json={"playerId": player_id, "playerToken": token, "prompt": prompt},
+        )
+        assert last.status_code == 200
+    thread = last.json()["session"]["threads"][0]
+    assert thread["done"] is True
+    assert thread["cardId"]
+    card = client.get(f"/api/cards/{thread['cardId']}")
+    assert card.status_code == 200
+    assert card.json()["card"]["kind"] == "collaborate"
+    assert card.json()["card"]["names"] == ["Maya", "Jordan"] or set(card.json()["card"]["names"]) == {"Maya", "Jordan"}
+    board = client.get("/api/pairs").json()["pairs"]
+    assert board[0]["id"] == thread["cardId"]

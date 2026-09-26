@@ -73,6 +73,26 @@ export function joinSession(code: string, name: string, builds: string, cares: s
   );
 }
 
+export type ResultCard = {
+  id: string;
+  kind: Mode;
+  names: string[];
+  detail: string;
+  score: number;
+  grade: string;
+  challenge: string;
+  room: string;
+  createdAt: number;
+};
+
+export function getCard(id: string) {
+  return request<{ card: ResultCard }>(`/api/cards/${encodeURIComponent(id)}`);
+}
+
+export function getPairs() {
+  return request<{ pairs: ResultCard[] }>("/api/pairs");
+}
+
 export function leaveSession(code: string, identity: Identity) {
   return request<{ session: GameSession }>(`/api/sessions/${code}/leave`, {
     method: "POST",

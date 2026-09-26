@@ -50,27 +50,35 @@ export default function HomePage() {
             <p className="hero-kicker"><i />A Marina’s Mission</p>
             <h1 id="hero-title">The hidden<br />cost.</h1>
             <p className="lede">
-              CoralConnect is a HackGT booth game. A thin prompt makes the model search the web, and that lookup is the carbon cost. Include the source, and the shared reef shows the difference.
+              Join a live competition, or find a pair and play on your own.
             </p>
-            <p className="hero-links">
-              <a className="btn" href="/collaborate">Find a pair</a>
-            </p>
-            <form id="join" className="hero-join" onSubmit={join}>
-              <label className="hero-code" htmlFor="game-code">
-                <span>Booth code</span>
-                <input
-                  id="game-code"
-                  value={code}
-                  onChange={(event) => setCode(sanitizeCode(event.target.value))}
-                  maxLength={CODE_LIMIT}
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="CODE"
-                />
-              </label>
-              <button className="btn" type="submit" disabled={!code}>Join the reef</button>
-            </form>
+            <div className="choice-grid">
+              <form id="join" className="panel stack choice" onSubmit={join}>
+                <p className="eyebrow">1</p>
+                <h2>Join a competition</h2>
+                <p className="muted">Enter the code from the competition screen. You prompt on your own. Up to 10 people.</p>
+                <label htmlFor="game-code">
+                  Competition code
+                  <input
+                    id="game-code"
+                    value={code}
+                    onChange={(event) => setCode(sanitizeCode(event.target.value))}
+                    maxLength={CODE_LIMIT}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="CODE"
+                  />
+                </label>
+                <button className="btn" type="submit" disabled={!code}>Join competition</button>
+              </form>
+              <a className="panel stack choice" href="/collaborate">
+                <p className="eyebrow">2</p>
+                <h2>Find a pair</h2>
+                <p className="muted">A two-tap questionnaire, then a partner who is already waiting. No code. You can play more than once.</p>
+                <span className="btn">Find a pair</span>
+              </a>
+            </div>
           </section>
         </div>
 

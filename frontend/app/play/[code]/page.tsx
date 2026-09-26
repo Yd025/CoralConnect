@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LiveVerdict } from "@/components/LiveVerdict";
@@ -14,6 +14,7 @@ import type { Identity, ReefBand, Submission, Thread } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
 
 export default function PlayPage() {
+  const router = useRouter();
   const params = useParams<{ code: string }>();
   const code = String(params.code || "").toUpperCase();
   const { session, connected, error, sendDraft, ingest } = useSession(code);
@@ -122,6 +123,19 @@ export default function PlayPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function leaveRoom(next: string) {
+    if (!identity) return;
+    try {
+      const data = await leaveSession(code, identity);
+      ingest(data.session);
+    } catch {
+      // The room may already have dropped this phone. Still send them on.
+    }
+    window.localStorage.removeItem(storageKey(code));
+    setIdentity(null);
+    router.push(next);
   }
 
   function onPrompt(value: string) {
@@ -242,16 +256,8 @@ export default function PlayPage() {
               <div className="chat-msg is-grok">
                 <span className="chat-msg__who">Grok</span>
                 <p>You're in, {identity.name}. This round starts when the table says go. {roster.length} of {playerMax} here.</p>
-                <button
-                  className="btn-ghost"
-                  type="button"
-                  onClick={() => {
-                    void leaveSession(code, identity).then((data) => ingest(data.session));
-                    window.localStorage.removeItem(storageKey(code));
-                    setIdentity(null);
-                  }}
-                >
-                  Leave lobby
+                <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
+                  Leave
                 </button>
               </div>
             ) : null}
@@ -276,7 +282,9 @@ export default function PlayPage() {
             {identity && session.status === "playing" && thread?.done ? (
               <div className="chat-msg is-grok">
                 <span className="chat-msg__who">Grok</span>
-                <p>This thread is closed. Your turns are on the reef.</p>
+                <p>This round is finished. Save the card, or leave the room.</p>
+                {thread.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
+                <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>Leave</button>
               </div>
             ) : null}
 
@@ -306,6 +314,7 @@ export default function PlayPage() {
               <button className="btn" disabled={busy || !prompt.trim()} type="submit">
                 {busy ? "Sending" : "Send"}
               </button>
+              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>Leave</button>
               <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
               <LiveVerdict
                 prompt={prompt}
@@ -399,16 +408,8 @@ export default function PlayPage() {
               <h2>You're in, {identity.name}.</h2>
               <p>This is one round for the room, up to 10 people. It starts when the table says go.</p>
               <p className="muted">{roster.length} of {playerMax} here.</p>
-              <button
-                className="btn-ghost"
-                type="button"
-                onClick={() => {
-                  void leaveSession(code, identity).then((data) => ingest(data.session));
-                  window.localStorage.removeItem(storageKey(code));
-                  setIdentity(null);
-                }}
-              >
-                Leave lobby
+              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
+                Leave
               </button>
             </section>
           ) : null}
@@ -435,19 +436,9 @@ export default function PlayPage() {
               {squad?.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
                 <p className="muted">Your pair just changed the prompt.</p>
               ) : null}
-              {session.status === "lobby" ? (
-                <button
-                  className="btn-ghost"
-                  type="button"
-                  onClick={() => {
-                    void leaveSession(code, identity).then((data) => ingest(data.session));
-                    window.localStorage.removeItem(storageKey(code));
-                    setIdentity(null);
-                  }}
-                >
-                  Leave lobby
-                </button>
-              ) : null}
+              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
+                Leave
+              </button>
             </section>
           ) : null}
 
@@ -455,11 +446,21 @@ export default function PlayPage() {
             <section className="panel beacon">
               <p className="eyebrow">Talk about the environment</p>
               <p>{squad.closing}</p>
+              {thread?.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
+              {thread?.done ? (
+                <button className="btn" type="button" onClick={() => void leaveRoom("/collaborate")}>
+                  Find another pair
+                </button>
+              ) : null}
             </section>
           ) : null}
 
-          {identity && session.status === "playing" && thread?.done && session.mode !== "collaborate" ? (
-            <p className="panel">This thread is closed. Your turns are on the reef.</p>
+          {identity && thread?.done && session.mode !== "collaborate" ? (
+            <section className="panel stack">
+              <p>This round is finished. Save the card, or leave the room.</p>
+              {thread.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
+              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>Leave</button>
+            </section>
           ) : null}
 
           {identity && canPlay && !thread?.done ? (

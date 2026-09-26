@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "workgate": {
+      "command": "python3",
+      "args": ["${workspaceFolder}/backend/workgate_mcp.py"]
+    }
+  }
+}

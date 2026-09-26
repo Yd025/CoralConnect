@@ -100,6 +100,7 @@ def health() -> dict:
             "pair people from what they build and what they want the work to care about",
         ],
         "lanIp": game.lan_ip(),
+        "techDomain": settings.tech_domain,
         "formula": FORMULA,
         "judge": {
             "endpoint": "/api/judge",
@@ -166,6 +167,21 @@ async def judge_prompt(body: JudgeBody, x_judge_key: str = Header(default="")):
 @app.get("/api/challenges")
 def challenges() -> dict:
     return {"challenges": public_challenges()}
+
+
+@app.get("/api/cards/{card_id}")
+def read_card(card_id: str):
+    card = store.cards.get(card_id.upper())
+    if card is None:
+        return JSONResponse({"error": "No saved result with that link."}, status_code=404)
+    return {"card": card}
+
+
+@app.get("/api/pairs")
+def pair_board():
+    rows = [card for card in store.cards.values() if card.get("kind") == "collaborate"]
+    rows.sort(key=lambda card: card.get("createdAt") or 0, reverse=True)
+    return {"pairs": rows}
 
 
 @app.get("/api/collaborate")
