@@ -72,27 +72,27 @@ function Lane({
           ["--fade" as string]: 1,
         }}
       >
-        <span className="avoid">{children}</span>
+        {children}
       </span>
     </div>
   );
 }
 
 function Cast({ src, flip }: { src: string; flip?: boolean }) {
-  return <img className={flip ? "cast-art cast-flip" : "cast-art"} src={src} alt="" />;
+  return (
+    <span className="avoid">
+      <img className={flip ? "cast-art cast-flip" : "cast-art"} src={src} alt="" />
+    </span>
+  );
 }
 
 function School({ flip, size, spots }: { flip?: boolean; size: number; spots: { x: number; y: number }[] }) {
   return (
     <span className="school">
       {spots.map((spot, index) => (
-        <img
-          key={index}
-          className={flip ? "cast-art cast-flip school-fish" : "cast-art school-fish"}
-          src="/reef/04-pip-fish.svg"
-          alt=""
-          style={{ left: spot.x, top: spot.y, width: size }}
-        />
+        <span key={index} className="avoid school-fish" style={{ left: spot.x, top: spot.y, width: size }}>
+          <img className={flip ? "cast-art cast-flip" : "cast-art"} src="/reef/04-pip-fish.svg" alt="" />
+        </span>
       ))}
     </span>
   );
@@ -137,21 +137,21 @@ export function AnimatedBackground() {
         let dx = cx - point.cx;
         let dy = cy - point.cy;
         let dist = Math.hypot(dx, dy);
-        const reach = Math.max(box.width, box.height) * 0.45 + 140;
+        const clear = Math.min(box.width, box.height) * 0.34 + 120;
         let tx = 0;
         let ty = 0;
-        if (point.inside && dist < reach) {
+        if (point.inside && dist < clear) {
           if (dist < 1) {
             dx = 0;
             dy = -1;
             dist = 1;
           }
-          const push = (1 - dist / reach) * 150;
+          const push = clear - dist;
           tx = (dx / dist) * push;
           ty = (dy / dist) * push;
         }
-        state.x += (tx - state.x) * 0.18;
-        state.y += (ty - state.y) * 0.18;
+        state.x += (tx - state.x) * 0.62;
+        state.y += (ty - state.y) * 0.62;
         if (Math.hypot(state.x, state.y) > 0.6 || Math.hypot(tx, ty) > 0.6) settling = true;
         dodge.set(el, state);
         el.style.setProperty("--dodge-x", `${state.x.toFixed(1)}px`);
