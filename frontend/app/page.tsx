@@ -73,10 +73,10 @@ export default function HomePage() {
                 <button className="btn" type="submit" disabled={!code}>Join this compete room</button>
               </form>
               <a className="panel stack choice" href="/collaborate">
-                <p className="eyebrow">Pair</p>
-                <h2>You don’t have a code</h2>
-                <p className="muted">Two questions, then a partner who is already waiting. You can play more than once.</p>
-                <span className="btn btn-warm">Answer two questions</span>
+                <p className="eyebrow">Together</p>
+                <h2>Work with a partner</h2>
+                <p className="muted">Two questions, then someone who is already waiting. You share one prompt, and you can play more than once.</p>
+                <span className="btn btn-warm">Work with a partner</span>
               </a>
             </div>
           </section>
