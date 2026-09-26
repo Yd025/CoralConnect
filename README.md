@@ -24,9 +24,9 @@ HackGT allows any number of sponsor challenges alongside the one main track. We 
 
 ### Meta — Bringing People Closer Together with AI
 
-Collaborate mode is the connection. Each person joins as a climate engineer or a software engineer and writes what they actually work on. When the round starts, the table pairs a climate engineer with a software engineer. That pair is labeled **Bridge**. If the table is all one lane, those people pair with each other and the label is **Same mission**. The big screen and both phones show the label, each person’s work, and a sentence on why these two should talk. With a Grok key, that sentence is written from what they typed. They then share one message and one score, so the match becomes a conversation. Compete mode stays the solo contrast.
+Collaborate mode is the connection. Each person taps two words: what they build and what they care about. Collaborate is pairs of two. The next person in shares your animal, and both phones say the name so you have to find each other in the room. With a Grok key, the phone also says what you share, so you can be sure you have the right person. Each phone then holds a different piece of the same challenge. When the round ends, the pair stays and talks about the environment. Compete mode stays the solo contrast, with the full source on one phone.
 
-Devpost needs a public repo, a 2–3 minute demo video, and a short note on who it is for, how it strengthens connection, and why AI is required. Who it is for: hackathon attendees who would otherwise sit next to a stranger and never learn what that person builds. Connection: a bridge puts a climate engineer in the same thread as a general software engineer; same mission puts two climate engineers, or two software engineers, onto each other. AI is required because it reads those two lines of work and names the specific reason this pair should keep talking. The shared prompt is the excuse to do it out loud.
+Devpost needs a public repo, a 2–3 minute demo video, and a short note on who it is for, how it strengthens connection, and why AI is required. Who it is for: hackathon attendees who would otherwise sit next to a stranger and never learn what that person builds. Connection: the questionnaire gives them a reason to talk, and the split challenge gives them something they can only finish together. AI is required because it reads those two answers and names the specific overlap. Roleplay challenges use the same piece format: each character gets a fact the other does not have.
 
 ### SpaceXAI — Make it Legendary
 
@@ -54,7 +54,7 @@ AI burns energy when a thin prompt makes the model look the answer up on the web
 
 For A Marina’s Mission, every missing source is charged as a web lookup, about 1,200 tokens, and the reef wilts. Include the function, the error, or the header, and the model does no extra search.
 
-For Meta, each person says whether they build for the climate and what they work on. The booth then shows a bridge or a same-mission pair, and they have to agree on the prompt together.
+For Meta, two phones show the same animal. Those two people find each other in the room, solve one challenge together, and then talk about the environment.
 
 For SpaceXAI, Grok writes the reply and Grok Imagine paints the reward when the prompt was adequate.
 
@@ -85,7 +85,7 @@ That publishes the site on port 3000 and the carbon engine on port 8080. Open [h
 
 Source edits in `backend/app`, `frontend/app`, `frontend/components`, `frontend/lib`, and `frontend/public` show up without a rebuild. Game state is kept in the `coral-data` volume.
 
-1. Pick **Collaborate** (match climate engineers with software engineers, or people on the same mission) or **Compete** (everyone writes alone).
+1. Pick **Collaborate** (two short answers, then a shared prompt where each phone has a different piece) or **Compete** (everyone writes alone).
 2. Pick a challenge and create the game.
 3. Open the main stage on the laptop monitor.
 4. The QR code is the join link. If it points at `localhost`, change **Phone link host** to this computer's Wi-Fi address. Phones have to be on the same network, and macOS may ask to allow incoming connections for Node and Python.
@@ -140,7 +140,7 @@ If a file is missing, the screen uses the drawing in `frontend/components/reef/F
 
 Each challenge is a two-step debugging thread. The phone shows a real file or log. The message has to include the fact the model would otherwise search for. After the model answers, a second failure lands, and that follow-up needs its own source. A vague message charges about 1,200 lookup tokens and wilts the reef. Including the source charges none.
 
-Collaborate: when the host presses **Start round**, a climate engineer is paired with a software engineer first. That squad is a bridge. People left on the same lane pair with each other. That squad is same mission. With a Grok key, each squad gets a name and a sentence about why these two should talk, using what they wrote. Both phones edit the current message. Either person can submit. The squad shares one score.
+Collaborate: the room holds up to 8 people, in pairs of 2. When the second person of a pair joins, both phones show the same animal, such as Seagull. They find each other by that name. With a Grok key, the phone adds what those two share and a question about the environment for the end of the round. Each phone gets a different piece of the turn, and the shared message has to include both. Either person can submit. The pair shares one score. An odd person keeps waiting. A finished pair does not wait for the rest of the room. Compete is still one round for up to 10 people, started together from the admin page. Roleplay challenges add a `Part` per character in `backend/app/challenges.py`.
 
 Compete: each phone has its own thread. The reef is still shared.
 

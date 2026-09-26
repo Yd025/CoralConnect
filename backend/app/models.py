@@ -12,7 +12,7 @@ def _take(cls, data: dict[str, Any]):
 def player_bounds(mode: str) -> tuple[int, int]:
     """Inclusive roster size for a mode. Rehearsal players do not count."""
     if mode == "collaborate":
-        return 2, 4
+        return 2, 8
     return 1, 10
 
 
@@ -27,8 +27,8 @@ class Player:
     last_grade: str | None = None
     connected: bool = True
     joined_at: float = 0
-    lane: str = "general"
-    focus: str = ""
+    builds: str = ""
+    cares: str = ""
 
 
 @dataclass
@@ -42,7 +42,10 @@ class Squad:
     prompt_updated_at: float = 0
     score: int = 0
     last_grade: str | None = None
-    kind: str = "same_mission"
+    shared: str = ""
+    distinct: str = ""
+    creature: str = ""
+    closing: str = ""
 
 
 @dataclass

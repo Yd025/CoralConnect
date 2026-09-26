@@ -51,6 +51,10 @@ export function getChallenges(): Promise<{ challenges: GameSession["challenge"][
   return request("/api/challenges");
 }
 
+export function openCollaborate() {
+  return request<{ session: GameSession }>("/api/collaborate");
+}
+
 export function createSession(mode: Mode, challengeId: string) {
   return request<{ adminToken: string; session: GameSession }>("/api/sessions", {
     method: "POST",
@@ -62,10 +66,10 @@ export function getSession(code: string): Promise<GameSession> {
   return request<{ session: GameSession }>(`/api/sessions/${code}`).then((data) => data.session);
 }
 
-export function joinSession(code: string, name: string, lane: string, focus: string) {
+export function joinSession(code: string, name: string, builds: string, cares: string) {
   return request<{ playerToken: string; player: { id: string; name: string }; session: GameSession }>(
     `/api/sessions/${code}/join`,
-    { method: "POST", body: JSON.stringify({ name, lane, focus }) },
+    { method: "POST", body: JSON.stringify({ name, builds, cares }) },
   );
 }
 
