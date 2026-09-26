@@ -185,6 +185,10 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .meter.warn b { background: var(--warn); }
 .meter.bad b { background: var(--bad); }
 .result { display: grid; gap: 8px; }
+.result .btn-ghost, .thread-log .btn-ghost, .reef__ai .btn-ghost { justify-self: start; }
+.result-details { display: grid; gap: 8px; }
+.reef__ai-details { margin-top: 8px; display: grid; gap: 8px; }
+.reef__ai-details p { margin: 0; }
 .fixture, .thread-log p {
   margin: 0;
   white-space: pre-wrap;

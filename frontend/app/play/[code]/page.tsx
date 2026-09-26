@@ -310,7 +310,11 @@ export default function PlayPage() {
                     Message to Grok
                     <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
                   </label>
-                  {shown?.aiResponse ? <p className="grok-card__reply">{shown.aiResponse}</p> : null}
+                  {shown ? (
+                    <p className="grok-card__reply">
+                      {shown.reasonable ? "Grok answered without a search." : "Grok had to search. The grade is below."}
+                    </p>
+                  ) : null}
                 </section>
               ) : (
                 <label>
@@ -335,26 +339,7 @@ export default function PlayPage() {
 
           {session.status === "ended" ? <p className="panel">This round is over. Check the big screen for the reef you left behind.</p> : null}
 
-          {shown ? (
-            <section className="panel result">
-              <div className="code-block">
-                <GradeBadge grade={shown.grade} />
-                <strong>{shown.score}</strong>
-              </div>
-              <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
-                {shown.reasonable ? "Reasonable prompt" : "Too much work"}
-              </p>
-              <p>{shown.verdictReason || shown.summary}</p>
-              {shown.judgedByModel ? (
-                <p className="muted">A second Grok call read the solver request and graded this prompt.</p>
-              ) : null}
-              {shown.serverSideTools > 0 ? (
-                <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
-              ) : null}
-              <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
-              <pre>{shown.aiResponse}</pre>
-            </section>
-          ) : null}
+          {shown ? <ResultCard shown={shown} /> : null}
 
           {thread ? <ThreadLog thread={thread} /> : null}
           <Leaderboard session={session} />
@@ -380,17 +365,60 @@ function CompeteScene({ band, health }: { band: ReefBand; health: number }) {
   );
 }
 
+function ResultCard({ shown }: { shown: Submission }) {
+  const [open, setOpen] = useState(false);
+  const problems = !shown.reasonable;
+  return (
+    <section className="panel result">
+      <div className="code-block">
+        <GradeBadge grade={shown.grade} />
+        <strong>{shown.score}</strong>
+      </div>
+      <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
+        {shown.reasonable ? "Reasonable prompt" : "Too much work"}
+      </p>
+      <p>
+        {shown.reasonable
+          ? "The source was in the message, so Grok did no extra search."
+          : "The source was missing, so Grok searched and the reef paid for it."}
+      </p>
+      <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide the details" : problems ? "See the problems" : "See Grok's answer"}
+      </button>
+      {open ? (
+        <div className="result-details stack">
+          <p>{shown.verdictReason || shown.summary}</p>
+          {shown.judgedByModel ? (
+            <p className="muted">A second Grok call read the solver request and graded this prompt.</p>
+          ) : null}
+          {shown.serverSideTools > 0 ? (
+            <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
+          ) : null}
+          <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
+          <pre>{shown.aiResponse}</pre>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ThreadLog({ thread }: { thread: Thread }) {
+  const [open, setOpen] = useState(false);
   if (thread.messages.length === 0) return null;
   return (
     <section className="panel stack thread-log">
       <h2>This thread</h2>
-      {thread.messages.map((message, index) => (
-        <p key={`${message.role}-${index}`}>
-          <strong>{message.role === "user" ? "You" : "Grok"}</strong>
-          {message.content}
-        </p>
-      ))}
+      <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide the thread" : "See the thread"}
+      </button>
+      {open
+        ? thread.messages.map((message, index) => (
+            <p key={`${message.role}-${index}`}>
+              <strong>{message.role === "user" ? "You" : "Grok"}</strong>
+              {message.content}
+            </p>
+          ))
+        : null}
     </section>
   );
 }

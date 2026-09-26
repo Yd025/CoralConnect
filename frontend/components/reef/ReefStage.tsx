@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Leaderboard } from "@/components/Leaderboard";
 import { AmbientLife, BandArt, SludgeBarrel } from "@/components/reef/FallbackReef";
@@ -19,6 +20,10 @@ export function ReefStage({
   const band = session.reefBand;
   const shock = liveEvent?.type === "sludge" || liveEvent?.type === "murk";
   const latest = session.submissions[0] ?? null;
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [latest?.id]);
 
   return (
     <section className={`reef reef--${band}`} style={{ ["--health" as string]: health }}>
@@ -46,10 +51,20 @@ export function ReefStage({
           {latest ? (
             <>
               <p className="reef__ai-prompt">
-                <span>{latest.actor}</span>
-                {clip(latest.prompt)}
+                <span>{latest.actor} · {latest.grade}</span>
+                {latest.reasonable
+                  ? "The source was in the message."
+                  : "The source was missing, so Grok searched."}
               </p>
-              <p className="reef__ai-reply">{clip(latest.aiResponse)}</p>
+              <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+                {open ? "Hide the details" : latest.reasonable ? "See Grok's answer" : "See the problems"}
+              </button>
+              {open ? (
+                <div className="reef__ai-details">
+                  <p>{latest.verdictReason || latest.summary}</p>
+                  <p>{clip(latest.aiResponse, 360)}</p>
+                </div>
+              ) : null}
             </>
           ) : (
             <p className="reef__ai-reply">Waiting for a message. Prompt Grok from a phone.</p>
