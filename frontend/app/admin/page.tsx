@@ -147,6 +147,27 @@ export default function AdminPage() {
               </button>
               <p className="muted">The admin key stays in this browser. Keep the tab open during the demo.</p>
             </form>
+            {session ? (
+              <div className="panel admin-board">
+                <Leaderboard session={session} />
+              </div>
+            ) : null}
+            <details className="panel admin-pitch">
+              <summary>60 second pitch</summary>
+              <p>
+                A thin prompt that leaves out the source makes the model look the fact up. Pasting the whole file makes it read what it does not need. Both are waste.
+                Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
+                Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
+              </p>
+              {health ? (
+                <p className="muted">
+                  Carbon model: {health.formula.energyKwhPer1kTokens} kWh per 1,000 lookup tokens × {health.formula.carbonGramsPerKwh} g CO2/kWh.
+                  Each missing fact is charged as a {health.formula.webLookupTokens}-token web lookup, the message's own tokens count too,
+                  and the total is graded against a {health.formula.budgetTokens ?? 200}-token budget.
+                  Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
+                </p>
+              ) : null}
+            </details>
           </section>
 
           <section className="panel stack admin-side">
@@ -239,29 +260,6 @@ export default function AdminPage() {
             )}
           </section>
         </div>
-
-        {session ? (
-          <div className="panel admin-board">
-            <Leaderboard session={session} />
-          </div>
-        ) : null}
-
-        <details className="panel admin-pitch">
-          <summary>60 second pitch</summary>
-          <p>
-            A thin prompt that leaves out the source makes the model look the fact up. Pasting the whole file makes it read what it does not need. Both are waste.
-            Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
-            Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
-          </p>
-          {health ? (
-            <p className="muted">
-              Carbon model: {health.formula.energyKwhPer1kTokens} kWh per 1,000 lookup tokens × {health.formula.carbonGramsPerKwh} g CO2/kWh.
-              Each missing fact is charged as a {health.formula.webLookupTokens}-token web lookup, the message's own tokens count too,
-              and the total is graded against a {health.formula.budgetTokens ?? 200}-token budget.
-              Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
-            </p>
-          ) : null}
-        </details>
       </div>
     </main>
   );
