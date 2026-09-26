@@ -221,9 +221,9 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 
 body:has(.landing) { height: 100dvh; overflow: hidden; }
-body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
+body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 .landing { height: 100dvh; overflow: hidden; }
-.admin-page.landing { height: auto; min-height: 100dvh; overflow: visible; }
+.admin-page.landing { height: 100dvh; overflow: hidden; }
 .landing .shell {
   width: min(1240px, calc(100% - 56px));
   height: 100%;
@@ -232,27 +232,37 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   flex-direction: column;
 }
 .admin-page .shell {
-  height: auto;
-  min-height: 100dvh;
-  padding-bottom: 36px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 12px;
 }
 .admin-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.85fr);
   gap: 22px;
-  align-items: start;
+  align-items: stretch;
   margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
-.admin-intro { display: grid; align-content: start; gap: 12px; max-width: 40rem; }
-.admin-page.landing h1 { font-size: clamp(3rem, 5vw, 4.6rem); }
-.admin-intro .lede { margin-top: 0; }
-.admin-intro .panel { margin-top: 6px; }
+.admin-intro, .admin-side {
+  min-height: 0;
+  overflow: auto;
+}
+.admin-intro { display: grid; align-content: start; gap: 10px; max-width: none; }
+.admin-page.landing h1 { font-size: clamp(2.2rem, 3.6vw, 3.2rem); }
+.admin-intro .lede { margin-top: 0; font-size: 0.98rem; }
+.admin-intro .panel { margin-top: 0; }
 .admin-page .panel {
   background: rgba(4, 22, 34, 0.62);
   border-color: rgba(255, 255, 255, 0.14);
 }
-.admin-side { min-height: 220px; }
-.admin-board, .admin-pitch { margin-top: 18px; }
+.admin-side { display: grid; align-content: start; }
+.admin-side .code-block strong { font-size: 2rem; }
+.admin-side .qr-card svg { width: 112px; height: 112px; }
+.admin-board, .admin-pitch { margin-top: 0; }
 .admin-pitch summary { cursor: pointer; font-weight: 650; }
 .admin-page .landing-tools .pill { display: inline-flex; }
 .landing-ui { position: relative; z-index: 2; }
@@ -1002,6 +1012,8 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 
 @media (max-width: 860px) {
   .hero, .admin-grid, .admin-layout, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
+  .admin-layout { overflow: auto; }
+  .admin-intro, .admin-side { overflow: visible; }
   .landing .shell { width: min(100% - 28px, 1240px); }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }
