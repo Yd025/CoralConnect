@@ -380,6 +380,20 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 .landing .choice h2 { font-size: 1.35rem; }
 .landing .choice .muted { font-size: 0.92rem; line-height: 1.35; }
 .landing .choice .btn { width: 100%; margin-top: auto; }
+.partner-match {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(2, 16, 22, 0.65);
+}
+.partner-match p { margin: 0; font-size: 0.92rem; line-height: 1.35; }
+.partner-match span { display: block; color: var(--muted); font-size: 0.78rem; }
 .landing-stage { overflow: hidden; }
 .podium { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .podium li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; }
