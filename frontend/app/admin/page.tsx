@@ -88,7 +88,13 @@ export default function AdminPage() {
       {error ? <p className="error">{error}</p> : null}
       <p className="muted">
         Engine: {apiBase()}
-        {health ? ` · ${health.grokConfigured ? `Grok live (${health.chatModel})` : "Grok key not set — grades still run, answers are simulated"}` : ""}
+        {health
+          ? ` · ${
+              health.grokConfigured
+                ? `Grok live (${health.chatModel}): it answers the player, then a second call grades the prompt`
+                : "Grok key not set — grades still run from whether the source is in the message, and answers are simulated"
+            }`
+          : ""}
       </p>
 
       <div className="admin-grid">

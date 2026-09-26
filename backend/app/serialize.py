@@ -58,6 +58,10 @@ def public_submission(submission: Submission) -> dict:
         "turnIndex": submission.turn_index,
         "turnCount": submission.turn_count,
         "followUp": submission.turn_index + 1 < submission.turn_count,
+        "reasonable": submission.reasonable,
+        "verdictReason": submission.verdict_reason,
+        "judgedByModel": submission.judged_by_model,
+        "serverSideTools": submission.server_side_tools,
     }
 
 

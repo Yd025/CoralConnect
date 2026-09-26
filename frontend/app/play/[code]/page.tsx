@@ -232,12 +232,16 @@ export default function PlayPage() {
                 <GradeBadge grade={shown.grade} />
                 <strong>{shown.score}</strong>
               </div>
-              <p>{shown.summary}</p>
-              <p className="muted">
-                {shown.lookupTokens > 0
-                  ? `The model looked it up (~${shown.lookupTokens} tokens). That is what hit the reef.`
-                  : "The model answered from what you gave it."}
+              <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
+                {shown.reasonable ? "Reasonable prompt" : "Too much work"}
               </p>
+              <p>{shown.verdictReason || shown.summary}</p>
+              {shown.judgedByModel ? (
+                <p className="muted">A second Grok call read the solver request and graded this prompt.</p>
+              ) : null}
+              {shown.serverSideTools > 0 ? (
+                <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
+              ) : null}
               <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
               <pre>{shown.aiResponse}</pre>
             </section>

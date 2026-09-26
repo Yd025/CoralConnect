@@ -19,7 +19,7 @@ from .carbon import (
 )
 from .challenges import get_challenge
 from .config import settings
-from .grok import complete, icebreaker, imagine
+from .grok import complete, finalize_verdict, icebreaker, imagine, review_call
 from .hub import hub
 from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread
 from .serialize import public_session
@@ -385,24 +385,49 @@ async def submit(
         beat = challenge.beats[step]
         challenge_id = challenge.id
 
-    payload = "\n".join(f"{message.role}: {message.content}" for message in history)
-    payload = f"{payload}\nuser: {text}".strip()
     tokens = count_tokens(text)
-    looked_up = lookup_cost(text, beat.anchors)
-    grade = grade_for(looked_up, 80)
-    score = score_for(looked_up, 80)
-    grams = carbon_grams(looked_up)
-    excess_kg = excess_kg_at_scale(looked_up, 0)
-    summary = explain(looked_up, grams, excess_kg, turn=step + 1, turn_count=len(challenge.beats))
-    delta = reef_delta(grade)
-    kind = event_type(grade)
+    local_lookup = lookup_cost(text, beat.anchors)
+    local_grams = carbon_grams(local_lookup)
+    local_excess = excess_kg_at_scale(local_lookup, 0)
+    local_reason = explain(
+        local_lookup,
+        local_grams,
+        local_excess,
+        turn=step + 1,
+        turn_count=len(challenge.beats),
+    )
     messages = [{"role": message.role, "content": message.content} for message in history]
     messages.append({"role": "user", "content": text})
 
     if use_model:
-        answer, simulated = await complete(messages, beat.simulated_reply)
+        answer, simulated, request, trace = await complete(messages, beat.simulated_reply)
+        model_verdict = None
+        if not simulated:
+            model_verdict = await review_call(beat.ask, beat.anchors, request, trace)
+        reasonable, verdict_reason, judged = finalize_verdict(
+            model_verdict,
+            trace,
+            local_reasonable=local_lookup == 0,
+            local_reason=local_reason,
+        )
     else:
         answer, simulated = beat.simulated_reply, True
+        trace = {"serverSideTools": 0}
+        reasonable, verdict_reason, judged = local_lookup == 0, local_reason, False
+
+    looked_up = 0 if reasonable else max(local_lookup, 1200)
+    grade = grade_for(looked_up, 80)
+    score = score_for(looked_up, 80)
+    grams = carbon_grams(looked_up)
+    excess_kg = excess_kg_at_scale(looked_up, 0)
+    summary = verdict_reason if judged else explain(
+        looked_up, grams, excess_kg, turn=step + 1, turn_count=len(challenge.beats)
+    )
+    if judged and looked_up > 0:
+        summary = f"{verdict_reason} About {grams:.3f} g CO2e."
+    delta = reef_delta(grade)
+    kind = event_type(grade)
+    server_side_tools = int(trace.get("serverSideTools") or 0)
 
     async with store.lock:
         session = _must(code)
@@ -468,6 +493,10 @@ async def submit(
             created_at=time.time(),
             turn_index=step,
             turn_count=len(challenge.beats),
+            reasonable=reasonable,
+            verdict_reason=verdict_reason,
+            judged_by_model=judged,
+            server_side_tools=server_side_tools,
         )
         event = ReefEvent(
             id=_id("evt"),

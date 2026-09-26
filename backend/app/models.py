@@ -74,6 +74,10 @@ class Submission:
     turn_index: int = 0
     turn_count: int = 1
     lookup_tokens: int = 0
+    reasonable: bool = True
+    verdict_reason: str = ""
+    judged_by_model: bool = False
+    server_side_tools: int = 0
 
 
 @dataclass

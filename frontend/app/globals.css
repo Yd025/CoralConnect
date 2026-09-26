@@ -153,6 +153,9 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .grade-d { background: #ff8b6a; }
 .grade-f { background: #ff5d5d; color: #2a0c0c; }
 .grade-empty { background: transparent; color: var(--muted); }
+.verdict { font-weight: 700; margin: 0; }
+.verdict.is-good { color: var(--good); }
+.verdict.is-bad { color: var(--bad); }
 
 .meter { height: 10px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .meter b { display: block; height: 100%; width: 0; }

@@ -80,6 +80,10 @@ export type Submission = {
   turnIndex: number;
   turnCount: number;
   followUp: boolean;
+  reasonable: boolean;
+  verdictReason: string;
+  judgedByModel: boolean;
+  serverSideTools: number;
 };
 
 export type ReefEvent = {
@@ -115,6 +119,7 @@ export type Health = {
   chatModel: string;
   imageModel: string;
   imagesEnabled: boolean;
+  grokRoles: string[];
   lanIp: string;
   formula: {
     energyKwhPer1kTokens: number;
