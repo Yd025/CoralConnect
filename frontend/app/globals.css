@@ -259,7 +259,7 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 .admin-desk .hero-kicker { margin-bottom: 10px; }
 .admin-desk .lede { margin-top: 10px; font-size: 0.98rem; max-width: none; }
 .admin-desk form .btn { width: 100%; }
-.admin-desk__foot { margin-top: auto; display: grid; gap: 12px; }
+.admin-desk__foot { display: grid; gap: 12px; }
 .admin-desk .btn-row, .admin-join .btn-row { display: flex; }
 .admin-desk .btn-row > button, .admin-join .btn-row > button { flex: 1 1 0; min-width: 0; }
 .admin-join__empty { margin: auto; text-align: center; }

@@ -92,6 +92,17 @@ export default function AdminPage() {
     }
   }, [router, saved?.code, session?.status]);
 
+  useEffect(() => {
+    const id = session?.challenge?.id;
+    if (id) setChallengeId(id);
+  }, [session?.challenge?.id]);
+
+  function onChallenge(nextId: string) {
+    setChallengeId(nextId);
+    if (!saved || !session || session.status === "ended" || session.challenge?.id === nextId) return;
+    void run(() => setChallenge(saved.code, saved.adminToken, nextId));
+  }
+
   return (
     <main className="landing admin-page">
       <AnimatedBackground />
@@ -126,7 +137,7 @@ export default function AdminPage() {
             <form className="stack" onSubmit={onCreate}>
               <label>
                 Challenge
-                <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
+                <select value={challengeId} onChange={(event) => onChallenge(event.target.value)}>
                   {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, beats: [] }]).map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.title} · {item.turnCount || item.beats.length || 2} turns
@@ -142,20 +153,17 @@ export default function AdminPage() {
             </form>
             {saved && session ? (
               <div className="admin-desk__foot">
-                <div className="health-inline">
-                  <span>{reefLabel(session.reefBand)} · reef {session.reefHealth}</span>
-                  <i><b style={{ width: `${session.reefHealth}%` }} /></i>
-                </div>
                 <div className="btn-row">
                   <button className="btn" type="button" disabled={busy || !canStart} onClick={() => run(() => startSession(saved.code, saved.adminToken))}>
                     Start round
                   </button>
-                  <button className="btn btn-ghost" type="button" disabled={busy || session.status !== "playing"} onClick={() => run(() => setChallenge(saved.code, saved.adminToken, challengeId))}>
-                    Apply challenge
-                  </button>
                   <button className="btn btn-danger" type="button" disabled={busy || session.status === "ended"} onClick={() => run(() => endSession(saved.code, saved.adminToken))}>
                     End game
                   </button>
+                </div>
+                <div className="health-inline">
+                  <span>{reefLabel(session.reefBand)} · reef {session.reefHealth}</span>
+                  <i><b style={{ width: `${session.reefHealth}%` }} /></i>
                 </div>
               </div>
             ) : null}
