@@ -625,6 +625,65 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
 }
 
 .phone { width: min(520px, calc(100% - 28px)); margin: 0 auto; padding: 18px 0 28px; display: grid; gap: 14px; }
+.compete-play { position: relative; z-index: 1; }
+.compete-play > :not(.compete-scene) { position: relative; z-index: 1; }
+.compete-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #062844;
+}
+.compete-scene__band { width: 100%; height: 100%; object-fit: cover; display: block; }
+.compete-scene .swimmer { z-index: 1; }
+.compete-scene .swimmer img { width: 72px; }
+.compete-scene .s3 img { width: 64px; }
+.compete-scene .s-whale img { width: 150px; }
+.compete-scene .s-turtle img { width: 108px; }
+.play-head { display: flex; gap: 12px; align-items: center; }
+.play-head h1 { margin: 0; }
+.play-label { display: flex; align-items: center; gap: 8px; }
+.play-mark { width: 64px; max-width: none; height: auto; flex: none; }
+.grok-card__head { display: flex; gap: 12px; align-items: center; }
+.grok-card__head img { width: 88px; max-width: none; height: auto; flex: none; }
+.grok-card__head strong { display: block; font-family: var(--font-display), Georgia, serif; font-size: 2rem; line-height: 1; }
+.grok-card__reply { margin: 0; white-space: pre-wrap; color: var(--sand); }
+.reef__ai {
+  position: absolute;
+  z-index: 8;
+  left: 18px;
+  top: 168px;
+  width: min(460px, 40vw);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-height: calc(100dvh - 320px);
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(4, 22, 34, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.reef__ai img { width: 96px; max-width: none; height: auto; flex: none; }
+.reef__ai strong { display: block; font-family: var(--font-display), Georgia, serif; font-size: 2rem; line-height: 1; }
+.reef__ai-prompt, .reef__ai-reply { margin: 8px 0 0; }
+.reef__ai-prompt span { display: block; color: var(--sand); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.reef__ai-reply { color: white; }
+.reef__props { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.prop { position: absolute; height: auto; max-width: none; display: block; filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.28)); }
+.prop-wave { left: 6%; top: 16%; width: 120px; }
+.prop-light { left: 1.5%; bottom: 22%; width: 180px; }
+.prop-boat { left: 34%; bottom: 11%; width: 210px; }
+.prop-stall { left: 56%; bottom: 20%; width: 140px; }
+.compete-scene .prop-wave { width: 72px; top: 10%; }
+.compete-scene .prop-light { width: 88px; bottom: 6%; }
+.compete-scene .prop-boat { width: 104px; left: 42%; bottom: 3%; }
+.compete-play .panel {
+  background: rgba(4, 22, 34, 0.78);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.compete-play .topbar .brand { color: white; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
 .sticky-submit {
   position: sticky;
   bottom: 0;
@@ -674,10 +733,22 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   100% { background: rgba(170, 24, 16, 0); }
 }
 .swimmer { position: absolute; animation: swim 26s linear infinite; }
+.swimmer img { width: 128px; max-width: none; height: auto; display: block; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.28)); }
+.swimmer.is-flip img { transform: scaleX(-1); }
 .s1 { top: 28%; }
 .s2 { top: 46%; animation-duration: 34s; animation-direction: reverse; animation-delay: -8s; }
-.s2 svg { transform: scaleX(-1); }
-.s3 { top: 64%; animation-duration: 20s; animation-delay: -12s; opacity: 0.85; }
+.s3 { top: 64%; animation-duration: 40s; animation-delay: -12s; }
+.s3 img { width: 110px; }
+.s-whale { top: 8%; animation-duration: 70s; animation-delay: -24s; }
+.s-whale img { width: 280px; }
+.s-turtle { top: 36%; animation-duration: 52s; animation-delay: -16s; }
+.s-turtle img { width: 190px; }
+.s-octo { top: 70%; animation-duration: 46s; animation-direction: reverse; animation-delay: -20s; }
+.s-octo img { width: 150px; }
+.s-trash { top: 22%; animation-duration: 38s; }
+.s-trash img { width: 96px; }
+.s-trash.t2 { top: 54%; animation-direction: reverse; animation-duration: 44s; }
+.s-trash.t3 { top: 76%; animation-duration: 30s; animation-delay: -9s; }
 @keyframes swim {
   from { transform: translateX(-20vw); }
   to { transform: translateX(105vw); }
@@ -722,6 +793,8 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   padding: 2px 8px;
 }
 .reward-img { width: 96px; height: 96px; object-fit: cover; border-radius: 18px; }
+.reward-svg { width: 120px; height: auto; object-fit: contain; border-radius: 0; background: transparent; }
+.barrel img { width: 120px; height: auto; display: block; }
 @keyframes settle {
   from { transform: translateY(-24px); opacity: 0; }
   to { transform: none; opacity: 1; }
@@ -800,6 +873,7 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   .cast-turtle img { width: 180px; }
   .cast-octopus img { width: 120px; }
   .reef__side { position: static; width: auto; margin: 0 12px; }
+  .reef__ai { position: relative; left: auto; top: auto; width: auto; max-height: none; margin: 12px; }
   .reef__hud { position: relative; padding-top: 8px; }
   .reef { min-height: 100dvh; display: flex; flex-direction: column; }
   .reef__foot { position: relative; left: auto; right: auto; padding: 12px; }

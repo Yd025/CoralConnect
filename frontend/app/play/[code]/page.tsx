@@ -7,7 +7,7 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
 import { estimateTokens } from "@/lib/reef";
-import type { Identity, Submission, Thread } from "@/lib/types";
+import type { Identity, ReefBand, Submission, Thread } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
 
 export default function PlayPage() {
@@ -136,8 +136,11 @@ export default function PlayPage() {
     onPrompt(next);
   }
 
+  const compete = session?.mode === "compete";
+
   return (
-    <main className="phone">
+    <main className={compete ? "phone compete-play" : "phone"}>
+      {compete && session ? <CompeteScene band={session.reefBand} /> : null}
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
         <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
@@ -149,7 +152,14 @@ export default function PlayPage() {
       {session ? (
         <>
           <section className="panel stack">
-            <h1>{session.challenge?.title}</h1>
+            {compete ? (
+              <div className="play-head">
+                <img className="play-mark" src="/reef/15-challenge-stall.svg" alt="" />
+                <h1>{session.challenge?.title}</h1>
+              </div>
+            ) : (
+              <h1>{session.challenge?.title}</h1>
+            )}
             <p>{session.challenge?.brief}</p>
             <p className="muted">
               Turn {turnNumber} of {turnCount}. {session.challenge?.hint}
@@ -290,10 +300,32 @@ export default function PlayPage() {
                   </button>
                 </section>
               ) : null}
-              <label>
-                {session.mode === "collaborate" ? "Shared message" : "Your message"}
-                <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
-              </label>
+              {compete ? (
+                <section className="panel grok-card stack">
+                  <div className="grok-card__head">
+                    <img src="/reef/05-otto-octopus.svg" alt="" />
+                    <div>
+                      <p className="eyebrow">Prompt</p>
+                      <strong>Grok</strong>
+                    </div>
+                  </div>
+                  <p className="muted">
+                    {busy ? "Grok is reading your message." : "This is who you prompt. Include the source so Grok does not search for it."}
+                  </p>
+                  <label>
+                    Message to Grok
+                    <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
+                  </label>
+                  {shown?.aiResponse ? <p className="grok-card__reply">{shown.aiResponse}</p> : null}
+                </section>
+              ) : (
+                <label>
+                  <span className="play-label">
+                    {session.mode === "collaborate" ? "Shared message" : "Your message"}
+                  </span>
+                  <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
+                </label>
+              )}
               <p className="muted">
                 {session.mode === "collaborate" && squad
                   ? "Your partner has a different piece. The shared message needs both."
@@ -312,6 +344,7 @@ export default function PlayPage() {
           {shown ? (
             <section className="panel result">
               <div className="code-block">
+                {compete ? <img className="play-mark" src="/reef/09-pearl-points.svg" alt="" /> : null}
                 <GradeBadge grade={shown.grade} />
                 <strong>{shown.score}</strong>
               </div>
@@ -335,6 +368,32 @@ export default function PlayPage() {
         </>
       ) : null}
     </main>
+  );
+}
+
+function CompeteScene({ band }: { band: ReefBand }) {
+  const hurt = band === "bleaching" || band === "dead";
+  const stressed = hurt || band === "stressed";
+  return (
+    <div className="compete-scene" aria-hidden="true">
+      <img className="compete-scene__band" src={`/reef/${band}.svg`} alt="" />
+      <img className="prop prop-wave" src="/reef/12-little-wave.svg" alt="" />
+      <img className="prop prop-light" src="/reef/13-harbor-lighthouse.svg" alt="" />
+      <img className="prop prop-boat" src="/reef/14-buddy-boat.svg" alt="" />
+      <span className="swimmer s1 is-flip"><img src="/reef/04-pip-fish.svg" alt="" /></span>
+      <span className="swimmer s2"><img src="/reef/04-pip-fish.svg" alt="" /></span>
+      <span className="swimmer s-turtle"><img src="/reef/02-moss-turtle.svg" alt="" /></span>
+      {stressed ? (
+        <span className="swimmer s-trash"><img src="/reef/plastic-bag.svg" alt="" /></span>
+      ) : (
+        <span className="swimmer s3"><img src="/reef/03-juno-jellyfish.svg" alt="" /></span>
+      )}
+      {hurt ? (
+        <span className="swimmer s-trash t2"><img src="/reef/crushed-bottle.svg" alt="" /></span>
+      ) : (
+        <span className="swimmer s-whale is-flip"><img src="/reef/06-winnie-whale.svg" alt="" /></span>
+      )}
+    </div>
   );
 }
 

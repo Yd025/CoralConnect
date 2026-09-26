@@ -82,18 +82,60 @@ export function FallbackReef({ band }: { band: ReefBand }) {
   );
 }
 
-export function AmbientLife() {
+export function SceneProps() {
+  return (
+    <div className="reef__props" aria-hidden>
+      <img className="prop prop-wave" src="/reef/12-little-wave.svg" alt="" />
+      <img className="prop prop-light" src="/reef/13-harbor-lighthouse.svg" alt="" />
+      <img className="prop prop-boat" src="/reef/14-buddy-boat.svg" alt="" />
+      <img className="prop prop-stall" src="/reef/15-challenge-stall.svg" alt="" />
+    </div>
+  );
+}
+
+export function AmbientLife({ band = "thriving" }: { band?: ReefBand }) {
+  const hurt = band === "bleaching" || band === "dead";
+  const stressed = hurt || band === "stressed";
   return (
     <div className="reef__life" aria-hidden>
-      <span className="swimmer s1">
-        <Fish />
+      <span className="swimmer s1 is-flip">
+        <img src="/reef/04-pip-fish.svg" alt="" />
       </span>
       <span className="swimmer s2">
-        <Fish />
+        <img src="/reef/04-pip-fish.svg" alt="" />
       </span>
       <span className="swimmer s3">
-        <Fish />
+        <img src="/reef/03-juno-jellyfish.svg" alt="" />
       </span>
+      {stressed ? null : (
+        <span className="swimmer s-whale is-flip">
+          <img src="/reef/06-winnie-whale.svg" alt="" />
+        </span>
+      )}
+      {hurt ? null : (
+        <span className="swimmer s-turtle">
+          <img src="/reef/02-moss-turtle.svg" alt="" />
+        </span>
+      )}
+      {stressed ? (
+        <span className="swimmer s-trash">
+          <img src="/reef/plastic-bag.svg" alt="" />
+        </span>
+      ) : null}
+      {hurt ? (
+        <>
+          <span className="swimmer s-trash t2">
+            <img src="/reef/crushed-bottle.svg" alt="" />
+          </span>
+          <span className="swimmer s-trash t3">
+            <img src="/reef/fishbones-small.svg" alt="" />
+          </span>
+        </>
+      ) : (
+        <span className="swimmer s-octo">
+          <img src="/reef/05-otto-octopus.svg" alt="" />
+        </span>
+      )}
       <i className="bubble b1" />
       <i className="bubble b2" />
       <i className="bubble b3" />
@@ -135,18 +177,21 @@ export function Bloom() {
   );
 }
 
-export function SludgeBarrel() {
+const TRASH = [
+  "/reef/crushed-bottle.svg",
+  "/reef/plastic-bag.svg",
+  "/reef/discarded-cup.svg",
+  "/reef/torn-wrapper.svg",
+  "/reef/plastic-fragments.svg",
+  "/reef/fishbones-large.svg",
+];
+
+export function SludgeBarrel({ seed = "sludge" }: { seed?: string }) {
+  let pick = 0;
+  for (const char of seed) pick = (pick + char.charCodeAt(0)) % TRASH.length;
   return (
     <div className="barrel" aria-hidden>
-      <svg width="72" height="92" viewBox="0 0 72 92">
-        <rect x="14" y="16" width="44" height="64" rx="8" fill="#3d4a28" />
-        <rect x="14" y="28" width="44" height="8" fill="#6b7c3a" />
-        <rect x="14" y="58" width="44" height="8" fill="#6b7c3a" />
-        <path d="M22 16 C24 6 48 6 50 16" fill="#2c2416" />
-        <text x="36" y="52" textAnchor="middle" fontSize="16" fill="#d6e27a" fontFamily="Georgia, serif">
-          oil
-        </text>
-      </svg>
+      <img src={TRASH[pick]} alt="" />
     </div>
   );
 }

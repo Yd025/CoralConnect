@@ -2,7 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { Leaderboard } from "@/components/Leaderboard";
-import { AmbientLife, BandArt, Bloom, Fish, SludgeBarrel, Turtle } from "@/components/reef/FallbackReef";
+import { AmbientLife, BandArt, SceneProps, SludgeBarrel } from "@/components/reef/FallbackReef";
 import { reefLabel, slot } from "@/lib/reef";
 import type { GameSession, ReefEvent } from "@/lib/types";
 
@@ -21,14 +21,16 @@ export function ReefStage({
     .filter((event) => event.type === "turtle" || event.type === "bloom" || event.type === "fish")
     .slice(0, 8);
   const shock = liveEvent?.type === "sludge" || liveEvent?.type === "murk";
+  const latest = session.submissions[0] ?? null;
 
   return (
     <section className={`reef reef--${band}`} style={{ ["--health" as string]: health }}>
       <BandArt band={band} />
-      <AmbientLife />
+      <SceneProps />
+      <AmbientLife band={band} />
       <div className="reef__murk" />
       {shock && liveEvent ? <div key={liveEvent.id} className="reef__flash" /> : null}
-      {liveEvent?.type === "sludge" ? <SludgeBarrel key={liveEvent.id} /> : null}
+      {liveEvent?.type === "sludge" ? <SludgeBarrel key={liveEvent.id} seed={liveEvent.id} /> : null}
 
       <div className="reef__residents" aria-hidden>
         {residents.map((event) => (
@@ -48,6 +50,25 @@ export function ReefStage({
           </div>
         </div>
       ) : null}
+
+      <aside className="reef__ai">
+        <img src="/reef/05-otto-octopus.svg" alt="" />
+        <div>
+          <p className="eyebrow">Prompt</p>
+          <strong>Grok</strong>
+          {latest ? (
+            <>
+              <p className="reef__ai-prompt">
+                <span>{latest.actor}</span>
+                {clip(latest.prompt)}
+              </p>
+              <p className="reef__ai-reply">{clip(latest.aiResponse)}</p>
+            </>
+          ) : (
+            <p className="reef__ai-reply">Waiting for a message. Prompt Grok from a phone.</p>
+          )}
+        </div>
+      </aside>
 
       <header className="reef__hud">
         <div>
@@ -83,11 +104,21 @@ export function ReefStage({
   );
 }
 
+const REWARD_ART: Record<string, string> = {
+  turtle: "/reef/02-moss-turtle.svg",
+  bloom: "/reef/10-coral-bloom.svg",
+  fish: "/reef/04-pip-fish.svg",
+};
+
+function clip(text: string, max = 220) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max).trim()}…`;
+}
+
 function Reward({ event }: { event: ReefEvent }) {
   if (event.imageUrl) {
     return <img className="reward-img" src={event.imageUrl} alt="" />;
   }
-  if (event.type === "turtle") return <Turtle />;
-  if (event.type === "bloom") return <Bloom />;
-  return <Fish />;
+  return <img className="reward-img reward-svg" src={REWARD_ART[event.type] ?? REWARD_ART.fish} alt="" />;
 }
