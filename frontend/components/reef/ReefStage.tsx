@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { AmbientLife, BandArt, SludgeBarrel } from "@/components/reef/FallbackReef";
 import { reefLabel } from "@/lib/reef";
-import type { GameSession, ReefEvent } from "@/lib/types";
+import type { GameSession, ReefEvent, Submission } from "@/lib/types";
 
 export function ReefStage({
   session,
@@ -100,7 +101,10 @@ export function ReefStage({
             </div>
           </div>
         ) : null}
-        <p className="reef__latest">{session.events[0]?.title}</p>
+        <div className="reef__footnote">
+          <LastTurn submission={session.submissions[0]} />
+          <p className="reef__latest">{session.events[0]?.title}</p>
+        </div>
       </footer>
     </section>
   );
@@ -116,6 +120,32 @@ function clip(text: string, max = 220) {
   const clean = text.replace(/\s+/g, " ").trim();
   if (clean.length <= max) return clean;
   return `${clean.slice(0, max).trim()}…`;
+}
+
+function LastTurn({ submission }: { submission: Submission | undefined }) {
+  if (!submission) return null;
+  const verdict = submission.verdict || (submission.reasonable ? "okay" : "wasteful");
+  return (
+    <div className="reef__turn">
+      <div className="reef__turn-head">
+        <GradeBadge grade={submission.grade} />
+        <strong>{submission.actor}</strong>
+        <span className="reef__turn-verdict">{verdict}</span>
+      </div>
+      <p>
+        {(submission.effectiveTokens || submission.tokenCount).toLocaleString()} tokens of model work
+        {submission.savedVsVague > 0 ? ` · saved ${submission.savedVsVague.toLocaleString()} vs a vague prompt` : ""}
+      </p>
+      {submission.measuredTokens > 0 ? (
+        <p>
+          Real Grok run: {submission.measuredTokens.toLocaleString()} tokens
+          {submission.betterMeasuredTokens > 0
+            ? ` · better prompt ${submission.betterMeasuredTokens.toLocaleString()} · saved ${submission.measuredSaved.toLocaleString()}`
+            : ""}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function Reward({ event }: { event: ReefEvent }) {

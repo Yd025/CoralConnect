@@ -1,4 +1,4 @@
-import type { GameSession, Health, Identity, Mode, Submission } from "./types";
+import type { ChatMessage, GameSession, Health, Identity, JudgeResult, Mode, Submission } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -113,7 +113,32 @@ export function submitPrompt(code: string, identity: Identity, prompt: string) {
   });
 }
 
-export function simulate(code: string, adminToken: string, kind: "efficient" | "bloated") {
+export type RehearsalKind = "efficient" | "bloated" | "vague";
+
+export type JudgeRequest = {
+  prompt: string;
+  mode?: "fast" | "full";
+  context?: { challengeId?: string; turn?: number; history?: ChatMessage[]; gameMode?: Mode };
+};
+
+// The same judge the plugin calls. Fast mode is free and instant, so the phone
+// can call it while someone types.
+export function judgePrompt(body: JudgeRequest, signal?: AbortSignal) {
+  return request<JudgeResult>("/api/judge", {
+    method: "POST",
+    body: JSON.stringify({ mode: "fast", ...body }),
+    signal,
+  });
+}
+
+export function nextGroup(code: string, adminToken: string) {
+  return request<{ session: GameSession }>(`/api/sessions/${code}/next-group`, {
+    method: "POST",
+    headers: { "X-Admin-Token": adminToken },
+  });
+}
+
+export function simulate(code: string, adminToken: string, kind: RehearsalKind) {
   return request<{ session: GameSession; submission: Submission }>(`/api/sessions/${code}/simulate`, {
     method: "POST",
     headers: { "X-Admin-Token": adminToken },

@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 from app.carbon import grade_for, reef_band
 from app.models import turns_for_table
 from app.game import _pair
-from app.grok import call_trace, finalize_verdict, parse_verdict
+from app.challenges import CHALLENGES
+from app.grading import add_live_call, grade_prompt
+from app.grok import call_trace, parse_review
 from app.main import app
 from app.models import Player
 from app.store import store
@@ -35,12 +37,14 @@ def test_smaller_tables_get_more_turns():
 
 
 def test_grade_bands_and_reef_thresholds():
-    assert grade_for(10, 18) == "A+"
-    assert grade_for(18, 18) == "A"
-    assert grade_for(28, 18) == "B"
-    assert grade_for(40, 18) == "C"
-    assert grade_for(70, 18) == "D"
-    assert grade_for(200, 18) == "F"
+    # Bands are multiples of the 200-token budget.
+    assert grade_for(40, 200) == "A+"
+    assert grade_for(200, 200) == "A+"
+    assert grade_for(400, 200) == "A"
+    assert grade_for(800, 200) == "B"
+    assert grade_for(1400, 200) == "C"
+    assert grade_for(2200, 200) == "D"
+    assert grade_for(2201, 200) == "F"
     assert reef_band(75) == "thriving"
     assert reef_band(50) == "stressed"
     assert reef_band(25) == "bleaching"
@@ -375,7 +379,7 @@ def test_follow_up_keeps_the_bloated_history_on_the_bill():
     ).json()["submission"]
     second = client.post(
         f"/api/sessions/{code}/submit",
-        json={**body, "prompt": "If tax_exempt, return the amount unchanged."},
+        json={**body, "prompt": "tax() ignores tax_exempt. If tax_exempt, return the amount unchanged."},
     ).json()
     assert second["submission"]["turnIndex"] == 1
     assert second["submission"]["followUp"] is True
@@ -419,9 +423,15 @@ def test_a_fuller_table_still_closes_after_two_turns():
 
 
 def test_judge_reads_a_web_search_even_if_it_calls_the_prompt_reasonable():
-    verdict = parse_verdict('Sure. {"reasonable": true, "reason": "The message names the function."}')
-    assert verdict == {"reasonable": True, "reason": "The message names the function."}
-    assert parse_verdict("no json here") is None
+    verdict = parse_review(
+        'Sure. {"verdict": "efficient", "specificity": 3, "context": 3, "clear_ask": 3, "output_scope": 3,'
+        ' "missing": [], "waste": [], "better_prompt": "", "reason": "The message names the function."}'
+    )
+    assert verdict["reasonable"] is True
+    assert verdict["verdict"] == "efficient"
+    assert verdict["reason"] == "The message names the function."
+    assert parse_review("no json here") is None
+    assert parse_review('{"verdict": "great", "reason": "x"}') is None
     trace = call_trace(
         {
             "output": [{"type": "web_search_call"}, {"type": "message", "content": "done"}],
@@ -430,15 +440,12 @@ def test_judge_reads_a_web_search_even_if_it_calls_the_prompt_reasonable():
     )
     assert trace["serverSideTools"] == 1
     assert trace["inputTokens"] == 40
-    reasonable, reason, judged = finalize_verdict(
-        verdict,
-        trace,
-        local_reasonable=True,
-        local_reason="local",
-    )
-    assert reasonable is False
-    assert judged is True
-    assert "searched the web" in reason
+    beat = CHALLENGES[0].beats[0]
+    graded = grade_prompt(beat.samples.adequate, beat)
+    add_live_call(graded, searches=trace["serverSideTools"], verdict=verdict)
+    assert graded.reasonable is False
+    assert graded.judged_by_model is True
+    assert any("searched the web" in line.text for line in graded.lines)
 
 
 def test_websocket_sends_a_snapshot():
@@ -452,3 +459,117 @@ def test_websocket_sends_a_snapshot():
         message = socket.receive_json()
     assert message["type"] == "state"
     assert message["session"]["code"] == code
+
+
+def _new_game(client, mode="compete", challenge="invoice-bug"):
+    created = client.post("/api/sessions", json={"mode": mode, "challengeId": challenge}).json()
+    return created["session"]["code"], created["adminToken"]
+
+
+def _join(client, code, name, language="Python"):
+    joined = client.post(f"/api/sessions/{code}/join", json={"name": name, "language": language}).json()
+    return {"playerId": joined["player"]["id"], "playerToken": joined["playerToken"]}
+
+
+def test_rehearsal_buttons_grade_as_labeled_and_can_repeat():
+    client = TestClient(app)
+    code, admin = _new_game(client, challenge="half-migration")
+    headers = {"X-Admin-Token": admin}
+    vague = client.post(f"/api/sessions/{code}/simulate", json={"kind": "vague"}, headers=headers).json()
+    assert vague["submission"]["grade"] == "F"
+    assert vague["submission"]["turnIndex"] == 0
+    whole = client.post(f"/api/sessions/{code}/simulate", json={"kind": "bloated"}, headers=headers).json()
+    # Turn 2: the whole migration file pasted again, plus the retry log.
+    assert whole["submission"]["turnIndex"] == 1
+    assert whole["submission"]["grade"] in {"C", "D"}
+    assert whole["submission"]["lookupTokens"] == 0
+    good = client.post(f"/api/sessions/{code}/simulate", json={"kind": "efficient"}, headers=headers)
+    assert good.status_code == 200
+    assert good.json()["submission"]["grade"] == "A+"
+    again = client.post(f"/api/sessions/{code}/simulate", json={"kind": "efficient"}, headers=headers)
+    assert again.status_code == 200
+    assert again.json()["submission"]["grade"] == "A+"
+    assert again.json()["submission"]["turnIndex"] == 1
+    bad = client.post(f"/api/sessions/{code}/simulate", json={"kind": "nope"}, headers=headers)
+    assert bad.status_code == 400
+
+
+def test_rehearsal_bot_is_never_paired_with_a_real_player():
+    client = TestClient(app)
+    code, admin = _new_game(client, mode="collaborate")
+    client.post(f"/api/sessions/{code}/simulate", json={"kind": "efficient"}, headers={"X-Admin-Token": admin})
+    late = _join(client, code, "Tengis", "Java")
+    session = client.get(f"/api/sessions/{code}").json()["session"]
+    squad = next(s for s in session["squads"] if late["playerId"] in s["playerIds"])
+    assert "p_rehearsal" not in squad["playerIds"]
+    alone = client.post(f"/api/sessions/{code}/submit", json={**late, "prompt": "apply_coupon runs after tax()"})
+    assert alone.status_code == 409
+    mate = _join(client, code, "Yidan")
+    session = client.get(f"/api/sessions/{code}").json()["session"]
+    squad = next(s for s in session["squads"] if late["playerId"] in s["playerIds"])
+    assert set(squad["playerIds"]) == {late["playerId"], mate["playerId"]}
+    sent = client.post(f"/api/sessions/{code}/submit", json={**late, "prompt": "apply_coupon runs after tax()"})
+    assert sent.status_code == 200
+
+
+def test_an_ended_game_needs_next_group_before_it_starts_again():
+    client = TestClient(app)
+    code, admin = _new_game(client)
+    headers = {"X-Admin-Token": admin}
+    ada = _join(client, code, "Ada")
+    client.post(f"/api/sessions/{code}/start", headers=headers)
+    client.post(f"/api/sessions/{code}/submit", json={**ada, "prompt": "nothing useful"})
+    client.post(f"/api/sessions/{code}/end", headers=headers)
+    refused = client.post(f"/api/sessions/{code}/start", headers=headers)
+    assert refused.status_code == 409
+    fresh = client.post(f"/api/sessions/{code}/next-group", headers=headers).json()["session"]
+    assert fresh["status"] == "lobby" and fresh["reefHealth"] == 100 and fresh["threads"] == []
+    grace = _join(client, code, "Grace")
+    again = client.post(f"/api/sessions/{code}/start", headers=headers).json()["session"]
+    assert again["status"] == "playing"
+    sent = client.post(f"/api/sessions/{code}/submit", json={**grace, "prompt": "apply_coupon runs after tax()"})
+    assert sent.status_code == 200
+
+
+def test_next_group_keeps_the_code_and_clears_the_table():
+    client = TestClient(app)
+    code, admin = _new_game(client, mode="collaborate")
+    headers = {"X-Admin-Token": admin}
+    old = _join(client, code, "Ada")
+    _join(client, code, "Grace")
+    client.post(f"/api/sessions/{code}/start", headers=headers)
+    client.post(f"/api/sessions/{code}/submit", json={**old, "prompt": "fix it"})
+    assert client.post(f"/api/sessions/{code}/next-group", headers={"X-Admin-Token": "nope"}).status_code == 403
+    fresh = client.post(f"/api/sessions/{code}/next-group", headers=headers).json()["session"]
+    assert fresh["code"] == code
+    assert fresh["status"] == "lobby"
+    assert fresh["players"] == [] and fresh["squads"] == [] and fresh["threads"] == []
+    assert fresh["events"] == [] and fresh["reefHealth"] == 100
+    newcomer = client.post(f"/api/sessions/{code}/join", json={"name": "Linus", "language": "C++"})
+    assert newcomer.status_code == 200
+
+
+def test_submission_carries_a_receipt():
+    client = TestClient(app)
+    code, admin = _new_game(client, challenge="token-in-the-log")
+    ada = _join(client, code, "Ada")
+    client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    sent = client.post(
+        f"/api/sessions/{code}/submit",
+        json={**ada, "prompt": "Our logs are exposing something sensitive. Please stop it."},
+    ).json()["submission"]
+    assert sent["grade"] == "C"
+    assert sent["lookupTokens"] == 1200
+    assert sent["effectiveTokens"] == sent["tokenCount"] + 1200
+    assert sent["leaked"] is False
+    tones = [line["tone"] for line in sent["receipt"]]
+    assert tones[0] == "info" and "good" in tones and "cost" in tones
+    assert any("Authorization" in line["text"] for line in sent["receipt"] if line["tone"] == "cost")
+    leaked = client.post(
+        f"/api/sessions/{code}/submit",
+        json={**ada, "prompt": "The 500 body returns headers like Authorization: Bearer demo-token-not-real. Remove them."},
+    ).json()["submission"]
+    assert leaked["grade"] == "F"
+    assert leaked["leaked"] is True
+    assert leaked["score"] == 0
+    assert leaked["reefDelta"] < 0

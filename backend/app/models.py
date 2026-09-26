@@ -102,6 +102,26 @@ class Submission:
     verdict_reason: str = ""
     judged_by_model: bool = False
     server_side_tools: int = 0
+    # Everything the model had to handle this turn: the message, plus one web
+    # lookup per missing fact, plus the no-ask charge. The grade comes from this.
+    effective_tokens: int = 0
+    leaked: bool = False
+    # Receipt rows for the phone: {"tone", "text", "tokens"}.
+    receipt: list[dict] = field(default_factory=list)
+    # Tips from the rules (vague phrase, pasted bulk, ...). They don't change the grade.
+    flags: list[str] = field(default_factory=list)
+    # The Grok reviewer's word for the prompt: efficient, okay, wasteful, or horrible.
+    reviewer_verdict: str = ""
+    # A shorter prompt that still names every key detail (checked by our rules),
+    # and the tokens it saves by the rules' estimate.
+    better_prompt: str = ""
+    better_saves: int = 0
+    # Tokens this prompt saved compared with the round's vague sample.
+    saved_vs_vague: int = 0
+    # Real usage from Grok: this prompt's run, the better prompt's run, and the difference.
+    measured_tokens: int = 0
+    better_measured_tokens: int = 0
+    measured_saved: int = 0
 
 
 @dataclass

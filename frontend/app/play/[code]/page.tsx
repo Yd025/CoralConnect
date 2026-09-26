@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
+import { LiveVerdict } from "@/components/LiveVerdict";
+import { Receipt } from "@/components/Receipt";
 import { reefPresence } from "@/components/reef/FallbackReef";
 import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
@@ -82,8 +84,11 @@ export default function PlayPage() {
     );
   }, [session, identity, me?.squadId]);
 
-  const shown = latest ?? remembered ?? null;
-  const tokens = estimateTokens(prompt);
+  // Show whichever result is newer: mine, or my partner's on our shared thread.
+  // On a tie it's the same submission, and the session copy has the latest
+  // numbers (the measured better-prompt run lands after the grade).
+  const shown =
+    latest && remembered ? (remembered.createdAt >= latest.createdAt ? remembered : latest) : latest ?? remembered ?? null;
 
   async function onJoin(event: FormEvent) {
     event.preventDefault();
@@ -301,6 +306,13 @@ export default function PlayPage() {
                 {busy ? "Sending" : "Send"}
               </button>
               <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
+              <LiveVerdict
+                prompt={prompt}
+                challengeId={session.challenge?.id}
+                mode={session.mode}
+                turn={turnNumber}
+                history={thread?.messages ?? []}
+              />
             </form>
           ) : null}
         </section>
@@ -457,9 +469,16 @@ export default function PlayPage() {
                   <p className="eyebrow">{sourceTitle}</p>
                   <p>{beat.ask}</p>
                   <pre className="fixture">{sourceBody}</pre>
-                  <button className="btn-ghost" type="button" onClick={includeSource}>
-                    {piece ? "Include your piece" : "Include this source"}
-                  </button>
+                  {piece ? (
+                    <button className="btn-ghost" type="button" onClick={includeSource}>
+                      Include your piece
+                    </button>
+                  ) : null}
+                  <p className="muted small">
+                    {piece
+                      ? "Your pair can't see this piece. Put in the part the model needs. Pasting all of it costs tokens too."
+                      : "Quote the lines the model needs. Long-press to copy from the file. Pasting all of it costs tokens too."}
+                  </p>
                 </section>
               ) : null}
               <label>
@@ -468,11 +487,16 @@ export default function PlayPage() {
                 </span>
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
-              <p className="muted">
-                {session.mode === "collaborate" && squad
-                  ? "Your partner has a different piece. The shared message needs both."
-                  : `About ${tokens} tokens in this message. Length is not the grade. A missing source is.`}
-              </p>
+              {session.mode === "collaborate" && squad ? (
+                <p className="muted">Your partner has a different piece. The shared message needs both.</p>
+              ) : null}
+              <LiveVerdict
+                prompt={prompt}
+                challengeId={session.challenge?.id}
+                mode={session.mode}
+                turn={turnNumber}
+                history={thread?.messages ?? []}
+              />
               <div className="sticky-submit">
                 <button className="btn" disabled={busy || !prompt.trim()} type="submit">
                   {busy ? "Asking Grok…" : turnNumber > 1 ? "Send follow-up" : "Send message"}
@@ -566,8 +590,23 @@ function ResultCard({ shown }: { shown: Submission }) {
       {open ? (
         <div className="result-details stack">
           <p>{shown.verdictReason || shown.summary}</p>
+          {shown.savedVsVague > 0 ? (
+            <p>This prompt saved {shown.savedVsVague.toLocaleString()} tokens compared with a vague one.</p>
+          ) : null}
+          <Receipt submission={shown} />
+          {shown.betterPrompt ? (
+            <div className="better-prompt">
+              <p className="eyebrow">Shorter, with every detail</p>
+              <p>{shown.betterPrompt}</p>
+              <p className="muted">
+                {shown.measuredSaved > 0
+                  ? `Measured with Grok: ${shown.measuredTokens.toLocaleString()} real tokens for yours, ${shown.betterMeasuredTokens.toLocaleString()} for this one. Saves ${shown.measuredSaved.toLocaleString()}.`
+                  : `Saves about ${shown.betterSaves.toLocaleString()} tokens by the judge's count.`}
+              </p>
+            </div>
+          ) : null}
           {shown.judgedByModel ? (
-            <p className="muted">A second Grok call read the solver request and graded this prompt.</p>
+            <p className="muted">A second Grok call reviewed this prompt. It can add cost, never remove it.</p>
           ) : null}
           {shown.serverSideTools > 0 ? (
             <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>

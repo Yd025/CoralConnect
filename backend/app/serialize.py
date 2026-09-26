@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .carbon import reef_band
+from .carbon import VERDICT_WORDS, reef_band
 from .challenges import get_challenge, public_challenge
 from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
 
@@ -87,6 +87,18 @@ def public_submission(submission: Submission) -> dict:
         "verdictReason": submission.verdict_reason,
         "judgedByModel": submission.judged_by_model,
         "serverSideTools": submission.server_side_tools,
+        "effectiveTokens": submission.effective_tokens,
+        "leaked": submission.leaked,
+        "receipt": submission.receipt,
+        "verdict": VERDICT_WORDS.get(submission.grade, ""),
+        "flags": submission.flags,
+        "reviewerVerdict": submission.reviewer_verdict,
+        "betterPrompt": submission.better_prompt,
+        "betterSaves": submission.better_saves,
+        "savedVsVague": submission.saved_vs_vague,
+        "measuredTokens": submission.measured_tokens,
+        "betterMeasuredTokens": submission.better_measured_tokens,
+        "measuredSaved": submission.measured_saved,
     }
 
 

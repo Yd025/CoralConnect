@@ -4,22 +4,12 @@ import asyncio
 import secrets
 import time
 
-from .carbon import (
-    WEB_LOOKUP_TOKENS,
-    carbon_grams,
-    clamp_health,
-    count_tokens,
-    event_type,
-    excess_kg_at_scale,
-    explain,
-    grade_for,
-    lookup_cost,
-    reef_delta,
-    score_for,
-)
+from . import grok, judge
+from .carbon import clamp_health, count_tokens, event_type, reef_delta
 from .challenges import get_challenge
 from .config import settings
-from .grok import complete, describe_pair, finalize_verdict, imagine, review_call
+from .grading import beat_for, grade_prompt, redact, summary as turn_summary
+from .grok import describe_pair, imagine
 from .hub import hub
 from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
 from .serialize import public_session
@@ -44,6 +34,15 @@ EVENT_TITLES = {
     "murk": "{actor} clouded the water",
     "sludge": "{actor} dropped a sludge barrel",
 }
+# The admin's rehearsal buttons play as this fake player. It must never be
+# paired with a real person or counted as someone waiting in the lobby.
+REHEARSAL_PLAYER_ID = "p_rehearsal"
+REHEARSAL_SQUAD_ID = "s_rehearsal"
+REHEARSAL_KINDS = {"efficient", "bloated", "vague"}
+# Background work (the better-prompt measured run) is awaited inline when this
+# is True. Tests set it so they can check the result without an event loop.
+RUN_BACKGROUND_INLINE = False
+_background: set[asyncio.Task] = set()
 
 
 class GameError(Exception):
@@ -85,7 +84,29 @@ def _player(session: Session, player_id: str, player_token: str) -> Player:
 
 
 def _roster(session: Session) -> list[Player]:
-    return [player for player in session.players if player.id != "p_rehearsal"]
+    """Everyone except the rehearsal bot."""
+    return [player for player in session.players if player.id != REHEARSAL_PLAYER_ID]
+
+
+def _clear_round(session: Session, *, keep_players: bool) -> None:
+    """Wipe the reef and every thread so a new round starts clean, on the same game code.
+
+    keep_players=True is "play again": the same people stay and get re-paired on start.
+    keep_players=False is "next group": the lobby empties for the next people at the booth.
+    """
+    session.threads = []
+    session.submissions = []
+    session.events = []
+    session.squads = []
+    session.reef_health = 100
+    if not keep_players:
+        session.players = []
+        return
+    session.players = [p for p in _roster(session) if p.connected]
+    for player in session.players:
+        player.squad_id = None
+        player.score = 0
+        player.last_grade = None
 
 
 def _squad_for(session: Session, player: Player) -> Squad | None:
@@ -106,23 +127,6 @@ def _normalize_language(language: str) -> str:
 
 def _normalize_answer(answer: str) -> str:
     return " ".join(answer.strip().split())[:80]
-
-
-def _needs_every_fact(beat, mode: str) -> bool:
-    return mode == "collaborate" and len(getattr(beat, "parts", ())) >= 2
-
-
-def _facts_for(beat, mode: str) -> tuple[str, ...]:
-    if _needs_every_fact(beat, mode):
-        return tuple(part.anchor for part in beat.parts if part.anchor)
-    return beat.anchors
-
-
-def _every_fact_cost(prompt: str, facts: tuple[str, ...]) -> int:
-    folded = prompt.lower()
-    if facts and all(fact.lower() in folded for fact in facts):
-        return 0
-    return WEB_LOOKUP_TOKENS
 
 
 def _profiles(members: list[Player]) -> list[dict]:
@@ -326,7 +330,10 @@ async def join(
 
 def _seat_partner(session: Session, player: Player) -> str | None:
     """Pair this person with whoever is waiting. Returns the squad id once both phones share an animal."""
-    waiting = next((squad for squad in session.squads if len(squad.player_ids) == 1), None)
+    waiting = next(
+        (squad for squad in session.squads if len(squad.player_ids) == 1 and squad.id != REHEARSAL_SQUAD_ID),
+        None,
+    )
     if waiting:
         waiting.player_ids.append(player.id)
         player.squad_id = waiting.id
@@ -449,6 +456,22 @@ async def end(code: str, admin_token: str) -> Session:
     return session
 
 
+async def next_group(code: str, admin_token: str) -> Session:
+    """Clear players, squads, threads, and the reef, but keep the same code and QR.
+
+    The stage screen and the QR code on the table keep working, so the host
+    can wave the next people over without reopening anything.
+    """
+    async with store.lock:
+        session = _must(code)
+        _check_admin(session, admin_token)
+        _clear_round(session, keep_players=False)
+        session.status = "lobby"
+        _persist(session)
+    await _broadcast(session)
+    return session
+
+
 async def set_challenge(code: str, admin_token: str, challenge_id: str) -> Session:
     challenge = get_challenge(challenge_id)
     if challenge is None:
@@ -463,6 +486,8 @@ async def set_challenge(code: str, admin_token: str, challenge_id: str) -> Sessi
             squad.prompt_author_id = None
             squad.prompt_updated_at = 0
         if session.status == "ended":
+            # Same people, new challenge: start the next round from a clean reef.
+            _clear_round(session, keep_players=True)
             session.status = "lobby"
         _persist(session)
     await _broadcast(session)
@@ -508,7 +533,7 @@ async def submit(
         player = _player(session, player_id, player_token)
         if session.status == "ended":
             raise GameError(409, "This game has ended. Ask the table for a new QR code.")
-        if session.mode == "collaborate":
+        if session.mode == "collaborate" and player.id != REHEARSAL_PLAYER_ID:
             squad_now = _squad_for(session, player)
             if squad_now is None or len(squad_now.player_ids) < 2:
                 raise GameError(409, "Find the other person with your animal before you send a prompt.")
@@ -536,52 +561,53 @@ async def submit(
         history = list(thread.messages) if thread else []
         beat = challenge.beats[min(step, len(challenge.beats) - 1)]
         challenge_id = challenge.id
-        mode = session.mode
+        # Pieces are dealt only to a real pair. The rehearsal squad has one seat.
+        mode = "collaborate" if session.mode == "collaborate" and squad and len(squad.player_ids) >= 2 else "compete"
 
-    tokens = count_tokens(text)
-    facts = _facts_for(beat, mode)
-    local_lookup = lookup_cost(text, facts) if not _needs_every_fact(beat, mode) else _every_fact_cost(text, facts)
-    local_grams = carbon_grams(local_lookup)
-    local_excess = excess_kg_at_scale(local_lookup, 0)
-    local_reason = explain(
-        local_lookup,
-        local_grams,
-        local_excess,
-        turn=step + 1,
-        turn_count=limit,
-    )
-    messages = [{"role": message.role, "content": message.content} for message in history]
-    messages.append({"role": "user", "content": text})
+    # Collaborate mode also grades each partner's piece (grading.beat_for).
+    beat = beat_for(beat, mode)
+    # Layers 1 and 2 (the rules) grade the message on their own. They need no
+    # key and always give the same answer for the same message.
+    earlier = [{"role": message.role, "content": message.content} for message in history]
+    earlier_user = [message.content for message in history if message.role == "user"]
+    graded = grade_prompt(text, beat, earlier_user)
+    # Credentials never reach Grok, the thread, or anyone else's screen.
+    model_text = redact(text, beat)
+    messages = [*earlier, {"role": "user", "content": model_text}]
 
     if use_model:
-        answer, simulated, request, trace = await complete(messages, beat.simulated_reply)
-        model_verdict = None
+        answer, simulated, _request, trace = await grok.complete(messages, beat.simulated_reply)
         if not simulated:
-            model_verdict = await review_call(beat.ask, facts, request, trace)
-        reasonable, verdict_reason, judged = finalize_verdict(
-            model_verdict,
-            trace,
-            local_reasonable=local_lookup == 0,
-            local_reason=local_reason,
-        )
+            # Layer 4: real usage from the solver call, web searches, asking back.
+            history_tokens = count_tokens("\n".join(message.content for message in history))
+            judge.apply_measured(graded, answer, trace, history_tokens=history_tokens)
+            # Layer 3: the reviewer can only add cost, and its rewrite must pass our rules.
+            review = None
+            if not graded.leaked:
+                review = await grok.review_prompt(judge.review_packet(model_text, beat, graded))
+            judge.apply_review(graded, review, beat, earlier_user)
     else:
         answer, simulated = beat.simulated_reply, True
-        trace = {"serverSideTools": 0}
-        reasonable, verdict_reason, judged = local_lookup == 0, local_reason, False
-
-    looked_up = 0 if reasonable else max(local_lookup, 1200)
-    grade = grade_for(looked_up, 80)
-    score = score_for(looked_up, 80)
-    grams = carbon_grams(looked_up)
-    excess_kg = excess_kg_at_scale(looked_up, 0)
-    summary = verdict_reason if judged else explain(
-        looked_up, grams, excess_kg, turn=step + 1, turn_count=limit
+    vague_saving = judge.saved_vs_vague(graded, beat)
+    judge.log_judgment(
+        "game",
+        text,
+        graded,
+        beat=beat,
+        challenge_id=challenge_id,
+        turn=step + 1,
+        mode="full" if use_model and not simulated else "fast",
     )
-    if judged and looked_up > 0:
-        summary = f"{verdict_reason} About {grams:.3f} g CO2e."
+
+    grade = graded.grade
+    score = graded.score
+    looked_up = graded.lookup_tokens
+    grams = graded.grams
+    excess_kg = graded.excess_kg
+    summary = turn_summary(graded, turn=step + 1, turn_count=limit)
     delta = reef_delta(grade)
     kind = event_type(grade)
-    server_side_tools = int(trace.get("serverSideTools") or 0)
+    server_side_tools = graded.searches
 
     async with store.lock:
         session = _must(code)
@@ -603,7 +629,7 @@ async def submit(
             thread.turn_limit = limit
         if thread.done or thread.step != step:
             raise GameError(409, "The host moved on. Take a look at the new challenge.")
-        thread.messages.append(ChatMessage(role="user", content=text))
+        thread.messages.append(ChatMessage(role="user", content=model_text))
         thread.messages.append(ChatMessage(role="assistant", content=answer))
         thread.step += 1
         thread.done = thread.step >= thread.turn_limit
@@ -634,8 +660,8 @@ async def submit(
             player_id=player.id,
             squad_id=squad_id,
             actor=actor,
-            prompt=text,
-            token_count=tokens,
+            prompt=model_text,
+            token_count=graded.prompt_tokens,
             target_tokens=beat.target_tokens,
             lookup_tokens=looked_up,
             carbon_grams=grams,
@@ -651,10 +677,19 @@ async def submit(
             created_at=time.time(),
             turn_index=step,
             turn_count=thread.turn_limit,
-            reasonable=reasonable,
-            verdict_reason=verdict_reason,
-            judged_by_model=judged,
+            reasonable=graded.reasonable,
+            verdict_reason=graded.reviewer_reason,
+            judged_by_model=graded.judged_by_model,
             server_side_tools=server_side_tools,
+            effective_tokens=graded.effective_tokens,
+            leaked=graded.leaked,
+            receipt=graded.receipt(),
+            flags=list(graded.flags),
+            reviewer_verdict=graded.reviewer_verdict,
+            better_prompt=graded.better_prompt,
+            better_saves=graded.better_saves,
+            saved_vs_vague=vague_saving,
+            measured_tokens=graded.measured_tokens,
         )
         event = ReefEvent(
             id=_id("evt"),
@@ -676,7 +711,41 @@ async def submit(
     await _broadcast(session)
     if kind in {"turtle", "bloom"} and use_model and settings.xai_api_key and settings.grok_images:
         asyncio.create_task(_paint(session.code, event_id, kind, actor))
+    if use_model and not simulated and graded.better_prompt and graded.measured_tokens and judge.allow_full():
+        await _schedule(_measure_better(session.code, submission.id, graded, earlier))
     return session, submission
+
+
+async def _schedule(coro) -> None:
+    """Run slow follow-up work after the player already has their grade."""
+    if RUN_BACKGROUND_INLINE:
+        await coro
+        return
+    task = asyncio.create_task(coro)
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+
+
+async def _measure_better(code: str, submission_id: str, graded, history: list[dict]) -> None:
+    """Layer 4, part 2: run the checked better prompt for real and put the saving on the receipt."""
+    try:
+        measured = await judge.measure_better(graded, history)
+    except Exception:  # noqa: BLE001 - a failed extra run must never break the game
+        return
+    if not measured:
+        return
+    async with store.lock:
+        session = store.get(code)
+        if session is None:
+            return
+        submission = next((item for item in session.submissions if item.id == submission_id), None)
+        if submission is None:
+            return
+        submission.better_measured_tokens = graded.better_measured_tokens
+        submission.measured_saved = graded.measured_saved
+        submission.receipt = graded.receipt()
+        _persist(session)
+    await _broadcast(session)
 
 
 async def _paint(code: str, event_id: str, kind: str, actor: str) -> None:
@@ -696,8 +765,14 @@ async def _paint(code: str, event_id: str, kind: str, actor: str) -> None:
 
 
 async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Submission]:
-    if kind not in {"efficient", "bloated"}:
-        raise GameError(400, "Simulate efficient or bloated.")
+    """Send a sample prompt as the Rehearsal player, for the thread's current turn.
+
+    efficient: the adequate sample for every remaining turn (should be A+).
+    bloated: everything seen so far pasted in, for the current turn only (C or D).
+    vague: the vague sample for the current turn only (F).
+    """
+    if kind not in REHEARSAL_KINDS:
+        raise GameError(400, "Rehearse efficient, bloated, or vague.")
     async with store.lock:
         session = _must(code)
         _check_admin(session, admin_token)
@@ -705,16 +780,16 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
         if challenge is None:
             raise GameError(500, "This game's challenge is missing.")
         if session.status == "lobby":
-            connected = [p for p in session.players if p.connected and p.id != "p_rehearsal"]
+            connected = [p for p in _roster(session) if p.connected]
             if session.mode == "collaborate" and connected and not any(len(squad.player_ids) == 2 for squad in session.squads):
                 _form_squads(session, connected)
             session.status = "playing"
         if session.status != "playing":
             raise GameError(409, "Start a new round before rehearsing.")
-        player = next((p for p in session.players if p.id == "p_rehearsal"), None)
+        player = next((p for p in session.players if p.id == REHEARSAL_PLAYER_ID), None)
         if player is None:
             player = Player(
-                id="p_rehearsal",
+                id=REHEARSAL_PLAYER_ID,
                 token=secrets.token_urlsafe(18),
                 name="Rehearsal",
                 language="Python",
@@ -726,7 +801,7 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
             session.players.append(player)
             if session.mode == "collaborate":
                 squad = Squad(
-                    id="s_rehearsal",
+                    id=REHEARSAL_SQUAD_ID,
                     name="Rehearsal Reef",
                     player_ids=[player.id],
                     icebreaker="This squad exists so you can test the reef without a phone.",
@@ -735,7 +810,32 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
                 )
                 player.squad_id = squad.id
                 session.squads.append(squad)
-        prompts = challenge.example_efficient if kind == "efficient" else (challenge.example_bloated,)
+        # Let the host press the rehearsal buttons as often as they like:
+        # a finished rehearsal thread starts over instead of refusing.
+        owner_id = player.squad_id if session.mode == "collaborate" and player.squad_id else player.id
+        thread = next((item for item in session.threads if item.owner_id == owner_id), None)
+        if thread is not None and thread.done:
+            session.threads = [item for item in session.threads if item is not thread]
+            thread = None
+        step = thread.step if thread else 0
+        if kind == "efficient":
+            prompts = tuple(challenge.example_efficient[step:])
+        elif kind == "bloated":
+            prompts = (challenge.example_whole_file(step),)
+        else:
+            prompts = (challenge.example_vague[step],) if step < len(challenge.example_vague) else ()
+        # Sample lines only cover the written beats. A small table may still
+        # have turns left, so an empty script starts the rehearsal over.
+        if not prompts:
+            if thread is not None:
+                session.threads = [item for item in session.threads if item is not thread]
+            step = 0
+            if kind == "efficient":
+                prompts = tuple(challenge.example_efficient)
+            elif kind == "bloated":
+                prompts = (challenge.example_whole_file(0),)
+            else:
+                prompts = (challenge.example_vague[0],)
         player_token = player.token
         player_id = player.id
         _persist(session)
