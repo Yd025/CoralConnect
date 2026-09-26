@@ -45,6 +45,7 @@ export default function AdminPage() {
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
+    if (saved) return;
     setBusy(true);
     setError(null);
     try {
@@ -142,9 +143,11 @@ export default function AdminPage() {
                   ))}
                 </select>
               </label>
-              <button className="btn" disabled={busy} type="submit">
-                {saved ? "Start a fresh game" : "Create game and QR"}
-              </button>
+              {saved ? null : (
+                <button className="btn" disabled={busy} type="submit">
+                  Create game and QR
+                </button>
+              )}
               <p className="muted">The admin key stays in this browser. Keep the tab open during the demo.</p>
             </form>
             {session ? (
