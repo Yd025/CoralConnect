@@ -150,6 +150,7 @@ export default function PlayPage() {
     onPrompt(next);
   }
 
+  const tokens = estimateTokens(prompt);
   const compete = session?.mode === "compete";
 
   if (compete && session) {
