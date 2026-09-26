@@ -192,24 +192,153 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 
 .landing { min-height: 100dvh; }
+.landing .shell { width: min(1240px, calc(100% - 56px)); padding-top: 22px; padding-bottom: 72px; }
 .landing-ui { position: relative; z-index: 2; }
-.landing h1 { font-size: clamp(3.6rem, 8vw, 6.4rem); line-height: 0.92; margin: 0; }
-.hero-script {
-  margin: 0.15em 0 0.7em;
-  font-family: var(--font-display), Georgia, serif;
-  font-style: italic;
-  font-weight: 460;
-  font-size: clamp(2rem, 4vw, 3.3rem);
-  letter-spacing: -0.03em;
+.landing-stage {
+  min-height: calc(100dvh - 22px);
+  display: flex;
+  flex-direction: column;
+}
+.landing-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+}
+.landing .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans), "Avenir Next", sans-serif;
+  font-weight: 650;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+.brand-mark { width: 22px; height: 22px; color: #d7f4ff; }
+.landing-nav { display: flex; gap: 28px; align-items: center; }
+.landing-nav a {
+  color: rgba(244, 251, 255, 0.78);
+  text-decoration: none;
+  font-size: 0.98rem;
+  padding-bottom: 4px;
+}
+.landing-nav a:first-child {
+  color: white;
+  box-shadow: inset 0 -2px 0 #7fd4ef;
+}
+.landing-tools {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: rgba(231, 246, 242, 0.72);
+  font-size: 0.92rem;
+}
+.landing-tools .btn-ghost {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(8, 28, 40, 0.28);
+  padding: 8px 14px;
+}
+.landing .hero {
+  max-width: 36rem;
+  margin: 0;
+  padding: 0 0 6vh;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 9vh;
+}
+.hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: rgba(244, 251, 255, 0.8);
+  font-size: 1rem;
+}
+.hero-kicker i {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: #7fd4ef;
+  display: block;
+}
+.landing h1 {
+  font-family: var(--font-sans), "Avenir Next", sans-serif;
+  font-weight: 650;
+  font-size: clamp(4.4rem, 7.5vw, 6.8rem);
+  line-height: 0.9;
+  letter-spacing: -0.048em;
+  color: #f7fbff;
+  margin: 0;
+}
+.landing .lede {
+  color: rgba(214, 232, 238, 0.78);
+  font-size: 1.05rem;
+  line-height: 1.45;
+  max-width: 32rem;
+  margin: 18px 0 0;
+}
+.hero-join {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+.hero-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 8px 6px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 18, 30, 0.38);
+}
+.hero-code span {
+  color: rgba(244, 251, 255, 0.62);
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+.hero-code input {
+  width: 7.2rem;
+  border: 0;
+  background: transparent;
+  padding: 8px 4px;
+  letter-spacing: 0.14em;
+  font-weight: 650;
+}
+.hero-code input:focus { outline: none; }
+.hero-join .btn { padding: 14px 22px; box-shadow: 0 10px 28px rgba(8, 40, 56, 0.28); }
+.hero-more { color: rgba(244, 251, 255, 0.78); text-decoration: none; font-size: 0.95rem; }
+.scene-caption {
+  margin: 0;
+  color: rgba(231, 246, 242, 0.66);
+  font-size: 0.95rem;
+}
+.landing .explain { margin-top: 12vh; position: relative; }
+.landing .explain::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -8vw;
+  right: -8vw;
+  top: -48px;
+  bottom: -80px;
+  background: linear-gradient(180deg, transparent, rgba(3, 16, 26, 0.9) 16%);
+  pointer-events: none;
 }
 .btn-warm { background: var(--sand); color: #2a2114; }
 .ambient-vignette {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 1;
   background:
-    linear-gradient(90deg, rgba(3, 22, 28, 0.78) 0%, rgba(3, 22, 28, 0.42) 36%, rgba(3, 22, 28, 0.05) 62%),
-    linear-gradient(180deg, rgba(3, 22, 28, 0.28), transparent 24%, transparent 70%, rgba(3, 22, 28, 0.35));
+    linear-gradient(90deg, rgba(4, 18, 32, 0.55) 0%, rgba(4, 18, 32, 0.18) 34%, rgba(4, 18, 32, 0) 58%),
+    linear-gradient(180deg, rgba(4, 16, 28, 0.18), transparent 22%, transparent 68%, rgba(4, 12, 22, 0.28));
   pointer-events: none;
 }
 .join {
@@ -240,10 +369,47 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background:
-    radial-gradient(90% 70% at 82% 0%, rgba(94, 214, 206, 0.55), transparent 46%),
-    linear-gradient(165deg, #1a6f86 0%, #0c4a5c 28%, #063444 58%, #03161c 100%);
+  background: #062844;
 }
+.ambient-photo { inset: -3%; width: 106%; height: 106%; }
+.ambient-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cast-jelly img { width: 132px; }
+.cast-whale img { width: 430px; }
+.cast-turtle img { width: 340px; }
+.cast-tang img { width: 150px; }
+.cast-octopus img { width: 190px; }
+.cast-crab img { width: 150px; }
+.cast-coral img { width: 170px; }
+.cast-star img { width: 84px; }
+.cast-shell img { width: 96px; }
+.cast-kelp img { width: 150px; }
+.ambient-parallax.scene-anchor { width: auto; }
+.scene-anchor .scene-drift { position: relative; animation-name: scene-drift; animation-timing-function: ease-in-out; }
+.ambient-parallax.cast-jelly { top: 13%; left: 40%; }
+.ambient-parallax.cast-whale { top: 7%; left: 56%; }
+.ambient-parallax.cast-turtle { top: 32%; left: 52%; }
+.ambient-parallax.cast-tang { top: 50%; left: 58%; }
+.ambient-parallax.cast-octopus { top: 58%; left: 38%; }
+.ambient-parallax.cast-crab { top: 68%; left: 15%; }
+.ambient-parallax.cast-coral { top: auto; bottom: 3%; left: 2%; }
+.ambient-parallax.cast-star { top: auto; bottom: 16%; left: 20%; }
+.ambient-parallax.cast-shell { top: auto; bottom: 18%; left: 70%; }
+.ambient-parallax.cast-kelp { top: auto; bottom: 1%; left: auto; right: 0; }
+@keyframes scene-drift {
+  0%, 100% { transform: translate3d(-12px, 5px, 0); }
+  50% { transform: translate3d(16px, -8px, 0); }
+}
+.cast-art {
+  display: block;
+  overflow: visible;
+  height: auto;
+  filter: drop-shadow(0 12px 14px rgba(2, 12, 24, 0.28));
+  animation-name: fish-bob;
+  animation-duration: 5.2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.cast-art.cast-flip { animation-name: fish-bob-flip; }
 .ambient-rays {
   position: absolute;
   inset: 0;
@@ -254,7 +420,7 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .ambient-reef {
   top: auto;
   bottom: 0;
-  height: min(72vh, 680px);
+  height: min(78vh, 760px);
 }
 .ambient-reef-art {
   display: block;
@@ -501,6 +667,19 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 
 @media (max-width: 860px) {
   .hero, .admin-grid, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
+  .landing .shell { width: min(100% - 28px, 1240px); }
+  .landing-top { display: flex; flex-wrap: wrap; }
+  .landing-nav { order: 3; width: 100%; gap: 18px; }
+  .landing-tools span { display: none; }
+  .landing h1 { font-size: clamp(3.3rem, 14vw, 4.6rem); }
+  .ambient-parallax.cast-whale { left: 46%; top: 8%; }
+  .cast-whale img { width: 190px; }
+  .ambient-parallax.cast-turtle { left: 52%; top: 28%; }
+  .cast-turtle img { width: 170px; }
+  .ambient-parallax.cast-jelly { left: 58%; top: 7%; }
+  .ambient-parallax.cast-tang { left: 62%; top: 42%; }
+  .ambient-parallax.cast-octopus { left: 34%; top: 62%; }
+  .cast-octopus img { width: 110px; }
   .reef__side { position: static; width: auto; margin: 0 12px; }
   .reef__hud { position: relative; padding-top: 8px; }
   .reef { min-height: 100dvh; display: flex; flex-direction: column; }
@@ -508,7 +687,8 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 @media (prefers-reduced-motion: reduce) {
   .swimmer, .bubble, .barrel, .reef__flash, .resident, .reef__toast,
-  .ambient-track, .ambient-ripple, .drifter-fish, .reef-sway { animation: none; }
+  .ambient-track, .ambient-ripple, .drifter-fish, .reef-sway, .cast-art, .scene-drift { animation: none; }
   .ambient-parallax { transform: none; }
   .ambient-track:not(.is-reverse) .drifter-fish { transform: scaleX(-1); }
+  .cast-art.cast-flip { transform: scaleX(-1); }
 }
