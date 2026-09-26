@@ -48,57 +48,49 @@ export default function HomePage() {
             <svg className="hero-glow" viewBox="0 0 460 340">
               <defs>
                 <linearGradient id="hero-water" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#127a93" />
-                  <stop offset="55%" stopColor="#0b4c5c" />
-                  <stop offset="100%" stopColor="#042630" />
+                  <stop offset="0%" stopColor="#0c4a56" />
+                  <stop offset="58%" stopColor="#06343c" />
+                  <stop offset="100%" stopColor="#03161c" />
                 </linearGradient>
                 <linearGradient id="hero-sand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#e7c98a" />
-                  <stop offset="1" stopColor="#8d6840" />
+                  <stop offset="0" stopColor="#8d7350" />
+                  <stop offset="1" stopColor="#3e3428" />
                 </linearGradient>
-                <radialGradient id="hero-pool" cx="50%" cy="62%" r="46%">
-                  <stop offset="0%" stopColor="#3ddec8" stopOpacity="0.45" />
+                <radialGradient id="hero-pool" cx="50%" cy="64%" r="42%">
+                  <stop offset="0%" stopColor="#3ddec8" stopOpacity="0.22" />
                   <stop offset="100%" stopColor="#3ddec8" stopOpacity="0" />
                 </radialGradient>
               </defs>
               <rect width="460" height="340" rx="28" fill="url(#hero-water)" />
-              <polygon points="40,0 78,0 110,180 20,180" fill="#e7f6f2" opacity="0.08" />
-              <polygon points="280,0 320,0 300,200 230,200" fill="#f0d7a4" opacity="0.06" />
-              <ellipse cx="230" cy="230" rx="160" ry="70" fill="url(#hero-pool)" />
-              <path d="M18 250 C90 220 150 276 230 246 C310 214 370 270 446 236 L446 322 L18 322 Z" fill="url(#hero-sand)" />
-              <g className="reef-sway" style={{ animationDuration: "7s" }}>
-                <path d="M78 268 C70 210 46 176 38 128" fill="none" stroke="#ff6b57" strokeWidth="12" strokeLinecap="round" />
-                <path d="M86 250 C70 200 84 160 72 124" fill="none" stroke="#ff8d7a" strokeWidth="8" strokeLinecap="round" />
-                <path d="M92 240 C114 196 108 158 126 122" fill="none" stroke="#ff6b57" strokeWidth="7" strokeLinecap="round" />
-                <circle cx="38" cy="122" r="8" fill="#ffd0c8" />
-                <circle cx="72" cy="118" r="6" fill="#ffe08a" />
-                <circle cx="126" cy="116" r="7" fill="#ffd0c8" />
+              <polygon points="48,0 70,0 96,170 28,170" fill="#e7f6f2" opacity="0.045" />
+              <ellipse cx="230" cy="236" rx="150" ry="58" fill="url(#hero-pool)" />
+              <path d="M16 262 C100 236 160 286 240 258 C320 230 380 284 448 250 L448 324 L16 324 Z" fill="url(#hero-sand)" />
+              <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "9s" }}>
+                <path d="M72 286 C66 236 48 206 42 168" fill="none" stroke="#d85a4c" strokeWidth="3.4" opacity="0.85" />
+                <path d="M78 260 C64 228 70 198 60 172" fill="none" stroke="var(--coral)" strokeWidth="2" opacity="0.7" />
+                <path d="M84 246 C102 214 96 186 110 162" fill="none" stroke="#c9843a" strokeWidth="1.7" opacity="0.7" />
+                <path d="M58 230 C44 208 48 188 38 170" fill="none" stroke="#d85a4c" strokeWidth="1.3" opacity="0.6" />
               </g>
-              <g className="reef-sway" style={{ animationDuration: "8s", animationDelay: "-2s" }}>
-                <path d="M168 274 C168 210 214 168 236 196 C258 160 304 196 292 274 Z" fill="#3ddec8" />
-                <path d="M196 250 C204 210 228 188 236 206" fill="none" stroke="#e7f6f2" strokeWidth="1.6" opacity="0.4" />
+              <g className="reef-sway" style={{ animationDuration: "11s", animationDelay: "-2s" }}>
+                <path d="M168 292 C166 236 210 198 236 214 C262 190 304 228 292 292 Z" fill="#3ddec8" opacity="0.32" />
+                <path d="M186 280 C192 240 214 220 230 232" fill="none" stroke="#9ec4bc" strokeWidth="1" opacity="0.45" />
+                <path d="M214 284 C224 236 256 214 274 236" fill="none" stroke="#9ec4bc" strokeWidth="1" opacity="0.35" />
               </g>
-              <ellipse cx="250" cy="252" rx="36" ry="20" fill="#f0d7a4" />
-              <path d="M224 252 C232 242 242 258 252 246 C262 258 272 242 278 252" fill="none" stroke="#8d6840" strokeWidth="2" strokeLinecap="round" />
-              <g className="reef-sway" style={{ animationDuration: "6s", animationDelay: "-1.5s" }}>
-                <path d="M330 270 C324 230 314 206 318 176" fill="none" stroke="#ff6b57" strokeWidth="9" strokeLinecap="round" />
-                <path d="M346 268 C356 224 372 198 366 168" fill="none" stroke="#ffd166" strokeWidth="8" strokeLinecap="round" />
-                <ellipse cx="318" cy="170" rx="7" ry="10" fill="#ffb15a" />
-                <ellipse cx="366" cy="162" rx="6" ry="9" fill="#ffe08a" />
-                <path d="M390 268 C384 232 372 214 364 196" fill="none" stroke="#3ddec8" strokeWidth="3" strokeLinecap="round" />
-                <path d="M400 266 C404 228 418 206 428 184" fill="none" stroke="#8ee89a" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="364" cy="190" r="5" fill="#ff8fa3" />
-                <circle cx="428" cy="178" r="4" fill="#ffd166" />
+              <ellipse cx="248" cy="268" rx="30" ry="14" fill="#6e5a40" />
+              <path d="M226 266 C236 258 246 274 256 260 C266 274 276 258 284 266" fill="none" stroke="#3e3428" strokeWidth="1.1" />
+              <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "8.5s", animationDelay: "-1.4s" }}>
+                <path d="M334 284 C330 248 322 228 326 204" fill="none" stroke="var(--coral)" strokeWidth="2.6" opacity="0.8" />
+                <path d="M348 282 C356 244 368 224 364 200" fill="none" stroke="#c9843a" strokeWidth="1.8" opacity="0.7" />
+                <path d="M360 280 C372 246 386 228 398 208" fill="none" stroke="#d85a4c" strokeWidth="1.4" opacity="0.65" />
+                <path d="M390 286 C384 252 374 236 368 218" fill="none" stroke="var(--teal)" strokeWidth="1.2" opacity="0.5" />
+                <path d="M402 284 C408 250 420 232 430 214" fill="none" stroke="#7dbea8" strokeWidth="1.1" opacity="0.45" />
               </g>
-              <g transform="translate(188 86) scale(0.62)" style={{ color: "var(--sand)" }}>
+              <g transform="translate(214 108) scale(0.5)" style={{ color: "var(--sand)" }}>
                 <ReefFish variant="tang" />
               </g>
-              <g transform="translate(400 64) scale(-0.34, 0.34)" style={{ color: "var(--teal)" }}>
+              <g transform="translate(392 86) scale(-0.3, 0.3)" style={{ color: "var(--teal)" }}>
                 <ReefFish variant="damsel" />
               </g>
-              <circle cx="300" cy="64" r="6" fill="none" stroke="#f0d7a4" strokeWidth="1.5" />
-              <circle cx="326" cy="92" r="3.5" fill="none" stroke="#3ddec8" strokeWidth="1.3" />
-              <circle cx="286" cy="98" r="2.5" fill="none" stroke="#e7f6f2" strokeWidth="1.2" />
             </svg>
           </div>
         </section>
