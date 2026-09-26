@@ -1,1 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="02-moss-turtle-title 02-moss-turtle-desc"><title id="02-moss-turtle-title">Moss the turtle</title><desc id="02-moss-turtle-desc">A gliding sea turtle with long paddle-like flippers, fine shell markings and jade tones. Deep Water edition, editable vector on a transparent background.</desc><defs><linearGradient id="02-moss-turtle-orange" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#e6b681"/><stop offset="0.5" stop-color="#c5805d"/><stop offset="1.0" stop-color="#7c554b"/></linearGradient><linearGradient id="02-moss-turtle-gold" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#efe0ae"/><stop offset="0.5" stop-color="#c1ac70"/><stop offset="1.0" stop-color="#86794e"/></linearGradient><linearGradient id="02-moss-turtle-coral" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#dda08e"/><stop offset="0.5" stop-color="#b7736b"/><stop offset="1.0" stop-color="#6e505e"/></linearGradient><linearGradient id="02-moss-turtle-blue" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#97c9da"/><stop offset="0.5" stop-color="#508eae"/><stop offset="1.0" stop-color="#285575"/></linearGradient><linearGradient id="02-moss-turtle-tang" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#7abed6"/><stop offset="0.5" stop-color="#317caa"/><stop offset="1.0" stop-color="#173c66"/></linearGradient><linearGradient id="02-moss-turtle-navy" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#658da3"/><stop offset="0.5" stop-color="#2d536f"/><stop offset="1.0" stop-color="#142f4a"/></linearGradient><linearGradient id="02-moss-turtle-green" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#a9c6ac"/><stop offset="0.5" stop-color="#6c998f"/><stop offset="1.0" stop-color="#376c75"/></linearGradient><linearGradient id="02-moss-turtle-shellgreen" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#a6bda2"/><stop offset="0.5" stop-color="#72938b"/><stop offset="1.0" stop-color="#355e68"/></linearGradient><linearGradient id="02-moss-turtle-mint" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#bee0cf"/><stop offset="0.5" stop-color="#74b2ae"/><stop offset="1.0" stop-color="#386f80"/></linearGradient><linearGradient id="02-moss-turtle-white" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#ebf1eb"/><stop offset="0.5" stop-color="#a8c7d2"/><stop offset="1.0" stop-color="#5b87a4"/></linearGradient><linearGradient id="02-moss-turtle-purple" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#c5d5d6"/><stop offset="0.5" stop-color="#819bad"/><stop offset="1.0" stop-color="#506584"/></linearGradient><linearGradient id="02-moss-turtle-jelly" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#daf2ee"/><stop offset="0.5" stop-color="#91c3d0"/><stop offset="1.0" stop-color="#587ca9"/></linearGradient><linearGradient id="02-moss-turtle-pearl" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#f4f0df"/><stop offset="0.5" stop-color="#c9dad7"/><stop offset="1.0" stop-color="#7ba9b7"/></linearGradient><linearGradient id="02-moss-turtle-glass" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#cce7df"/><stop offset="0.5" stop-color="#74aaba"/><stop offset="1.0" stop-color="#385f7c"/></linearGradient><linearGradient id="02-moss-turtle-sand" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#e1d5b3"/><stop offset="0.5" stop-color="#b6a58c"/><stop offset="1.0" stop-color="#7c7773"/></linearGradient><linearGradient id="02-moss-turtle-wood" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#c0ab8c"/><stop offset="0.5" stop-color="#968274"/><stop offset="1.0" stop-color="#5c5554"/></linearGradient><linearGradient id="02-moss-turtle-ink" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#385774"/><stop offset="0.5" stop-color="#18364f"/><stop offset="1.0" stop-color="#0a1e33"/></linearGradient><linearGradient id="02-moss-turtle-iris" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#b3d8d7"/><stop offset="0.5" stop-color="#427f9b"/><stop offset="1.0" stop-color="#173d5a"/></linearGradient><linearGradient id="02-moss-turtle-irisAmber" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#d0bc8d"/><stop offset="0.5" stop-color="#7b806a"/><stop offset="1.0" stop-color="#304b51"/></linearGradient><linearGradient id="02-moss-turtle-irisViolet" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#c1c5d9"/><stop offset="0.5" stop-color="#7d8da8"/><stop offset="1.0" stop-color="#405674"/></linearGradient><linearGradient id="02-moss-turtle-foam" x1=".22" y1="0" x2=".72" y2="1"><stop offset="0.0" stop-color="#f3f3e4"/><stop offset="0.5" stop-color="#c2e2e4"/><stop offset="1.0" stop-color="#74b5cb"/></linearGradient><radialGradient id="02-moss-turtle-bell"><stop stop-color="#c4e5ea" stop-opacity=".75"/><stop offset=".6" stop-color="#6fb1c4" stop-opacity=".48"/><stop offset="1" stop-color="#6496b7" stop-opacity=".76"/></radialGradient></defs><g stroke-linecap="round" stroke-linejoin="round"><path d="M170 213 C123 180 121 123 109 73 C149 97 202 134 214 181Z" fill="url(#02-moss-turtle-green)" stroke="#42696b" stroke-width="1.4" class="far-fin"/><path d="M253 292 C284 321 306 368 297 405 C268 397 241 350 220 323Z" fill="url(#02-moss-turtle-green)" stroke="#42696b" stroke-width="1.4" class="far-fin"/><path d="M134 289 L80 313 L111 282Z" fill="url(#02-moss-turtle-green)" /><path d="M148 235 C151 177 211 150 283 174 C313 186 336 209 325 254 C311 299 243 328 182 317 C151 309 135 276 148 235Z" fill="url(#02-moss-turtle-sand)" stroke="#416a6b" stroke-width="1.5" /><path d="M143 233 C153 169 214 143 276 163 C322 178 336 211 313 255 C284 306 210 324 162 296 C137 281 135 257 143 233Z" fill="url(#02-moss-turtle-shellgreen)" stroke="#315969" stroke-width="1.8" /><path d="M152 234 C162 180 215 156 271 174 C311 188 320 213 302 250 C278 293 213 311 171 287 C151 275 146 254 152 234Z" fill="none" stroke="#b5cbb1" stroke-width="2" opacity=".65"/><path d="M216 182 L248 181 L276 205 L268 243 L231 264 L202 247 L194 211Z M194 211 L164 209 M202 247 L155 252 M231 264 L224 302 M268 243 L294 266 M276 205 L315 207 M216 182 L207 163 M248 181 L256 167 M171 287 L202 247" fill="none" stroke="#c2d5ba" stroke-width="1.7" opacity=".62"/><path d="M306 212 C332 198 347 171 377 170 Q404 171 420 190 L446 207 Q452 218 435 225 Q410 237 385 221 L361 219 Q340 242 314 247Z" fill="url(#02-moss-turtle-green)" stroke="#3d6769" stroke-width="1.4" /><path d="M383 216 Q412 232 439 216" fill="none" stroke="#bdd2bc" stroke-width="2" opacity=".7"/><ellipse cx="407" cy="194" rx="7" ry="7" fill="#bdd5d0" opacity=".4"/><ellipse cx="407" cy="194" rx="5" ry="5" fill="#0d263b" /><ellipse cx="405.75" cy="192.5" rx="1.1500000000000001" ry="1.1500000000000001" fill="#dceced" /><path d="M429 215 Q438 215 442 212" fill="none" stroke="#355767" stroke-width="1.5" /><ellipse cx="438" cy="205" rx="1.3" ry="1.3" fill="#335c63" /><path d="M197 294 C182 332 159 353 107 393 C101 357 122 304 164 271Z" fill="url(#02-moss-turtle-green)" stroke="#3d6769" stroke-width="1.5" class="fin"/><path d="M188 293 Q138 329 113 376" fill="none" stroke="#aac4ab" stroke-width="2" opacity=".65"/><path d="M315 238 Q339 265 369 284 Q340 291 315 266Z" fill="url(#02-moss-turtle-green)" stroke="#3d6769" stroke-width="1.3" /><ellipse cx="143" cy="143" rx="6" ry="11" fill="#376a71" opacity=".25" transform="rotate(-27 143 143)"/><ellipse cx="157" cy="161" rx="5" ry="10" fill="#376a71" opacity=".25" transform="rotate(-27 157 161)"/><ellipse cx="132" cy="123" rx="5" ry="9" fill="#376a71" opacity=".25" transform="rotate(-25 132 123)"/><ellipse cx="142" cy="330" rx="5" ry="9" fill="#376a71" opacity=".25" transform="rotate(31 142 330)"/><ellipse cx="129" cy="351" rx="4" ry="8" fill="#376a71" opacity=".25" transform="rotate(31 129 351)"/><ellipse cx="158" cy="312" rx="6" ry="9" fill="#376a71" opacity=".25" transform="rotate(31 158 312)"/><ellipse cx="279" cy="365" rx="4" ry="8" fill="#376a71" opacity=".25" transform="rotate(-20 279 365)"/><ellipse cx="391" cy="182" rx="3" ry="4" fill="#376a71" opacity=".25" transform="rotate(-25 391 182)"/><ellipse cx="382" cy="184" rx="3" ry="4" fill="#376a71" opacity=".25" transform="rotate(-25 382 184)"/><ellipse cx="377" cy="196" rx="3" ry="4" fill="#376a71" opacity=".25" transform="rotate(-25 377 196)"/><ellipse cx="388" cy="204" rx="3" ry="4" fill="#376a71" opacity=".25" transform="rotate(-25 388 204)"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="02-moss-turtle-title 02-moss-turtle-desc" preserveAspectRatio="xMidYMid meet">
+  <title id="02-moss-turtle-title">Moss the turtle</title>
+  <desc id="02-moss-turtle-desc">A jade sea turtle gliding on curved front paddles, with a domed shell, compact head and small rear flippers. Deep Water edition, editable vector on a transparent background.</desc>
+  <defs>
+    <linearGradient id="02-moss-turtle-green" x1=".22" y1="0" x2=".72" y2="1">
+      <stop offset="0.0" stop-color="#a9c6ac" />
+      <stop offset="0.5" stop-color="#6c998f" />
+      <stop offset="1.0" stop-color="#376c75" />
+    </linearGradient>
+    <linearGradient id="02-moss-turtle-sand" x1=".22" y1="0" x2=".72" y2="1">
+      <stop offset="0.0" stop-color="#e1d5b3" />
+      <stop offset="0.5" stop-color="#b6a58c" />
+      <stop offset="1.0" stop-color="#7c7773" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <defs>
+      <radialGradient id="02-moss-turtle-moss-shell" cx=".34" cy=".22" r=".85">
+        <stop stop-color="#b3c6a0" />
+        <stop offset=".48" stop-color="#7f9f86" />
+        <stop offset="1" stop-color="#3a6970" />
+      </radialGradient>
+    </defs>
+    <g id="02-moss-turtle-rear-upper-flipper" data-part="rear-upper-flipper" class="far-fin" style="--pivot-x:151px;--pivot-y:221px" data-pivot-x="151" data-pivot-y="221">
+      <path d="M162 216 C148 202 130 185 114 181 C107 179 105 184 110 192 C121 211 132 229 151 233Z" fill="url(#02-moss-turtle-green)" stroke="#416c6b" stroke-width="1.4" />
+      <defs>
+        <clipPath id="02-moss-turtle-rear-upper-flipper-clip" clipPathUnits="userSpaceOnUse">
+          <path d="M162 216 C148 202 130 185 114 181 C107 179 105 184 110 192 C121 211 132 229 151 233Z" fill="#fff" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#02-moss-turtle-rear-upper-flipper-clip)">
+        <path d="M120 192 Q135 204 144 219" fill="none" stroke="#c0d1b5" stroke-width="1.3" opacity=".4" />
+      </g>
+    </g>
+    <g id="02-moss-turtle-rear-lower-flipper" data-part="rear-lower-flipper" class="fin" style="--pivot-x:154px;--pivot-y:279px" data-pivot-x="154" data-pivot-y="279">
+      <path d="M154 267 C131 274 113 296 101 314 C98 320 102 323 110 320 C137 311 162 298 178 282Z" fill="url(#02-moss-turtle-green)" stroke="#416c6b" stroke-width="1.4" />
+      <defs>
+        <clipPath id="02-moss-turtle-rear-lower-flipper-clip" clipPathUnits="userSpaceOnUse">
+          <path d="M154 267 C131 274 113 296 101 314 C98 320 102 323 110 320 C137 311 162 298 178 282Z" fill="#fff" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#02-moss-turtle-rear-lower-flipper-clip)">
+        <path d="M113 309 Q132 295 151 288" fill="none" stroke="#adc7ac" stroke-width="1.4" opacity=".5" />
+      </g>
+    </g>
+    <path d="M138 252 Q117 258 107 269 Q104 274 111 272 Q130 269 146 266Z" fill="url(#02-moss-turtle-green)" stroke="#416c6b" stroke-width="1.1" />
+    <g id="02-moss-turtle-front-upper-flipper" data-part="front-upper-flipper" class="far-fin" style="--pivot-x:292px;--pivot-y:220px" data-pivot-x="292" data-pivot-y="220">
+      <path d="M276 232 C268 209 250 186 241 161 C231 139 225 121 225 113 C225 108 230 108 236 112 C272 134 299 174 310 209 L310 233Z" fill="url(#02-moss-turtle-green)" stroke="#416c6b" stroke-width="1.4" />
+      <defs>
+        <clipPath id="02-moss-turtle-front-upper-flipper-clip" clipPathUnits="userSpaceOnUse">
+          <path d="M276 232 C268 209 250 186 241 161 C231 139 225 121 225 113 C225 108 230 108 236 112 C272 134 299 174 310 209 L310 233Z" fill="#fff" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#02-moss-turtle-front-upper-flipper-clip)">
+        <path d="M283 199 Q266 160 242 128" fill="none" stroke="#b8ceb0" stroke-width="1.5" opacity=".5" />
+        <path d="M264 177 l10 -3 7 12 -9 4Z M251 155 l8 -2 6 11 -8 3Z M239 136 l6 -1 7 9 -7 2Z" fill="#446f69" opacity=".24" />
+      </g>
+    </g>
+    <g id="02-moss-turtle-front-lower-flipper" data-part="front-lower-flipper" class="fin" style="--pivot-x:292px;--pivot-y:281px" data-pivot-x="292" data-pivot-y="281">
+      <path d="M277 264 C297 254 316 266 322 288 C332 327 295 374 250 394 C243 397 238 393 244 385 C263 359 276 335 273 313 C271 294 261 283 277 264Z" fill="url(#02-moss-turtle-green)" stroke="#3b6567" stroke-width="1.5" />
+      <defs>
+        <clipPath id="02-moss-turtle-front-lower-flipper-clip" clipPathUnits="userSpaceOnUse">
+          <path d="M277 264 C297 254 316 266 322 288 C332 327 295 374 250 394 C243 397 238 393 244 385 C263 359 276 335 273 313 C271 294 261 283 277 264Z" fill="#fff" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#02-moss-turtle-front-lower-flipper-clip)">
+        <path d="M299 294 C305 331 274 367 252 386" fill="none" stroke="#bfd2b5" stroke-width="1.8" opacity=".6" />
+        <path d="M295 315 l10 3 -3 13 -11 -3Z M286 337 l10 4 -7 13 -9 -5Z M273 359 l9 3 -8 10 -7 -3Z M258 374 l7 3 -7 8 -6 -1Z" fill="#376c68" opacity=".32" />
+      </g>
+    </g>
+    <path d="M303 219 C327 222 340 205 360 202 C381 198 396 209 405 220 C412 224 419 227 418 233 Q417 242 407 245 C397 260 376 266 357 259 C342 254 324 263 306 268Z" fill="url(#02-moss-turtle-green)" stroke="#3b6567" stroke-width="1.5" />
+    <path d="M329 249 C347 244 354 249 367 253 Q392 261 407 245 C394 262 375 265 357 259 Q332 259 310 267Z" fill="#b8c9aa" opacity=".65" />
+    <path d="M349 212 Q356 209 362 211 L365 218 L355 222 L348 218Z M367 207 Q374 206 380 209 L381 215 L369 218Z M345 225 L353 226 L355 235 L347 237 L341 231Z M359 234 L367 237 L365 245 L355 242Z" fill="#416f68" opacity=".24" />
+    <ellipse cx="391" cy="225" rx="8.6" ry="8.6" fill="#bdd5d0" opacity=".4" />
+    <ellipse cx="391" cy="225" rx="6.6" ry="6.6" fill="#0d263b" />
+    <ellipse cx="389.35" cy="223.02" rx="1.518" ry="1.518" fill="#dceced" />
+    <path d="M400 242 Q409 242 414 237" fill="none" stroke="#3a6061" stroke-width="1.4" />
+    <ellipse cx="411" cy="230" rx="1.2" ry="1.2" fill="#3a6061" />
+    <path d="M128 247 C132 195 189 164 250 164 C298 165 327 187 328 222 C332 270 283 311 220 317 C172 322 126 295 128 247Z" fill="url(#02-moss-turtle-sand)" stroke="#3b6265" stroke-width="1.6" />
+    <g id="02-moss-turtle-shell" data-part="shell">
+      <path d="M127 241 C131 192 189 157 249 159 C298 160 327 183 327 220 C327 264 280 300 220 307 C169 313 122 288 127 241Z" fill="url(#02-moss-turtle-moss-shell)" stroke="#355e65" stroke-width="1.8" />
+      <defs>
+        <clipPath id="02-moss-turtle-shell-clip" clipPathUnits="userSpaceOnUse">
+          <path d="M127 241 C131 192 189 157 249 159 C298 160 327 183 327 220 C327 264 280 300 220 307 C169 313 122 288 127 241Z" fill="#fff" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#02-moss-turtle-shell-clip)">
+        <path d="M137 240 C144 197 194 168 248 170 C288 171 316 191 316 221 C313 257 272 289 219 296 C175 303 132 279 137 240Z" fill="none" stroke="#c1d1ae" stroke-width="1.8" opacity=".65" />
+        <path d="M178 207 Q194 195 207 193 L230 211 L225 237 L196 250 L173 233Z M207 193 L235 177 L261 193 L260 217 L230 211 M260 217 L284 234 L285 259 L260 279 L232 265 L225 237 M196 250 L185 285 M173 233 L138 243 M178 207 L160 204 M207 193 L207 175 M261 193 L282 179 M260 217 L309 207 M284 234 L313 240 M232 265 L227 294 M260 279 L264 283" fill="none" stroke="#cee0ba" stroke-width="1.6" opacity=".57" />
+        <path d="M149 224 C169 193 207 180 236 179" fill="none" stroke="#e0e8c9" stroke-width="3" opacity=".25" />
+        <path d="M152 270 Q202 305 261 278 Q230 305 193 296 Q168 291 152 270Z" fill="#294f58" opacity=".13" />
+      </g>
+    </g>
+  </g>
+</svg>
