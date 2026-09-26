@@ -194,38 +194,38 @@ export function AnimatedBackground() {
         <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={19} delay={-5}>
           <School
             flip
-            size={62}
+            size={150}
             spots={[
-              { x: 0, y: 8 },
-              { x: 46, y: -10 },
-              { x: 52, y: 26 },
-              { x: 96, y: 4 },
-              { x: 108, y: 30 },
+              { x: 0, y: 18 },
+              { x: 78, y: -8 },
+              { x: 86, y: 42 },
+              { x: 156, y: 8 },
+              { x: 168, y: 48 },
             ]}
           />
         </Lane>
         <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={15} delay={-8} reverse>
           <School
-            size={54}
+            size={130}
             spots={[
-              { x: 0, y: 6 },
-              { x: 40, y: -14 },
-              { x: 44, y: 24 },
-              { x: 82, y: 2 },
+              { x: 0, y: 12 },
+              { x: 70, y: -16 },
+              { x: 74, y: 40 },
+              { x: 140, y: 6 },
             ]}
           />
         </Lane>
         <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={26} delay={-12}>
           <School
             flip
-            size={48}
+            size={118}
             spots={[
-              { x: 0, y: 10 },
-              { x: 36, y: -6 },
-              { x: 34, y: 28 },
-              { x: 70, y: 8 },
-              { x: 78, y: 32 },
-              { x: 104, y: 0 },
+              { x: 0, y: 16 },
+              { x: 64, y: -6 },
+              { x: 60, y: 38 },
+              { x: 124, y: 10 },
+              { x: 132, y: 42 },
+              { x: 186, y: 4 },
             ]}
           />
         </Lane>
