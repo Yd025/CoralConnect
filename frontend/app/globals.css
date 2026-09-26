@@ -85,6 +85,28 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .mode strong { display: block; margin-bottom: 4px; }
 .mode small { color: var(--muted); display: block; line-height: 1.4; }
 .mode.is-on { border-color: var(--teal); background: rgba(61, 222, 200, 0.1); }
+.beacon { text-align: center; }
+.beacon strong {
+  display: block;
+  margin: 4px 0 8px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 3rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.chips { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chips legend { width: 100%; padding: 0; margin-bottom: 2px; font-size: 0.92rem; }
+.chips button {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(2, 16, 22, 0.4);
+  padding: 8px 12px;
+}
+.chips button.is-on { border-color: var(--teal); background: rgba(61, 222, 200, 0.1); }
+.lane-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lane-grid .mode { padding: 10px; }
+.connection-people { margin: 8px 0; padding-left: 18px; color: var(--muted); }
+.connection-why { margin-top: 4px; line-height: 1.35; }
 
 .admin-grid, .play-grid { display: grid; grid-template-columns: 1fr 0.9fr; gap: 18px; align-items: start; }
 .code-block { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
@@ -153,6 +175,9 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .grade-d { background: #ff8b6a; }
 .grade-f { background: #ff5d5d; color: #2a0c0c; }
 .grade-empty { background: transparent; color: var(--muted); }
+.verdict { font-weight: 700; margin: 0; }
+.verdict.is-good { color: var(--good); }
+.verdict.is-bad { color: var(--bad); }
 
 .meter { height: 10px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .meter b { display: block; height: 100%; width: 0; }
@@ -315,6 +340,7 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   max-width: 32rem;
   margin: 12px 0 0;
 }
+.hero-links { margin: 16px 0 0; }
 .hero-join {
   display: flex;
   flex-wrap: wrap;
@@ -736,7 +762,7 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
 .health { min-width: 160px; text-align: right; }
 .health span { display: block; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem; color: var(--sand); }
 .health strong { font-family: var(--font-display), Georgia, serif; font-size: 2.4rem; }
-.reef__side { top: 120px; right: 18px; width: min(320px, 34vw); }
+.reef__side { top: 120px; right: 18px; width: min(360px, 38vw); max-height: calc(100dvh - 220px); overflow: auto; }
 .reef__foot {
   left: 18px;
   right: 18px;

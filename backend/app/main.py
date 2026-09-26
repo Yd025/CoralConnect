@@ -36,6 +36,8 @@ class CreateBody(BaseModel):
 class JoinBody(BaseModel):
     name: str
     language: str = "Python"
+    builds: str = ""
+    cares: str = ""
 
 
 class PlayerBody(BaseModel):
@@ -68,6 +70,11 @@ def health() -> dict:
         "chatModel": settings.grok_model,
         "imageModel": settings.grok_image_model,
         "imagesEnabled": configured and settings.grok_images,
+        "grokRoles": [
+            "answer the player's prompt",
+            "judge that prompt from the solver API call",
+            "pair people from what they build and what they want the work to care about",
+        ],
         "lanIp": game.lan_ip(),
         "formula": FORMULA,
     }
@@ -76,6 +83,15 @@ def health() -> dict:
 @app.get("/api/challenges")
 def challenges() -> dict:
     return {"challenges": public_challenges()}
+
+
+@app.get("/api/collaborate")
+async def open_collaborate():
+    try:
+        session = await game.open_collaborate()
+    except GameError as exc:
+        return _error(exc)
+    return {"session": public_session(session)}
 
 
 @app.post("/api/sessions")
@@ -98,7 +114,7 @@ def read_session(code: str):
 @app.post("/api/sessions/{code}/join")
 async def join(code: str, body: JoinBody):
     try:
-        session, player = await game.join(code, body.name, body.language)
+        session, player = await game.join(code, body.name, body.language, body.builds, body.cares)
     except GameError as exc:
         return _error(exc)
     return {
@@ -107,6 +123,8 @@ async def join(code: str, body: JoinBody):
             "id": player.id,
             "name": player.name,
             "language": player.language,
+            "builds": player.builds,
+            "cares": player.cares,
             "squadId": player.squad_id,
         },
         "session": public_session(session),

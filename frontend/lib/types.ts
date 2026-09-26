@@ -33,10 +33,19 @@ export type Thread = {
   messages: ChatMessage[];
 };
 
+export type Piece = {
+  role: string;
+  title: string;
+  body: string;
+};
+
 export type Player = {
   id: string;
   name: string;
   language: string;
+  builds: string;
+  cares: string;
+  piece: Piece | null;
   squadId: string | null;
   score: number;
   lastGrade: Grade | null;
@@ -49,6 +58,10 @@ export type Squad = {
   name: string;
   playerIds: string[];
   memberNames: string[];
+  shared: string;
+  distinct: string;
+  creature: string;
+  closing: string;
   icebreaker: string;
   prompt: string;
   promptAuthorId: string | null;
@@ -80,6 +93,10 @@ export type Submission = {
   turnIndex: number;
   turnCount: number;
   followUp: boolean;
+  reasonable: boolean;
+  verdictReason: string;
+  judgedByModel: boolean;
+  serverSideTools: number;
 };
 
 export type ReefEvent = {
@@ -97,6 +114,8 @@ export type GameSession = {
   code: string;
   mode: Mode;
   status: Status;
+  playerMin: number;
+  playerMax: number;
   challenge: Challenge | null;
   reefHealth: number;
   reefBand: ReefBand;
@@ -115,6 +134,7 @@ export type Health = {
   chatModel: string;
   imageModel: string;
   imagesEnabled: boolean;
+  grokRoles: string[];
   lanIp: string;
   formula: {
     energyKwhPer1kTokens: number;

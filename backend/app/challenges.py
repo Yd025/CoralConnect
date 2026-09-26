@@ -1,6 +1,30 @@
+"""Challenges the booth can run.
+
+Add a Challenge to CHALLENGES when you design a new round.
+Each beat is one turn. anchors are the facts the latest message must contain
+so the solver does not have to look them up. They stay on the server.
+Compete mode shows fixture to every phone.
+Collaborate mode deals parts: each person in a squad gets a different piece,
+and the shared message has to carry every part's anchor.
+Roleplay rounds belong here. Set Part.role to the character, put a fact only
+that character knows in body, and set anchor to the phrase the shared message
+must include from that piece.
+simulated_reply is the answer used until XAI_API_KEY is set.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Part:
+    """One collaborator's piece of a turn. anchor is server-only."""
+
+    role: str
+    title: str
+    body: str
+    anchor: str
 
 
 @dataclass(frozen=True)
@@ -13,6 +37,7 @@ class Beat:
     target_tokens: int
     anchors: tuple[str, ...]
     simulated_reply: str
+    parts: tuple[Part, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -159,6 +184,20 @@ CHALLENGES: tuple[Challenge, ...] = (
                     "In total(), apply_coupon runs on the taxed amount, so the coupon discounts tax. "
                     "Discount subtotal() first, then tax that result."
                 ),
+                parts=(
+                    Part(
+                        "You have the billing file",
+                        "billing/invoice.py",
+                        _with_noise(INVOICE_FILE.strip(), "billing/invoice.py"),
+                        "apply_coupon",
+                    ),
+                    Part(
+                        "You took the customer call",
+                        "Support note",
+                        "A customer says the coupon overcharged them on tax. A 10% coupon cut the tax as well as the goods. You do not have the source file. Your partner does.",
+                        "overcharged",
+                    ),
+                ),
             ),
             Beat(
                 ask="That patch shipped. Tax-exempt accounts are still taxed. The new failure is below. Follow up with the smallest change. The model already has your last message, so don't paste the file again.",
@@ -167,6 +206,15 @@ CHALLENGES: tuple[Challenge, ...] = (
                 target_tokens=200,
                 anchors=("tax_exempt",),
                 simulated_reply="In tax(), if account.get('tax_exempt'): return amount unchanged before applying the rate.",
+                parts=(
+                    Part("You have the CI failure", "CI failure", INVOICE_FOLLOWUP.strip(), "tax_exempt"),
+                    Part(
+                        "You shipped the last patch",
+                        "Your note",
+                        "You shipped the coupon change. Mention ticket 441 in the shared message so the new failure is tied to your patch. You do not have the CI log.",
+                        "ticket 441",
+                    ),
+                ),
             ),
         ),
         example_efficient=(
@@ -194,6 +242,20 @@ CHALLENGES: tuple[Challenge, ...] = (
                 target_tokens=150,
                 anchors=("profile.user",),
                 simulated_reply="profile.user is null while the account request is in flight. Return null before reading profile.user.name.",
+                parts=(
+                    Part(
+                        "You have the component",
+                        "AccountHeader.tsx",
+                        _with_noise(PROFILE_FILE.strip(), "AccountHeader.tsx"),
+                        "profile.user",
+                    ),
+                    Part(
+                        "You are with the reporter",
+                        "Reporter note",
+                        "The reporter says the header crashes while the account request is still in flight. You do not have the component.",
+                        "in flight",
+                    ),
+                ),
             ),
             Beat(
                 ask="The null guard is live. The header now stays blank after the request finishes, and Edit never comes back. Follow up. Don't paste the component again.",
@@ -204,6 +266,15 @@ CHALLENGES: tuple[Challenge, ...] = (
                 simulated_reply=(
                     "Don't return null for every missing user. If profile.status is 'loading', render a placeholder. "
                     "When status is 'ready', render the header from profile.user."
+                ),
+                parts=(
+                    Part("You have the follow-up", "Sentry follow-up", PROFILE_FOLLOWUP.strip(), "loading"),
+                    Part(
+                        "You watched the screen",
+                        "What you saw",
+                        "After the guard shipped, the edit button never came back. Say that in the shared message. You do not have the new report.",
+                        "edit button",
+                    ),
                 ),
             ),
         ),
@@ -233,6 +304,20 @@ CHALLENGES: tuple[Challenge, ...] = (
                     "The UPDATE sets coupon_code to '' on every existing row, then the unique index rejects those duplicates. "
                     "Leave missing coupons as NULL, and make the unique index partial: WHERE coupon_code IS NOT NULL."
                 ),
+                parts=(
+                    Part(
+                        "You have the migration",
+                        "migrations/014_invoices.sql",
+                        _with_noise(MIGRATION_FILE.strip(), "014_invoices.sql"),
+                        "alter table",
+                    ),
+                    Part(
+                        "You have the database error",
+                        "Database log",
+                        MIGRATION_LOG.strip(),
+                        "duplicated",
+                    ),
+                ),
             ),
             Beat(
                 ask="Someone retried the deploy. The new error is below. Write the follow-up migration only. Do not resend 014.",
@@ -243,6 +328,20 @@ CHALLENGES: tuple[Challenge, ...] = (
                 simulated_reply=(
                     "014 is half-applied, so don't rerun it. A new migration should drop invoices_coupon_code_idx if it exists, "
                     "set '' back to NULL, then create the partial unique index."
+                ),
+                parts=(
+                    Part(
+                        "You have the retry error",
+                        "Retry log",
+                        'ERROR: relation "invoices_coupon_code_idx" already exists',
+                        "already exists",
+                    ),
+                    Part(
+                        "You know how the deploy failed",
+                        "Deploy note",
+                        "014 was half-applied. The UPDATE ran and the job died. They need a new migration, not a rerun of 014. You do not have the new error text.",
+                        "half-applied",
+                    ),
                 ),
             ),
         ),
@@ -273,6 +372,20 @@ CHALLENGES: tuple[Challenge, ...] = (
                     "handle_export logs the Authorization header on the info line. "
                     "Log the account id only. Never log or store that header."
                 ),
+                parts=(
+                    Part(
+                        "You have the handler",
+                        "export_handler.py",
+                        _with_noise(EXPORT_HANDLER.strip(), "export_handler.py"),
+                        "authorization",
+                    ),
+                    Part(
+                        "You are reading the alert",
+                        "Datadog alert",
+                        "The alert says API tokens are showing up in logs. You do not have the handler. Your partner does.",
+                        "api tokens",
+                    ),
+                ),
             ),
             Beat(
                 ask="The info log is fixed. A 500 response is still returning the raw request headers, and someone pasted that response into Slack. Follow up with the response change only. Do not resend the handler or the token.",
@@ -283,6 +396,15 @@ CHALLENGES: tuple[Challenge, ...] = (
                 simulated_reply=(
                     "The except branch returns dict(request.headers). "
                     "Return a generic error string and a request id. Do not include headers."
+                ),
+                parts=(
+                    Part("You have the incident note", "Incident note", EXPORT_FOLLOWUP.strip(), "500"),
+                    Part(
+                        "You saw where it was pasted",
+                        "What you saw",
+                        "Someone copied the failed response into Slack. Call it the slack paste in the shared message. You do not have the incident writeup.",
+                        "slack paste",
+                    ),
                 ),
             ),
         ),

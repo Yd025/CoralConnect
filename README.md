@@ -24,9 +24,9 @@ HackGT allows any number of sponsor challenges alongside the one main track. We 
 
 ### Meta — Bringing People Closer Together with AI
 
-CoralConnect pairs strangers at the booth by the language they actually write. Collaborate mode puts them in a reef squad with one shared message and one score. They have to talk to each other to decide what the model needs to see. AI is the third party in that conversation: Grok answers the thread, and with an API key it also names the squad and writes the icebreaker. Compete mode is the contrast on the same reef, for when only one person is at the table.
+Collaborate mode is the connection. Each person taps two words: what they build and what they care about. Collaborate is pairs of two. The next person in shares your animal, and both phones say the name so you have to find each other in the room. With a Grok key, the phone also says what you share, so you can be sure you have the right person. Each phone then holds a different piece of the same challenge. When the round ends, the pair stays and talks about the environment. Compete mode stays the solo contrast, with the full source on one phone.
 
-Devpost needs a public repo, a 2–3 minute demo video, and a short note on who it is for, how it strengthens connection, and why AI is required. Who it is for: hackathon attendees, classmates, and any two developers who would otherwise prompt alone. Connection: the task cannot be finished well unless the pair agrees on the source to include. AI is required because the model’s extra work is the thing they are negotiating, and the model’s reply is what creates the next failure they solve together.
+Devpost needs a public repo, a 2–3 minute demo video, and a short note on who it is for, how it strengthens connection, and why AI is required. Who it is for: hackathon attendees who would otherwise sit next to a stranger and never learn what that person builds. Connection: the questionnaire gives them a reason to talk, and the split challenge gives them something they can only finish together. AI is required because it reads those two answers and names the specific overlap. Roleplay challenges use the same piece format: each character gets a fact the other does not have.
 
 ### SpaceXAI — Make it Legendary
 
@@ -54,7 +54,7 @@ AI burns energy when a thin prompt makes the model look the answer up on the web
 
 For A Marina’s Mission, every missing source is charged as a web lookup, about 1,200 tokens, and the reef wilts. Include the function, the error, or the header, and the model does no extra search.
 
-For Meta, strangers who write the same language get paired into a reef squad and have to agree on that source together. The model answers, then a second failure lands, so one prompt is not the whole job.
+For Meta, two phones show the same animal. Those two people find each other in the room, solve one challenge together, and then talk about the environment.
 
 For SpaceXAI, Grok writes the reply and Grok Imagine paints the reward when the prompt was adequate.
 
@@ -85,7 +85,7 @@ That publishes the site on port 3000 and the carbon engine on port 8080. Open [h
 
 Source edits in `backend/app`, `frontend/app`, `frontend/components`, `frontend/lib`, and `frontend/public` show up without a rebuild. Game state is kept in the `coral-data` volume.
 
-1. Pick **Collaborate** (pairs people by language) or **Compete** (everyone writes alone).
+1. Pick **Collaborate** (two short answers, then a shared prompt where each phone has a different piece) or **Compete** (everyone writes alone).
 2. Pick a challenge and create the game.
 3. Open the main stage on the laptop monitor.
 4. The QR code is the join link. If it points at `localhost`, change **Phone link host** to this computer's Wi-Fi address. Phones have to be on the same network, and macOS may ask to allow incoming connections for Node and Python.
@@ -140,7 +140,7 @@ If a file is missing, the screen uses the drawing in `frontend/components/reef/F
 
 Each challenge is a two-step debugging thread. The phone shows a real file or log. The message has to include the fact the model would otherwise search for. After the model answers, a second failure lands, and that follow-up needs its own source. A vague message charges about 1,200 lookup tokens and wilts the reef. Including the source charges none.
 
-Collaborate: when the host presses **Start round**, connected players are paired by the language they picked. Leftovers are paired across languages. With a Grok key, each squad also gets a generated name and icebreaker. Both phones edit the current message. Either person can submit. The squad shares one score.
+Collaborate: the room holds up to 8 people, in pairs of 2. When the second person of a pair joins, both phones show the same animal, such as Seagull. They find each other by that name. With a Grok key, the phone adds what those two share and a question about the environment for the end of the round. Each phone gets a different piece of the turn, and the shared message has to include both. Either person can submit. The pair shares one score. An odd person keeps waiting. A finished pair does not wait for the rest of the room. Compete is still one round for up to 10 people, started together from the admin page. Roleplay challenges add a `Part` per character in `backend/app/challenges.py`.
 
 Compete: each phone has its own thread. The reef is still shared.
 

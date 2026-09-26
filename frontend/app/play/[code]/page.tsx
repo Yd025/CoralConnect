@@ -5,11 +5,10 @@ import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
+import { BUILDS, CARES } from "@/lib/connection";
 import { estimateTokens } from "@/lib/reef";
 import type { Identity, Submission, Thread } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
-
-const LANGUAGES = ["Python", "JavaScript", "TypeScript", "Java", "C++", "Go", "Rust", "Other"];
 
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
@@ -17,7 +16,8 @@ export default function PlayPage() {
   const { session, connected, error, sendDraft, ingest } = useSession(code);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [name, setName] = useState("");
-  const [language, setLanguage] = useState("Python");
+  const [builds, setBuilds] = useState("");
+  const [cares, setCares] = useState("");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -43,8 +43,17 @@ export default function PlayPage() {
     }
   }, [session, identity, code]);
 
+  const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
+  const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 8 : 10);
+  const tableFull = roster.length >= playerMax;
   const me = session?.players.find((player) => player.id === identity?.playerId);
   const squad = session?.squads.find((item) => item.id === me?.squadId);
+  const squadMates = squad
+    ? session?.players.filter((player) => squad.playerIds.includes(player.id)) ?? []
+    : [];
+  const partner = squadMates.find((player) => player.id !== identity?.playerId);
+  const paired = session?.mode !== "collaborate" || squadMates.length >= 2;
+  const canPlay = session?.mode === "collaborate" ? paired && session.status !== "ended" : session?.status === "playing";
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
   const beat = session?.challenge?.beats?.[thread?.step ?? 0];
@@ -78,7 +87,7 @@ export default function PlayPage() {
     setBusy(true);
     setLocalError(null);
     try {
-      const joined = await joinSession(code, name, language);
+      const joined = await joinSession(code, name, builds, cares);
       const next = { playerId: joined.player.id, playerToken: joined.playerToken, name: joined.player.name };
       window.localStorage.setItem(storageKey(code), JSON.stringify(next));
       setIdentity(next);
@@ -117,9 +126,13 @@ export default function PlayPage() {
     }, 90);
   }
 
+  const piece = session?.mode === "collaborate" ? me?.piece : null;
+  const sourceTitle = piece?.title ?? beat?.fixtureTitle;
+  const sourceBody = piece?.body ?? beat?.fixture;
+
   function includeSource() {
-    if (!beat?.fixture) return;
-    const next = prompt.trim() ? `${prompt.trim()}\n\n${beat.fixture}` : beat.fixture;
+    if (!sourceBody) return;
+    const next = prompt.trim() ? `${prompt.trim()}\n\n${sourceBody}` : sourceBody;
     onPrompt(next);
   }
 
@@ -147,29 +160,60 @@ export default function PlayPage() {
             </div>
           </section>
 
-          {!identity ? (
+          {!identity && tableFull ? (
+            <section className="panel stack">
+              <h2>This table is full.</h2>
+              <p className="muted">
+                {session.mode === "collaborate"
+                  ? "This room holds 8 players, two to a pair."
+                  : "Compete holds up to 10 players."}
+              </p>
+            </section>
+          ) : null}
+
+          {!identity && !tableFull ? (
             <form className="panel stack" onSubmit={onJoin}>
               <label>
                 Your name
                 <input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} required />
               </label>
-              <label>
-                Language you actually like
-                <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-                  {LANGUAGES.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
-              </label>
-              <button className="btn" disabled={busy}>Join the reef</button>
+              <fieldset className="chips">
+                <legend>You build</legend>
+                {BUILDS.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={builds === item ? "is-on" : ""}
+                    onClick={() => setBuilds(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </fieldset>
+              <fieldset className="chips">
+                <legend>You care about</legend>
+                {CARES.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={cares === item ? "is-on" : ""}
+                    onClick={() => setCares(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </fieldset>
+              <button className="btn" disabled={busy || !builds || !cares}>
+                Join the reef
+              </button>
             </form>
           ) : null}
 
-          {identity && session.status === "lobby" ? (
+          {identity && session.status === "lobby" && session.mode !== "collaborate" ? (
             <section className="panel stack">
               <h2>You're in, {identity.name}.</h2>
-              <p>Look at the big screen. The round starts when the table says go.</p>
-              <p className="muted">{session.players.length} here · you picked {me?.language}</p>
+              <p>This is one round for the room, up to 10 people. It starts when the table says go.</p>
+              <p className="muted">{roster.length} of {playerMax} here.</p>
               <button
                 className="btn-ghost"
                 type="button"
@@ -184,30 +228,65 @@ export default function PlayPage() {
             </section>
           ) : null}
 
-          {identity && session.status !== "lobby" && session.mode === "collaborate" && squad ? (
-            <section className="panel callout">
-              <p className="eyebrow">{squad.name}</p>
-              <strong>{squad.memberNames.join(" and ")}</strong>
-              <p>{squad.icebreaker}</p>
-              {squad.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
-                <p className="muted">Your partner just changed the prompt.</p>
+          {identity && session.mode === "collaborate" ? (
+            <section className="panel beacon">
+              {paired && squad?.creature ? (
+                <>
+                  <p className="eyebrow">Find your pair</p>
+                  <strong>{squad.creature}</strong>
+                  <p>Ask who else has {squad.creature} on their phone. Your pair can start now. The rest of the room does not wait.</p>
+                  {partner ? (
+                    <p className="muted">They build {partner.builds} and care about {partner.cares}.</p>
+                  ) : null}
+                  {squad.shared ? <p>{squad.shared}</p> : null}
+                </>
+              ) : (
+                <>
+                  <p className="eyebrow">Find your pair</p>
+                  <strong>Looking</strong>
+                  <p>Hold your phone up. The next person in shares your animal. Other pairs can already be playing.</p>
+                </>
+              )}
+              {squad?.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
+                <p className="muted">Your pair just changed the prompt.</p>
+              ) : null}
+              {session.status === "lobby" ? (
+                <button
+                  className="btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    void leaveSession(code, identity).then((data) => ingest(data.session));
+                    window.localStorage.removeItem(storageKey(code));
+                    setIdentity(null);
+                  }}
+                >
+                  Leave lobby
+                </button>
               ) : null}
             </section>
           ) : null}
 
-          {identity && session.status === "playing" && thread?.done ? (
+          {identity && paired && session.mode === "collaborate" && squad?.closing && (thread?.done || session.status === "ended") ? (
+            <section className="panel beacon">
+              <p className="eyebrow">Talk about the environment</p>
+              <p>{squad.closing}</p>
+            </section>
+          ) : null}
+
+          {identity && session.status === "playing" && thread?.done && session.mode !== "collaborate" ? (
             <p className="panel">This thread is closed. Both turns are on the reef.</p>
           ) : null}
 
-          {identity && session.status === "playing" && !thread?.done ? (
+          {identity && canPlay && !thread?.done ? (
             <form className="stack" onSubmit={onSubmit}>
               {beat ? (
                 <section className="panel stack">
-                  <p className="eyebrow">{beat.fixtureTitle}</p>
+                  {piece ? <p className="eyebrow">{piece.role}</p> : null}
+                  <p className="eyebrow">{sourceTitle}</p>
                   <p>{beat.ask}</p>
-                  <pre className="fixture">{beat.fixture}</pre>
+                  <pre className="fixture">{sourceBody}</pre>
                   <button className="btn-ghost" type="button" onClick={includeSource}>
-                    Include this source
+                    {piece ? "Include your piece" : "Include this source"}
                   </button>
                 </section>
               ) : null}
@@ -215,7 +294,11 @@ export default function PlayPage() {
                 {session.mode === "collaborate" ? "Shared message" : "Your message"}
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
-              <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
+              <p className="muted">
+                {session.mode === "collaborate" && squad
+                  ? "Your partner has a different piece. The shared message needs both."
+                  : `About ${tokens} tokens in this message. Length is not the grade. A missing source is.`}
+              </p>
               <div className="sticky-submit">
                 <button className="btn" disabled={busy || !prompt.trim()} type="submit">
                   {busy ? "Asking Grok…" : turnNumber > 1 ? "Send follow-up" : "Send message"}
@@ -232,12 +315,16 @@ export default function PlayPage() {
                 <GradeBadge grade={shown.grade} />
                 <strong>{shown.score}</strong>
               </div>
-              <p>{shown.summary}</p>
-              <p className="muted">
-                {shown.lookupTokens > 0
-                  ? `The model looked it up (~${shown.lookupTokens} tokens). That is what hit the reef.`
-                  : "The model answered from what you gave it."}
+              <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
+                {shown.reasonable ? "Reasonable prompt" : "Too much work"}
               </p>
+              <p>{shown.verdictReason || shown.summary}</p>
+              {shown.judgedByModel ? (
+                <p className="muted">A second Grok call read the solver request and graded this prompt.</p>
+              ) : null}
+              {shown.serverSideTools > 0 ? (
+                <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
+              ) : null}
               <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
               <pre>{shown.aiResponse}</pre>
             </section>

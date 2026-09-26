@@ -2,14 +2,35 @@ from __future__ import annotations
 
 from .carbon import reef_band
 from .challenges import get_challenge, public_challenge
-from .models import Player, ReefEvent, Session, Squad, Submission, Thread
+from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
 
 
-def public_player(player: Player) -> dict:
+def _piece(session: Session, player: Player, challenge) -> dict | None:
+    if session.mode != "collaborate" or not player.squad_id or challenge is None:
+        return None
+    squad = next((item for item in session.squads if item.id == player.squad_id), None)
+    if squad is None or player.id not in squad.player_ids:
+        return None
+    thread = next((item for item in session.threads if item.owner_id == squad.id), None)
+    step = thread.step if thread else 0
+    if step >= len(challenge.beats):
+        return None
+    beat = challenge.beats[step]
+    if len(beat.parts) < 2:
+        return None
+    seat = squad.player_ids.index(player.id)
+    part = beat.parts[seat % len(beat.parts)]
+    return {"role": part.role, "title": part.title, "body": part.body}
+
+
+def public_player(player: Player, session: Session, challenge) -> dict:
     return {
         "id": player.id,
         "name": player.name,
         "language": player.language,
+        "builds": player.builds,
+        "cares": player.cares,
+        "piece": _piece(session, player, challenge),
         "squadId": player.squad_id,
         "score": player.score,
         "lastGrade": player.last_grade,
@@ -25,6 +46,10 @@ def public_squad(squad: Squad, players: list[Player]) -> dict:
         "name": squad.name,
         "playerIds": squad.player_ids,
         "memberNames": [names.get(pid, "Someone") for pid in squad.player_ids],
+        "shared": squad.shared,
+        "distinct": squad.distinct,
+        "creature": squad.creature,
+        "closing": squad.closing,
         "icebreaker": squad.icebreaker,
         "prompt": squad.prompt,
         "promptAuthorId": squad.prompt_author_id,
@@ -58,6 +83,10 @@ def public_submission(submission: Submission) -> dict:
         "turnIndex": submission.turn_index,
         "turnCount": submission.turn_count,
         "followUp": submission.turn_index + 1 < submission.turn_count,
+        "reasonable": submission.reasonable,
+        "verdictReason": submission.verdict_reason,
+        "judgedByModel": submission.judged_by_model,
+        "serverSideTools": submission.server_side_tools,
     }
 
 
@@ -89,10 +118,12 @@ def public_session(session: Session) -> dict:
         "code": session.code,
         "mode": session.mode,
         "status": session.status,
+        "playerMin": player_bounds(session.mode)[0],
+        "playerMax": player_bounds(session.mode)[1],
         "challenge": public_challenge(challenge) if challenge else None,
         "reefHealth": session.reef_health,
         "reefBand": reef_band(session.reef_health),
-        "players": [public_player(p) for p in session.players],
+        "players": [public_player(p, session, challenge) for p in session.players],
         "squads": [public_squad(s, session.players) for s in session.squads],
         "submissions": [public_submission(s) for s in session.submissions],
         "events": [public_event(e) for e in session.events],

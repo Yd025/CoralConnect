@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="torn-wrapper-title torn-wrapper-desc">
+  <title id="torn-wrapper-title">Torn plastic wrapper</title>
+  <desc id="torn-wrapper-desc">A creased slate-blue wrapper with a faded label panel and ragged sealed edges. Transparent editable vector, CoralConnect Deep Water collection.</desc>
+  <defs>
+    <linearGradient id="torn-wrapper-wrapper" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#9fb7ba" />
+      <stop offset=".5" stop-color="#607d86" />
+      <stop offset="1" stop-color="#354f60" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(-14 256 256)">
+      <path d="M120 184 L137 176 L146 184 L157 174 L168 182 L184 174 L198 182 L351 172 L367 184 L380 174 L390 187 L373 324 L358 334 L347 327 L333 338 L319 330 L166 341 L155 331 L144 340 L132 329 L119 336Z" fill="url(#torn-wrapper-wrapper)" stroke="#829b98" stroke-width="1.7" />
+      <path d="M145 191 L157 325 M367 193 L351 319" fill="none" stroke="#c5cec0" stroke-width="2" opacity=".6" />
+      <path d="M158 209 L337 199 L330 248 L155 258Z" fill="#bda383" opacity=".6" />
+      <path d="M159 263 Q232 230 335 257 L283 284 L167 307Z" fill="#526972" opacity=".7" />
+      <path d="M184 192 L223 243 L199 290 L238 326 M335 190 L295 247 L321 294" fill="none" stroke="#c1ccbc" stroke-width="2" opacity=".4" />
+      <path d="M234 245 L275 254 L247 271Z" fill="#dbe1c9" opacity=".22" />
+    </g>
+  </g>
+</svg>

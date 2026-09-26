@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import secrets
 import time
-from collections import defaultdict
 
 from .carbon import (
+    WEB_LOOKUP_TOKENS,
     carbon_grams,
     clamp_health,
     count_tokens,
@@ -19,13 +19,14 @@ from .carbon import (
 )
 from .challenges import get_challenge
 from .config import settings
-from .grok import complete, icebreaker, imagine
+from .grok import complete, describe_pair, finalize_verdict, imagine, review_call
 from .hub import hub
-from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread
+from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
 from .serialize import public_session
 from .store import store
 
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+CREATURES = ("Seagull", "Turtle", "Dolphin", "Octopus", "Whale", "Crab", "Ray", "Heron")
 LANGUAGES = (
     "Python",
     "JavaScript",
@@ -83,6 +84,10 @@ def _player(session: Session, player_id: str, player_token: str) -> Player:
     return player
 
 
+def _roster(session: Session) -> list[Player]:
+    return [player for player in session.players if player.id != "p_rehearsal"]
+
+
 def _squad_for(session: Session, player: Player) -> Squad | None:
     if not player.squad_id:
         return None
@@ -99,40 +104,111 @@ def _normalize_language(language: str) -> str:
     return cleaned
 
 
-def _icebreaker(members: list[Player]) -> str:
-    names = " and ".join(member.name for member in members)
-    languages = sorted({member.language for member in members})
+def _normalize_answer(answer: str) -> str:
+    return " ".join(answer.strip().split())[:80]
+
+
+def _needs_every_fact(beat, mode: str) -> bool:
+    return mode == "collaborate" and len(getattr(beat, "parts", ())) >= 2
+
+
+def _facts_for(beat, mode: str) -> tuple[str, ...]:
+    if _needs_every_fact(beat, mode):
+        return tuple(part.anchor for part in beat.parts if part.anchor)
+    return beat.anchors
+
+
+def _every_fact_cost(prompt: str, facts: tuple[str, ...]) -> int:
+    folded = prompt.lower()
+    if facts and all(fact.lower() in folded for fact in facts):
+        return 0
+    return WEB_LOOKUP_TOKENS
+
+
+def _profiles(members: list[Player]) -> list[dict]:
+    return [
+        {"id": member.id, "name": member.name, "builds": member.builds, "cares": member.cares}
+        for member in members
+    ]
+
+
+def _local_connection(members: list[Player]) -> dict[str, str]:
     if len(members) == 1:
-        return f"{names} is waiting for a partner, and can still play solo if the table is quiet."
-    if len(languages) == 1:
-        return (
-            f"{names} both write {languages[0]}. "
-            "Put the fact in the message so the model does not have to look it up."
-        )
-    joined = " and ".join(languages)
-    return f"{names} write {joined}. Keep the words you both trust, and cut everything else."
+        person = members[0]
+        return {
+            "name": f"{person.name}'s seat",
+            "shared": f"{person.name} is waiting for someone to work with.",
+            "distinct": f"{person.name} builds {person.builds or 'something they have not named yet'}.",
+        }
+    names = " and ".join(member.name for member in members)
+    shared = " ".join(
+        f"{member.name} wants the work to care about {member.cares or 'something they have not named yet'}."
+        for member in members
+    )
+    distinct = " ".join(
+        f"Only {member.name} builds {member.builds or 'something they have not named yet'}."
+        for member in members
+    )
+    return {"name": names, "shared": shared, "distinct": distinct}
 
 
 def _pair(players: list[Player]) -> list[list[Player]]:
-    groups: dict[str, list[Player]] = defaultdict(list)
-    for player in players:
-        if player.connected:
-            groups[player.language].append(player)
+    ordered = sorted(
+        (player for player in players if player.connected),
+        key=lambda player: (player.joined_at, player.id),
+    )
     squads: list[list[Player]] = []
-    leftovers: list[Player] = []
-    for members in groups.values():
-        pool = list(members)
-        while len(pool) >= 2:
-            squads.append([pool.pop(), pool.pop()])
-        leftovers.extend(pool)
-    while len(leftovers) >= 2:
-        squads.append([leftovers.pop(), leftovers.pop()])
-    if leftovers:
-        if squads and len(squads[-1]) == 2:
-            squads[-1].append(leftovers.pop())
-        else:
-            squads.append(leftovers)
+    pool = list(ordered)
+    while len(pool) >= 2:
+        squads.append([pool.pop(0), pool.pop(0)])
+    if pool:
+        squads.append(pool)
     return squads
+
+
+def _groups_from_match(players: list[Player], matched: list[dict] | None) -> list[tuple[list[Player], dict | None]]:
+    if not matched:
+        return [(members, None) for members in _pair(players)]
+    by_id = {player.id: player for player in players if player.connected}
+    seen: list[str] = []
+    groups: list[tuple[list[Player], dict | None]] = []
+    for item in matched:
+        ids = [str(player_id) for player_id in item.get("playerIds") or []]
+        if not ids or any(player_id not in by_id or player_id in seen for player_id in ids):
+            return [(members, None) for members in _pair(players)]
+        seen.extend(ids)
+        groups.append(([by_id[player_id] for player_id in ids], item))
+    if set(seen) != set(by_id):
+        return [(members, None) for members in _pair(players)]
+    return groups
+
+
+def _local_closing(members: list[Player]) -> str:
+    builds = " and ".join(member.builds for member in members if member.builds) or "software"
+    cares = " and ".join(dict.fromkeys(member.cares for member in members if member.cares)) or "the living world"
+    return (
+        f"You found each other. Talk about the environment before you split up. "
+        f"You build {builds}, and you care about {cares}. "
+        f"What would you change so that work costs the ocean less?"
+    )
+
+
+def _next_creature(session: Session) -> str:
+    used = {squad.creature for squad in session.squads if squad.creature}
+    for creature in CREATURES:
+        if creature not in used:
+            return creature
+    return CREATURES[len(used) % len(CREATURES)]
+
+
+def _apply_connection(squad: Squad, members: list[Player], meta: dict | None) -> None:
+    local = _local_connection(members)
+    source = meta or {}
+    squad.shared = str(source.get("shared") or local["shared"])[:240]
+    squad.distinct = str(source.get("distinct") or local["distinct"])[:240]
+    squad.closing = str(source.get("closing") or squad.closing or _local_closing(members))[:280]
+    squad.name = squad.creature or str(source.get("name") or local["name"])[:48]
+    squad.icebreaker = f"{squad.shared} {squad.distinct}".strip()
 
 
 def _persist(session: Session) -> None:
@@ -170,48 +246,120 @@ async def create_session(mode: str, challenge_id: str) -> tuple[Session, str]:
     return session, session.admin_token
 
 
-async def join(code: str, name: str, language: str) -> tuple[Session, Player]:
+async def open_collaborate() -> Session:
+    """The standing pair room. People join it from their own phones, with no admin start."""
+    async with store.lock:
+        _, maximum = player_bounds("collaborate")
+        open_rooms = [
+            session
+            for session in store.sessions.values()
+            if session.mode == "collaborate"
+            and session.status != "ended"
+            and len(_roster(session)) < maximum
+        ]
+        if open_rooms:
+            return min(open_rooms, key=lambda session: session.created_at)
+        challenge = get_challenge("invoice-bug")
+        if challenge is None:
+            raise GameError(500, "The pair room has no challenge to run.")
+        session = Session(
+            code=_code(),
+            admin_token=secrets.token_urlsafe(18),
+            mode="collaborate",
+            status="lobby",
+            challenge_id=challenge.id,
+            reef_health=100,
+            players=[],
+            squads=[],
+            submissions=[],
+            events=[],
+            created_at=time.time(),
+        )
+        store.sessions[session.code] = session
+        _persist(session)
+    await _broadcast(session)
+    return session
+
+
+async def join(
+    code: str,
+    name: str,
+    language: str = "Python",
+    builds: str = "",
+    cares: str = "",
+) -> tuple[Session, Player]:
     cleaned = " ".join(name.strip().split())
     if len(cleaned) < 1 or len(cleaned) > 20:
         raise GameError(400, "Use a name between 1 and 20 characters.")
     chosen = _normalize_language(language)
+    chosen_builds = _normalize_answer(builds)
+    chosen_cares = _normalize_answer(cares)
     async with store.lock:
         session = _must(code)
         if session.status == "ended":
             raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        _, maximum = player_bounds(session.mode)
+        if len(_roster(session)) >= maximum:
+            if session.mode == "collaborate":
+                raise GameError(409, "This room is full. It holds 8 players, two to a pair.")
+            raise GameError(409, "This compete table is full. It holds up to 10 players.")
         player = Player(
             id=_id("p"),
             token=secrets.token_urlsafe(18),
             name=cleaned,
             language=chosen,
+            builds=chosen_builds,
+            cares=chosen_cares,
             connected=True,
             joined_at=time.time(),
         )
         session.players.append(player)
-        if session.mode == "collaborate" and session.status == "playing":
-            _seat_latecomer(session, player)
+        paired_squad = None
+        if session.mode == "collaborate":
+            paired_squad = _seat_partner(session, player)
         _persist(session)
     await _broadcast(session)
+    if paired_squad and settings.xai_api_key:
+        asyncio.create_task(_rename_squad(code, paired_squad))
     return session, player
 
 
-def _seat_latecomer(session: Session, player: Player) -> None:
-    open_squad = next((s for s in session.squads if len(s.player_ids) == 1), None)
-    if open_squad:
-        open_squad.player_ids.append(player.id)
-        player.squad_id = open_squad.id
-        mate = next(p for p in session.players if p.id == open_squad.player_ids[0])
-        open_squad.icebreaker = _icebreaker([mate, player])
-        open_squad.name = f"{mate.language} Pair"
-        return
+def _seat_partner(session: Session, player: Player) -> str | None:
+    """Pair this person with whoever is waiting. Returns the squad id once both phones share an animal."""
+    waiting = next((squad for squad in session.squads if len(squad.player_ids) == 1), None)
+    if waiting:
+        waiting.player_ids.append(player.id)
+        player.squad_id = waiting.id
+        waiting.creature = waiting.creature or _next_creature(session)
+        mate = next(person for person in session.players if person.id == waiting.player_ids[0])
+        _apply_connection(waiting, [mate, player], None)
+        return waiting.id
     squad = Squad(
         id=_id("s"),
-        name=f"{player.name}'s Reef",
+        name="Looking",
         player_ids=[player.id],
-        icebreaker=_icebreaker([player]),
+        icebreaker="Hold your phone up. Your pair has not walked in yet.",
+        shared="Hold your phone up. Your pair has not walked in yet.",
     )
     player.squad_id = squad.id
     session.squads.append(squad)
+    return None
+
+
+def _release_partner(session: Session, player_id: str) -> None:
+    squad = next((item for item in session.squads if player_id in item.player_ids), None)
+    if squad is None:
+        return
+    squad.player_ids = [pid for pid in squad.player_ids if pid != player_id]
+    if not squad.player_ids:
+        session.squads = [item for item in session.squads if item.id != squad.id]
+        return
+    squad.creature = ""
+    squad.name = "Looking"
+    squad.shared = "Hold your phone up. Your pair has not walked in yet."
+    squad.distinct = ""
+    squad.closing = ""
+    squad.icebreaker = squad.shared
 
 
 async def leave(code: str, player_id: str, player_token: str) -> Session:
@@ -220,6 +368,8 @@ async def leave(code: str, player_id: str, player_token: str) -> Session:
         player = _player(session, player_id, player_token)
         if session.status == "lobby":
             session.players = [p for p in session.players if p.id != player.id]
+            if session.mode == "collaborate":
+                _release_partner(session, player.id)
         else:
             player.connected = False
         _persist(session)
@@ -231,35 +381,31 @@ async def start(code: str, admin_token: str) -> Session:
     async with store.lock:
         session = _must(code)
         _check_admin(session, admin_token)
-        connected = [p for p in session.players if p.connected]
-        if not connected:
-            raise GameError(409, "Wait for at least one player to join.")
+        if session.status == "ended":
+            raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        connected = [p for p in _roster(session) if p.connected]
+        minimum, maximum = player_bounds(session.mode)
         if session.mode == "collaborate":
-            _form_squads(session, connected)
+            raise GameError(409, "Pairs start when both phones show the same animal. This room does not share one start.")
+        elif len(connected) < minimum or len(connected) > maximum:
+            raise GameError(409, "Compete needs 1 to 10 players before the round starts.")
         session.status = "playing"
         _persist(session)
-        squads = list(session.squads)
     await _broadcast(session)
-    if session.mode == "collaborate" and settings.xai_api_key:
-        for squad in squads:
-            asyncio.create_task(_rename_squad(session.code, squad.id))
     return session
 
 
-def _form_squads(session: Session, connected: list[Player]) -> None:
+def _form_squads(session: Session, connected: list[Player], matched: list[dict] | None = None) -> None:
     session.squads = []
-    for index, members in enumerate(_pair(connected), start=1):
-        languages = sorted({member.language for member in members})
-        if len(languages) == 1:
-            name = f"{languages[0]} Pair" if len(members) > 1 else f"{members[0].name}'s Reef"
-        else:
-            name = f"Reef Squad {index}"
+    for members, meta in _groups_from_match(connected, matched):
         squad = Squad(
             id=_id("s"),
-            name=name,
+            name="",
             player_ids=[member.id for member in members],
-            icebreaker=_icebreaker(members),
+            icebreaker="",
+            creature=_next_creature(session) if len(members) == 2 else "",
         )
+        _apply_connection(squad, members, meta)
         session.squads.append(squad)
         member_ids = set(squad.player_ids)
         for player in session.players:
@@ -276,20 +422,19 @@ async def _rename_squad(code: str, squad_id: str) -> None:
         if squad is None:
             return
         members = [p for p in session.players if p.id in squad.player_ids]
-        names = [p.name for p in members]
-        languages = [p.language for p in members]
-    named = await icebreaker(names, languages)
+        profiles = _profiles(members)
+    named = await describe_pair(profiles)
     if not named:
         return
     async with store.lock:
         session = store.get(code)
-        if session is None or session.status != "playing":
+        if session is None or session.status == "ended":
             return
         squad = next((s for s in session.squads if s.id == squad_id), None)
         if squad is None:
             return
-        squad.name = named["name"]
-        squad.icebreaker = named["icebreaker"]
+        members = [p for p in session.players if p.id in squad.player_ids]
+        _apply_connection(squad, members, named)
         _persist(session)
     await _broadcast(session)
 
@@ -328,14 +473,14 @@ async def update_draft(code: str, player_id: str, player_token: str, text: str) 
     cleaned = text[:8000]
     async with store.lock:
         session = store.get(code)
-        if session is None or session.mode != "collaborate" or session.status != "playing":
+        if session is None or session.mode != "collaborate" or session.status == "ended":
             return
         try:
             player = _player(session, player_id, player_token)
         except GameError:
             return
         squad = _squad_for(session, player)
-        if squad is None or squad.prompt == cleaned:
+        if squad is None or len(squad.player_ids) < 2 or squad.prompt == cleaned:
             return
         squad.prompt = cleaned
         squad.prompt_author_id = player.id
@@ -361,8 +506,14 @@ async def submit(
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
-        if session.status != "playing":
-            raise GameError(409, "Wait for the host to start the round.")
+        if session.status == "ended":
+            raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        if session.mode == "collaborate":
+            squad_now = _squad_for(session, player)
+            if squad_now is None or len(squad_now.player_ids) < 2:
+                raise GameError(409, "Find the other person with your animal before you send a prompt.")
+        elif session.status != "playing":
+            raise GameError(409, "Wait for the host to start the round. Compete is one round for the room.")
         challenge = get_challenge(session.challenge_id)
         if challenge is None:
             raise GameError(500, "This game's challenge is missing.")
@@ -384,31 +535,60 @@ async def submit(
         history = list(thread.messages) if thread else []
         beat = challenge.beats[step]
         challenge_id = challenge.id
+        mode = session.mode
 
-    payload = "\n".join(f"{message.role}: {message.content}" for message in history)
-    payload = f"{payload}\nuser: {text}".strip()
     tokens = count_tokens(text)
-    looked_up = lookup_cost(text, beat.anchors)
-    grade = grade_for(looked_up, 80)
-    score = score_for(looked_up, 80)
-    grams = carbon_grams(looked_up)
-    excess_kg = excess_kg_at_scale(looked_up, 0)
-    summary = explain(looked_up, grams, excess_kg, turn=step + 1, turn_count=len(challenge.beats))
-    delta = reef_delta(grade)
-    kind = event_type(grade)
+    facts = _facts_for(beat, mode)
+    local_lookup = lookup_cost(text, facts) if not _needs_every_fact(beat, mode) else _every_fact_cost(text, facts)
+    local_grams = carbon_grams(local_lookup)
+    local_excess = excess_kg_at_scale(local_lookup, 0)
+    local_reason = explain(
+        local_lookup,
+        local_grams,
+        local_excess,
+        turn=step + 1,
+        turn_count=len(challenge.beats),
+    )
     messages = [{"role": message.role, "content": message.content} for message in history]
     messages.append({"role": "user", "content": text})
 
     if use_model:
-        answer, simulated = await complete(messages, beat.simulated_reply)
+        answer, simulated, request, trace = await complete(messages, beat.simulated_reply)
+        model_verdict = None
+        if not simulated:
+            model_verdict = await review_call(beat.ask, facts, request, trace)
+        reasonable, verdict_reason, judged = finalize_verdict(
+            model_verdict,
+            trace,
+            local_reasonable=local_lookup == 0,
+            local_reason=local_reason,
+        )
     else:
         answer, simulated = beat.simulated_reply, True
+        trace = {"serverSideTools": 0}
+        reasonable, verdict_reason, judged = local_lookup == 0, local_reason, False
+
+    looked_up = 0 if reasonable else max(local_lookup, 1200)
+    grade = grade_for(looked_up, 80)
+    score = score_for(looked_up, 80)
+    grams = carbon_grams(looked_up)
+    excess_kg = excess_kg_at_scale(looked_up, 0)
+    summary = verdict_reason if judged else explain(
+        looked_up, grams, excess_kg, turn=step + 1, turn_count=len(challenge.beats)
+    )
+    if judged and looked_up > 0:
+        summary = f"{verdict_reason} About {grams:.3f} g CO2e."
+    delta = reef_delta(grade)
+    kind = event_type(grade)
+    server_side_tools = int(trace.get("serverSideTools") or 0)
 
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
-        if session.challenge_id != challenge_id or session.status != "playing":
+        if session.challenge_id != challenge_id or session.status == "ended":
             raise GameError(409, "The host moved on. Take a look at the new challenge.")
+        if session.mode != "collaborate" and session.status != "playing":
+            raise GameError(409, "Wait for the host to start the round. Compete is one round for the room.")
         squad = _squad_for(session, player)
         if session.mode == "collaborate" and squad:
             owner_id = squad.id
@@ -468,6 +648,10 @@ async def submit(
             created_at=time.time(),
             turn_index=step,
             turn_count=len(challenge.beats),
+            reasonable=reasonable,
+            verdict_reason=verdict_reason,
+            judged_by_model=judged,
+            server_side_tools=server_side_tools,
         )
         event = ReefEvent(
             id=_id("evt"),
@@ -519,7 +703,7 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
             raise GameError(500, "This game's challenge is missing.")
         if session.status == "lobby":
             connected = [p for p in session.players if p.connected and p.id != "p_rehearsal"]
-            if session.mode == "collaborate" and connected:
+            if session.mode == "collaborate" and connected and not any(len(squad.player_ids) == 2 for squad in session.squads):
                 _form_squads(session, connected)
             session.status = "playing"
         if session.status != "playing":
@@ -531,6 +715,8 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
                 token=secrets.token_urlsafe(18),
                 name="Rehearsal",
                 language="Python",
+                builds="booth check",
+                cares="the reef",
                 connected=True,
                 joined_at=time.time(),
             )
@@ -541,6 +727,8 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
                     name="Rehearsal Reef",
                     player_ids=[player.id],
                     icebreaker="This squad exists so you can test the reef without a phone.",
+                    shared="Rehearsal is checking the reef.",
+                    distinct="No partner is at the table.",
                 )
                 player.squad_id = squad.id
                 session.squads.append(squad)
