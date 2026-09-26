@@ -349,13 +349,14 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
   display: block;
 }
 .landing h1 {
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 560;
-  font-size: clamp(2.6rem, 4.6vw, 4.2rem);
-  line-height: 0.92;
-  letter-spacing: -0.03em;
+  font-family: var(--font-sans), "Avenir Next", sans-serif;
+  font-weight: 650;
+  font-size: clamp(2.4rem, 4.2vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.048em;
   color: #f7fbff;
   margin: 0;
+  white-space: nowrap;
 }
 .landing .lede {
   color: rgba(214, 232, 238, 0.78);
@@ -1028,7 +1029,7 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }
   .landing-tools span { display: none; }
-  .landing h1 { font-size: clamp(2.1rem, 9vw, 2.8rem); }
+  .landing h1 { font-size: clamp(1.7rem, 7.4vw, 2.35rem); }
   .landing .lede { font-size: 0.9rem; }
   .landing .choice { padding: 10px 10px; }
   .landing .choice h2 { font-size: 1.05rem; }

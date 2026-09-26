@@ -48,7 +48,7 @@ export default function HomePage() {
 
           <section className="hero" aria-labelledby="hero-title">
             <p className="hero-kicker"><i />A Marina’s Mission</p>
-            <h1 id="hero-title">Include<br />the source.</h1>
+            <h1 id="hero-title">The hidden cost.</h1>
             <p className="lede">
               Leave the file out and the model searches. That search is the cost the reef shows.
             </p>
