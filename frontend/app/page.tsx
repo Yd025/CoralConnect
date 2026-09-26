@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatedBackground, ReefFish } from "@/components/AnimatedBackground";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -33,65 +33,16 @@ export default function HomePage() {
         </header>
 
         <section className="hero" aria-labelledby="hero-title">
-          <div>
-            <p className="eyebrow">HackGT · A Marina’s Mission</p>
-            <h1 id="hero-title">A thin prompt makes the model search. That lookup is the carbon cost.</h1>
-            <p className="lede">
-              CoralConnect is a HackGT booth game. Include the source in the prompt and the model does no extra search.
-              The shared reef shows what that lookup costs.
-            </p>
-            <div className="actions">
-              <a className="btn" href="#join">Join with a code</a>
-            </div>
-          </div>
-          <div className="hero-art" aria-hidden="true">
-            <svg className="hero-glow" viewBox="0 0 460 340">
-              <defs>
-                <linearGradient id="hero-water" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0c4a56" />
-                  <stop offset="58%" stopColor="#06343c" />
-                  <stop offset="100%" stopColor="#03161c" />
-                </linearGradient>
-                <linearGradient id="hero-sand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#8d7350" />
-                  <stop offset="1" stopColor="#3e3428" />
-                </linearGradient>
-                <radialGradient id="hero-pool" cx="50%" cy="64%" r="42%">
-                  <stop offset="0%" stopColor="#3ddec8" stopOpacity="0.22" />
-                  <stop offset="100%" stopColor="#3ddec8" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-              <rect width="460" height="340" rx="28" fill="url(#hero-water)" />
-              <polygon points="48,0 70,0 96,170 28,170" fill="#e7f6f2" opacity="0.045" />
-              <ellipse cx="230" cy="236" rx="150" ry="58" fill="url(#hero-pool)" />
-              <path d="M16 262 C100 236 160 286 240 258 C320 230 380 284 448 250 L448 324 L16 324 Z" fill="url(#hero-sand)" />
-              <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "9s" }}>
-                <path d="M72 286 C66 236 48 206 42 168" fill="none" stroke="#d85a4c" strokeWidth="3.4" opacity="0.85" />
-                <path d="M78 260 C64 228 70 198 60 172" fill="none" stroke="var(--coral)" strokeWidth="2" opacity="0.7" />
-                <path d="M84 246 C102 214 96 186 110 162" fill="none" stroke="#c9843a" strokeWidth="1.7" opacity="0.7" />
-                <path d="M58 230 C44 208 48 188 38 170" fill="none" stroke="#d85a4c" strokeWidth="1.3" opacity="0.6" />
-              </g>
-              <g className="reef-sway" style={{ animationDuration: "11s", animationDelay: "-2s" }}>
-                <path d="M168 292 C166 236 210 198 236 214 C262 190 304 228 292 292 Z" fill="#3ddec8" opacity="0.32" />
-                <path d="M186 280 C192 240 214 220 230 232" fill="none" stroke="#9ec4bc" strokeWidth="1" opacity="0.45" />
-                <path d="M214 284 C224 236 256 214 274 236" fill="none" stroke="#9ec4bc" strokeWidth="1" opacity="0.35" />
-              </g>
-              <ellipse cx="248" cy="268" rx="30" ry="14" fill="#6e5a40" />
-              <path d="M226 266 C236 258 246 274 256 260 C266 274 276 258 284 266" fill="none" stroke="#3e3428" strokeWidth="1.1" />
-              <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "8.5s", animationDelay: "-1.4s" }}>
-                <path d="M334 284 C330 248 322 228 326 204" fill="none" stroke="var(--coral)" strokeWidth="2.6" opacity="0.8" />
-                <path d="M348 282 C356 244 368 224 364 200" fill="none" stroke="#c9843a" strokeWidth="1.8" opacity="0.7" />
-                <path d="M360 280 C372 246 386 228 398 208" fill="none" stroke="#d85a4c" strokeWidth="1.4" opacity="0.65" />
-                <path d="M390 286 C384 252 374 236 368 218" fill="none" stroke="var(--teal)" strokeWidth="1.2" opacity="0.5" />
-                <path d="M402 284 C408 250 420 232 430 214" fill="none" stroke="#7dbea8" strokeWidth="1.1" opacity="0.45" />
-              </g>
-              <g transform="translate(214 108) scale(0.5)" style={{ color: "var(--sand)" }}>
-                <ReefFish variant="tang" />
-              </g>
-              <g transform="translate(392 86) scale(-0.3, 0.3)" style={{ color: "var(--teal)" }}>
-                <ReefFish variant="damsel" />
-              </g>
-            </svg>
+          <p className="eyebrow">HackGT · A Marina’s Mission</p>
+          <h1 id="hero-title">The hidden cost</h1>
+          <p className="hero-script">is the lookup.</p>
+          <p className="lede">
+            CoralConnect is a HackGT booth game. A thin prompt makes the model search the web, and that lookup is the carbon cost.
+            Include the source, and the shared reef shows the difference.
+          </p>
+          <div className="actions">
+            <a className="btn btn-warm" href="#join">Join with a code</a>
+            <a className="btn-ghost" href="#explain">How the booth works</a>
           </div>
         </section>
 
@@ -119,7 +70,7 @@ export default function HomePage() {
           </form>
         </section>
 
-        <section className="explain" aria-labelledby="explain-title">
+        <section className="explain" id="explain" aria-labelledby="explain-title">
           <h2 id="explain-title">How the booth works</h2>
           <ol className="steps">
             <li className="panel">

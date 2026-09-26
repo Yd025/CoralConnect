@@ -37,7 +37,7 @@ img { max-width: 100%; }
 .muted { color: var(--muted); }
 .lede { font-size: 1.2rem; line-height: 1.5; max-width: 46rem; }
 
-.hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 28px; align-items: center; }
+.hero { display: block; max-width: 38rem; min-height: calc(100dvh - 120px); padding-top: 12vh; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .panel {
   background: var(--panel);
@@ -193,12 +193,24 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 
 .landing { min-height: 100dvh; }
 .landing-ui { position: relative; z-index: 2; }
-.hero-art { display: grid; place-items: center; }
-.hero-glow {
-  width: min(100%, 440px);
-  height: auto;
-  display: block;
-  filter: drop-shadow(0 0 12px rgba(61, 222, 200, 0.28));
+.landing h1 { font-size: clamp(3.6rem, 8vw, 6.4rem); line-height: 0.92; margin: 0; }
+.hero-script {
+  margin: 0.15em 0 0.7em;
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  font-weight: 460;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  letter-spacing: -0.03em;
+}
+.btn-warm { background: var(--sand); color: #2a2114; }
+.ambient-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    linear-gradient(90deg, rgba(3, 22, 28, 0.78) 0%, rgba(3, 22, 28, 0.42) 36%, rgba(3, 22, 28, 0.05) 62%),
+    linear-gradient(180deg, rgba(3, 22, 28, 0.28), transparent 24%, transparent 70%, rgba(3, 22, 28, 0.35));
+  pointer-events: none;
 }
 .join {
   display: grid;
@@ -229,8 +241,8 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(900px 380px at 50% 112%, rgba(61, 222, 200, 0.1), transparent 56%),
-    linear-gradient(180deg, #03161c 0%, #042833 48%, #06343c 100%);
+    radial-gradient(90% 70% at 82% 0%, rgba(94, 214, 206, 0.55), transparent 46%),
+    linear-gradient(165deg, #1a6f86 0%, #0c4a5c 28%, #063444 58%, #03161c 100%);
 }
 .ambient-rays {
   position: absolute;
@@ -242,7 +254,7 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .ambient-reef {
   top: auto;
   bottom: 0;
-  height: min(48vh, 460px);
+  height: min(58vh, 560px);
 }
 .ambient-reef-art {
   display: block;

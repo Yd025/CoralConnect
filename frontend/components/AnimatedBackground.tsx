@@ -21,67 +21,43 @@ type Drifter = {
 type Ripple = { id: number; x: number; y: number };
 
 const DRIFTERS: Drifter[] = [
-  { id: "tang-near", kind: "tang", size: 96, top: "24%", duration: 36, delay: -8, depth: 0.62, fade: 0.72, reverse: false, color: "var(--sand)", bob: 4.6 },
-  { id: "butterfly-mid", kind: "butterfly", size: 72, top: "40%", duration: 30, delay: -14, depth: 0.4, fade: 0.62, reverse: true, color: "var(--coral)", bob: 5.2 },
-  { id: "damsel-fast", kind: "damsel", size: 58, top: "56%", duration: 22, delay: -3, depth: 0.88, fade: 0.7, reverse: false, color: "var(--teal)", bob: 3.8 },
-  { id: "tang-far", kind: "tang", size: 40, top: "16%", duration: 44, delay: -20, depth: 0.18, fade: 0.32, reverse: true, color: "var(--warn)", bob: 6 },
-  { id: "damsel-low", kind: "damsel", size: 46, top: "70%", duration: 27, delay: -11, depth: 0.5, fade: 0.55, reverse: true, color: "var(--good)", bob: 4.4 },
-  { id: "butterfly-deep", kind: "butterfly", size: 36, top: "78%", duration: 34, delay: -5, depth: 0.24, fade: 0.34, reverse: false, color: "var(--coral)", bob: 5.4 },
-  { id: "bubble-a", kind: "bubble", size: 11, top: "32%", duration: 22, delay: -6, depth: 0.7, fade: 0.4, reverse: false, color: "var(--sand)", bob: 6 },
-  { id: "bubble-b", kind: "bubble", size: 8, top: "50%", duration: 18, delay: -9, depth: 0.35, fade: 0.32, reverse: true, color: "var(--teal)", bob: 5 },
-  { id: "bubble-c", kind: "bubble", size: 14, top: "20%", duration: 28, delay: -16, depth: 0.2, fade: 0.22, reverse: false, color: "var(--ink)", bob: 6.5 },
+  { id: "f1", kind: "tang", size: 28, top: "16%", duration: 34, delay: -6, depth: 0.15, fade: 0.28, reverse: false, color: "#04141c", bob: 6.2 },
+  { id: "f2", kind: "damsel", size: 18, top: "24%", duration: 22, delay: -12, depth: 0.42, fade: 0.4, reverse: true, color: "#06202a", bob: 5 },
+  { id: "f3", kind: "butterfly", size: 22, top: "34%", duration: 27, delay: -3, depth: 0.28, fade: 0.32, reverse: false, color: "#071820", bob: 5.6 },
+  { id: "f4", kind: "tang", size: 46, top: "48%", duration: 19, delay: -8, depth: 0.85, fade: 0.55, reverse: true, color: "#031016", bob: 4.2 },
+  { id: "f5", kind: "damsel", size: 16, top: "12%", duration: 16, delay: -1, depth: 0.62, fade: 0.45, reverse: false, color: "#0a2430", bob: 4.8 },
+  { id: "f6", kind: "butterfly", size: 14, top: "62%", duration: 31, delay: -15, depth: 0.22, fade: 0.25, reverse: true, color: "#04141c", bob: 6 },
+  { id: "f7", kind: "damsel", size: 34, top: "72%", duration: 24, delay: -9, depth: 0.5, fade: 0.38, reverse: false, color: "#052028", bob: 5.1 },
+  { id: "b1", kind: "bubble", size: 7, top: "30%", duration: 20, delay: -4, depth: 0.7, fade: 0.35, reverse: false, color: "#e7f6f2", bob: 6 },
+  { id: "b2", kind: "bubble", size: 5, top: "46%", duration: 15, delay: -8, depth: 0.35, fade: 0.28, reverse: true, color: "#d7f3ee", bob: 5 },
+  { id: "b3", kind: "bubble", size: 9, top: "18%", duration: 26, delay: -14, depth: 0.2, fade: 0.22, reverse: false, color: "#f4fff9", bob: 7 },
 ];
 
 function isControl(target: EventTarget | null) {
   return target instanceof Element && Boolean(target.closest("a, button, input, textarea, select, label"));
 }
 
-function Eye({ cx, cy }: { cx: number; cy: number }) {
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r="3.1" fill="#102028" />
-      <circle cx={cx - 0.8} cy={cy - 0.8} r="0.85" fill="#f4fff9" opacity="0.75" />
-    </g>
-  );
-}
-
 export function ReefFish({ variant }: { variant: Exclude<Kind, "bubble"> }) {
   if (variant === "butterfly") {
     return (
-      <g>
-        <path d="M146 50 C162 38 176 34 186 32 C170 48 168 54 168 50 C168 46 170 52 186 68 C176 66 162 60 146 52 Z" fill="currentColor" opacity="0.8" />
-        <path d="M34 50 C48 34 78 30 112 34 C136 37 150 44 154 50 C150 56 136 64 112 67 C78 71 48 66 34 50 Z" fill="currentColor" />
-        <path d="M28 50 C34 46 40 46 44 50 C40 54 34 54 28 50 Z" fill="currentColor" />
-        <path d="M70 36 C86 28 108 30 122 38" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
-        <path d="M74 64 C90 72 112 70 126 62" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" opacity="0.45" />
-        <path d="M58 36 C64 50 62 62 54 68" fill="none" stroke="#102028" strokeWidth="4.5" strokeLinecap="round" opacity="0.55" />
-        <path d="M96 34 C104 50 100 64 90 70" fill="none" stroke="#102028" strokeWidth="3.5" strokeLinecap="round" opacity="0.4" />
-        <path d="M48 54 C64 58 78 56 86 50" fill="none" stroke="#fff" strokeWidth="1" opacity="0.18" />
-        <Eye cx={48} cy={46} />
+      <g fill="currentColor">
+        <path d="M150 50 C168 34 184 30 196 26 C176 48 174 56 174 50 C174 44 176 56 196 74 C184 66 166 58 150 52 Z" />
+        <path d="M28 50 C36 34 70 28 108 32 C140 36 158 44 162 50 C158 58 140 68 108 70 C70 74 36 66 28 50 Z" />
       </g>
     );
   }
   if (variant === "damsel") {
     return (
-      <g>
-        <path d="M138 50 L176 36 L158 50 L176 64 Z" fill="currentColor" opacity="0.9" />
-        <path d="M32 50 C46 38 84 36 124 42 C140 45 150 48 152 50 C150 52 140 56 124 58 C84 64 46 62 32 50 Z" fill="currentColor" />
-        <path d="M70 40 C90 34 112 36 128 44" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" opacity="0.5" />
-        <ellipse cx="118" cy="48" rx="7" ry="5" fill="#102028" opacity="0.55" />
-        <path d="M44 46 C58 44 70 46 78 50" fill="none" stroke="#fff" strokeWidth="1" opacity="0.16" />
-        <Eye cx={52} cy={47} />
+      <g fill="currentColor">
+        <path d="M132 50 L186 34 L160 50 L186 66 Z" />
+        <path d="M26 50 C40 38 78 36 128 44 C146 47 156 50 158 50 C156 53 146 56 128 58 C78 64 40 62 26 50 Z" />
       </g>
     );
   }
   return (
-    <g>
-      <path d="M142 48 C160 34 178 28 190 24 C172 44 170 52 170 50 C170 48 172 56 190 76 C178 70 160 60 142 52 Z" fill="currentColor" opacity="0.88" />
-      <path d="M40 50 C52 32 82 26 114 30 C138 33 152 42 154 50 C152 58 138 68 114 70 C82 74 52 68 40 50 Z" fill="currentColor" />
-      <path d="M78 32 C96 24 122 26 138 36" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
-      <path d="M82 68 C102 76 126 74 140 64" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" opacity="0.4" />
-      <path d="M128 58 L122 72 L134 60 Z" fill="#e7f6f2" opacity="0.55" />
-      <path d="M56 44 C78 40 98 44 108 50" fill="none" stroke="#fff" strokeWidth="1.2" opacity="0.18" />
-      <Eye cx={62} cy={46} />
+    <g fill="currentColor">
+      <path d="M138 48 C158 32 176 26 192 22 C172 46 170 54 170 50 C170 46 172 56 192 78 C176 68 156 58 138 52 Z" />
+      <path d="M36 50 C46 32 78 24 112 28 C140 32 156 42 160 50 C156 60 140 72 112 74 C78 78 46 68 36 50 Z" />
     </g>
   );
 }
@@ -106,61 +82,64 @@ function Shape({ kind, size, bob }: { kind: Kind; size: number; bob: number }) {
 function ReefBed() {
   return (
     <div className="ambient-parallax ambient-reef" style={{ ["--depth" as string]: 0.14, ["--layer" as string]: 1 }}>
-      <svg className="ambient-reef-art" viewBox="0 0 1200 460" preserveAspectRatio="xMidYMax slice">
+      <svg className="ambient-reef-art" viewBox="0 0 1200 520" preserveAspectRatio="xMidYMax slice">
         <defs>
           <linearGradient id="ambient-sand" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#8d7350" />
-            <stop offset="1" stopColor="#3e3428" />
+            <stop offset="0" stopColor="#a48862" />
+            <stop offset="1" stopColor="#4a3b2c" />
+          </linearGradient>
+          <linearGradient id="stag-shade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f0a090" />
+            <stop offset="40%" stopColor="#d46552" />
+            <stop offset="100%" stopColor="#8d3a34" />
+          </linearGradient>
+          <linearGradient id="lobe-shade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#e7b08a" />
+            <stop offset="100%" stopColor="#a85a40" />
+          </linearGradient>
+          <linearGradient id="fan-shade" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#14584f" />
+            <stop offset="100%" stopColor="#3ddec8" />
           </linearGradient>
         </defs>
-        <path d="M0 318 C160 286 280 340 460 308 C680 268 820 348 1040 304 C1140 284 1180 310 1200 296 L1200 460 L0 460 Z" fill="url(#ambient-sand)" />
-        <path d="M40 360 C120 348 180 372 260 356 C340 340 400 368 480 352" fill="none" stroke="#2a241c" strokeWidth="1" opacity="0.35" />
-        <ellipse cx="210" cy="372" rx="70" ry="10" fill="#241c16" opacity="0.28" />
-        <ellipse cx="780" cy="384" rx="110" ry="12" fill="#241c16" opacity="0.22" />
+        <path d="M0 390 C170 340 300 420 500 372 C720 318 900 430 1200 360 L1200 520 L0 520 Z" fill="url(#ambient-sand)" />
+        <path d="M-20 180 C70 220 90 360 40 520 L-20 520 Z" fill="#07141a" />
+        <path d="M1220 140 C1080 220 1040 360 1140 520 L1220 520 Z" fill="#07141a" />
+        <ellipse cx="180" cy="470" rx="120" ry="18" fill="#1a120e" opacity="0.35" />
+        <ellipse cx="860" cy="488" rx="160" ry="20" fill="#1a120e" opacity="0.28" />
 
-        <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "9s" }}>
-          <path d="M70 360 C62 300 40 260 34 214" fill="none" stroke="var(--coral)" strokeWidth="4.5" opacity="0.8" />
-          <path d="M74 320 C58 280 66 246 54 214" fill="none" stroke="var(--coral)" strokeWidth="2.4" opacity="0.7" />
-          <path d="M78 300 C96 262 88 230 102 198" fill="none" stroke="#d85a4c" strokeWidth="2.2" opacity="0.75" />
-          <path d="M60 286 C44 258 50 232 38 208" fill="none" stroke="var(--coral)" strokeWidth="1.8" opacity="0.6" />
-          <path d="M96 248 C112 224 106 202 118 184" fill="none" stroke="#d85a4c" strokeWidth="1.4" opacity="0.65" />
+        <g className="reef-sway" style={{ animationDuration: "11s" }}>
+          <path d="M48 500 C36 420 8 360 30 290 C52 360 64 420 78 500 Z" fill="url(#stag-shade)" />
+          <path d="M86 510 C96 410 140 340 118 270 C150 350 148 430 132 510 Z" fill="#e0894a" />
+          <path d="M130 516 C158 430 196 370 176 300 C214 380 196 450 176 516 Z" fill="url(#lobe-shade)" />
+          <path d="M70 500 C64 450 48 410 56 370 C70 420 78 460 86 500 Z" fill="#f0b27a" opacity="0.85" />
         </g>
 
-        <g className="reef-sway" style={{ animationDuration: "11s", animationDelay: "-3s" }}>
-          <path d="M250 368 C248 300 310 250 348 268 C386 246 430 292 418 368 Z" fill="var(--teal)" opacity="0.28" />
-          <path d="M268 360 C272 300 310 268 332 286" fill="none" stroke="var(--teal)" strokeWidth="1.1" opacity="0.55" />
-          <path d="M300 364 C308 292 348 258 366 290" fill="none" stroke="var(--teal)" strokeWidth="1.1" opacity="0.5" />
-          <path d="M332 362 C346 300 390 270 408 300" fill="none" stroke="#9ec4bc" strokeWidth="1" opacity="0.4" />
-          <path d="M248 360 C258 320 246 286 236 258" fill="none" stroke="#1d6a62" strokeWidth="1.6" opacity="0.55" />
+        <g className="reef-sway" style={{ animationDuration: "13s", animationDelay: "-4s" }}>
+          <path d="M250 500 C240 410 210 350 236 286 C280 340 300 250 338 300 C360 360 390 430 360 500 Z" fill="url(#fan-shade)" opacity="0.72" />
+          <path d="M292 490 C286 400 270 340 286 292" fill="none" stroke="#b7efe4" strokeWidth="1.2" opacity="0.35" />
+          <path d="M292 490 C310 390 330 330 346 286" fill="none" stroke="#b7efe4" strokeWidth="1.2" opacity="0.28" />
+          <path d="M292 490 C270 410 250 360 236 310" fill="none" stroke="#083830" strokeWidth="1.4" opacity="0.25" />
         </g>
 
-        <g opacity="0.9">
-          <ellipse cx="560" cy="332" rx="54" ry="22" fill="#6e5a40" />
-          <path d="M516 328 C528 320 540 336 552 322 C564 336 576 318 588 328 C598 318 606 332 608 326" fill="none" stroke="#3e3428" strokeWidth="1.2" />
-          <path d="M520 338 C534 330 548 344 562 332 C576 344 588 330 602 338" fill="none" stroke="#3e3428" strokeWidth="1.1" />
-          <ellipse cx="530" cy="346" rx="22" ry="7" fill="#5c4a34" opacity="0.8" />
+        <g opacity="0.95">
+          <ellipse cx="560" cy="455" rx="78" ry="34" fill="#6a5340" />
+          <ellipse cx="560" cy="446" rx="78" ry="28" fill="#8d6d4e" />
+          <path d="M500 446 C518 434 534 458 552 438 C570 458 588 432 606 446" fill="none" stroke="#4a382c" strokeWidth="1.6" />
+          <path d="M508 458 C528 448 546 466 564 450 C582 466 598 446 616 456" fill="none" stroke="#4a382c" strokeWidth="1.3" />
         </g>
 
-        <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "8.5s", animationDelay: "-2s" }}>
-          <path d="M700 358 C696 318 684 292 688 262" fill="none" stroke="var(--coral)" strokeWidth="3.2" opacity="0.75" />
-          <path d="M714 356 C722 312 738 286 732 256" fill="none" stroke="#c9843a" strokeWidth="2.4" opacity="0.7" />
-          <path d="M728 354 C742 316 760 294 772 266" fill="none" stroke="var(--coral)" strokeWidth="2" opacity="0.65" />
-          <path d="M708 300 C698 284 702 270 694 256" fill="none" stroke="#d85a4c" strokeWidth="1.3" opacity="0.6" />
+        <g className="reef-sway" style={{ animationDuration: "10s", animationDelay: "-2s" }}>
+          <path d="M700 500 C692 440 676 400 684 350 C700 400 706 450 714 500 Z" fill="url(#stag-shade)" />
+          <path d="M724 506 C736 430 770 370 754 318 C786 380 778 450 764 506 Z" fill="#e0894a" />
+          <path d="M770 508 C798 440 834 390 816 336 C848 400 836 460 820 508 Z" fill="#f0b27a" />
+          <path d="M748 500 C754 450 770 410 762 368 C780 420 776 460 782 500 Z" fill="#c45a42" opacity="0.8" />
         </g>
 
-        <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "10s", animationDelay: "-4s" }}>
-          <path d="M860 352 C852 318 838 300 828 276" fill="none" stroke="var(--teal)" strokeWidth="1.5" opacity="0.55" />
-          <path d="M870 354 C866 314 880 286 872 258" fill="none" stroke="var(--teal)" strokeWidth="1.5" opacity="0.6" />
-          <path d="M882 350 C894 314 908 292 922 268" fill="none" stroke="#7dbea8" strokeWidth="1.4" opacity="0.5" />
-          <path d="M848 356 C842 326 826 308 814 288" fill="none" stroke="#9a8460" strokeWidth="1.2" opacity="0.45" />
-          <ellipse cx="868" cy="358" rx="28" ry="6" fill="#163e3a" opacity="0.7" />
-        </g>
-
-        <g className="reef-sway" strokeLinecap="round" style={{ animationDuration: "9.4s", animationDelay: "-1.5s" }}>
-          <path d="M1040 340 C1026 286 1008 250 1016 206" fill="none" stroke="var(--coral)" strokeWidth="3.4" opacity="0.72" />
-          <path d="M1048 318 C1068 274 1058 236 1076 206" fill="none" stroke="#d85a4c" strokeWidth="2" opacity="0.65" />
-          <path d="M1056 308 C1080 268 1100 240 1110 210" fill="none" stroke="#c9843a" strokeWidth="1.7" opacity="0.6" />
-          <path d="M1032 280 C1018 258 1024 236 1012 216" fill="none" stroke="var(--coral)" strokeWidth="1.3" opacity="0.55" />
+        <g className="reef-sway" style={{ animationDuration: "12s", animationDelay: "-6s" }}>
+          <path d="M980 490 C960 400 930 340 956 270 C1000 330 1030 250 1074 292 C1100 360 1120 430 1060 490 Z" fill="url(#fan-shade)" opacity="0.55" />
+          <path d="M1020 480 C1010 390 990 330 1004 286" fill="none" stroke="#d7fff6" strokeWidth="1" opacity="0.3" />
+          <path d="M1020 480 C1044 380 1070 320 1088 278" fill="none" stroke="#d7fff6" strokeWidth="1" opacity="0.22" />
         </g>
       </svg>
     </div>
@@ -228,11 +207,24 @@ export function AnimatedBackground() {
   return (
     <>
     <div className="ambient" ref={rootRef} aria-hidden="true">
-      <svg className="ambient-rays" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMin slice">
-        <polygon points="140,0 210,0 280,520 120,520" fill="#e7f6f2" opacity="0.07" />
-        <polygon points="560,0 640,0 700,560 480,560" fill="#e7f6f2" opacity="0.06" />
-        <polygon points="960,0 1030,0 960,420 860,420" fill="#f0d7a4" opacity="0.05" />
+      <svg className="ambient-rays hero-glow" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMin slice">
+        <defs>
+          <linearGradient id="godray" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#e9fff8" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#e9fff8" stopOpacity="0" />
+          </linearGradient>
+          <radialGradient id="sunbloom" cx="78%" cy="0%" r="42%">
+            <stop offset="0%" stopColor="#f4fff9" stopOpacity="0.85" />
+            <stop offset="28%" stopColor="#7ee7dc" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="#7ee7dc" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="1200" height="800" fill="url(#sunbloom)" />
+        <polygon points="860,0 980,0 760,800 520,800" fill="url(#godray)" />
+        <polygon points="980,0 1100,0 1040,760 820,760" fill="url(#godray)" opacity="0.65" />
+        <polygon points="720,0 800,0 640,680 470,680" fill="url(#godray)" opacity="0.4" />
       </svg>
+      <div className="ambient-vignette" />
       <ReefBed />
       {DRIFTERS.map((item) => (
         <div
