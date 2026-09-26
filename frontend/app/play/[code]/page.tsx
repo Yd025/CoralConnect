@@ -25,6 +25,7 @@ export default function PlayPage() {
   const [latest, setLatest] = useState<Submission | null>(null);
   const draftTimer = useRef<number | null>(null);
   const sawPrompt = useRef(false);
+  const logRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(storageKey(code));
@@ -128,6 +129,12 @@ export default function PlayPage() {
     }, 90);
   }
 
+  useEffect(() => {
+    const node = logRef.current;
+    if (!node) return;
+    node.scrollTop = node.scrollHeight;
+  }, [thread?.messages.length, shown?.id, busy, session?.status, identity?.playerId, localError]);
+
   const piece = session?.mode === "collaborate" ? me?.piece : null;
   const sourceTitle = piece?.title ?? beat?.fixtureTitle;
   const sourceBody = piece?.body ?? beat?.fixture;
@@ -140,9 +147,169 @@ export default function PlayPage() {
 
   const compete = session?.mode === "compete";
 
+  if (compete && session) {
+    const ask = beat?.ask;
+    return (
+      <main className="compete-play">
+        <CompeteScene band={session.reefBand} health={session.reefHealth} />
+        <section className="chat" aria-label="Chat with Grok">
+          <header className="chat-head">
+            <a className="chat-face" href="/" aria-label="CoralConnect home">
+              <img src="/reef/05-otto-octopus.svg" alt="" />
+            </a>
+            <div className="chat-id">
+              <strong>Grok</strong>
+              <span>Turn {turnNumber} of {turnCount} · {code}</span>
+            </div>
+            <div className="chat-health health-inline">
+              <span>Reef {session.reefHealth}</span>
+              <i><b style={{ width: `${session.reefHealth}%` }} /></i>
+            </div>
+            <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
+          </header>
+
+          <details className="chat-board">
+            <summary>Leaderboard</summary>
+            <Leaderboard session={session} compact />
+          </details>
+
+          <div className="chat-log" ref={logRef}>
+            {error || localError ? <p className="error">{localError || error}</p> : null}
+
+            <div className="chat-msg is-grok">
+              <span className="chat-msg__who">Grok</span>
+              {session.challenge?.title ? <p className="chat-msg__title">{session.challenge.title}</p> : null}
+              {session.challenge?.brief ? <p>{session.challenge.brief}</p> : null}
+              {session.challenge?.hint ? <p className="muted">{session.challenge.hint}</p> : null}
+            </div>
+
+            {ask && sourceBody ? (
+              <SourceNote title={sourceTitle} ask={ask} body={sourceBody} onInclude={identity ? includeSource : undefined} />
+            ) : null}
+
+            {!identity && tableFull ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>This table is full. Compete holds up to 10 players.</p>
+              </div>
+            ) : null}
+
+            {!identity && !tableFull ? (
+              <form className="chat-join stack" onSubmit={onJoin}>
+                <label>
+                  Your name
+                  <input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} required />
+                </label>
+                <fieldset className="chips">
+                  <legend>You build</legend>
+                  {BUILDS.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={builds === item ? "is-on" : ""}
+                      onClick={() => setBuilds(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </fieldset>
+                <fieldset className="chips">
+                  <legend>You care about</legend>
+                  {CARES.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={cares === item ? "is-on" : ""}
+                      onClick={() => setCares(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </fieldset>
+                <button className="btn" disabled={busy || !builds || !cares}>
+                  Join the reef
+                </button>
+              </form>
+            ) : null}
+
+            {identity && session.status === "lobby" ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>You're in, {identity.name}. This round starts when the table says go. {roster.length} of {playerMax} here.</p>
+                <button
+                  className="btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    void leaveSession(code, identity).then((data) => ingest(data.session));
+                    window.localStorage.removeItem(storageKey(code));
+                    setIdentity(null);
+                  }}
+                >
+                  Leave lobby
+                </button>
+              </div>
+            ) : null}
+
+            {thread?.messages.map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={message.role === "user" ? "chat-msg is-you" : "chat-msg is-grok"}
+              >
+                <span className="chat-msg__who">{message.role === "user" ? "You" : "Grok"}</span>
+                <p>{message.content}</p>
+              </div>
+            ))}
+
+            {shown ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <ResultCard shown={shown} />
+              </div>
+            ) : null}
+
+            {identity && session.status === "playing" && thread?.done ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>This thread is closed. Your turns are on the reef.</p>
+              </div>
+            ) : null}
+
+            {session.status === "ended" ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>This round is over. Check the big screen for the reef you left behind.</p>
+              </div>
+            ) : null}
+          </div>
+
+          {identity && canPlay && !thread?.done ? (
+            <form className="chat-compose" onSubmit={onSubmit}>
+              <textarea
+                value={prompt}
+                onChange={(event) => onPrompt(event.target.value)}
+                placeholder="Message Grok"
+                aria-label="Message to Grok"
+                rows={2}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
+              />
+              <button className="btn" disabled={busy || !prompt.trim()} type="submit">
+                {busy ? "Sending" : "Send"}
+              </button>
+              <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
+            </form>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className={compete ? "phone compete-play" : "phone"}>
-      {compete && session ? <CompeteScene band={session.reefBand} health={session.reefHealth} /> : null}
+    <main className="phone">
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
         <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
@@ -295,36 +462,12 @@ export default function PlayPage() {
                   </button>
                 </section>
               ) : null}
-              {compete ? (
-                <section className="panel grok-card stack">
-                  <div className="grok-card__head">
-                    <img src="/reef/05-otto-octopus.svg" alt="" />
-                    <div>
-                      <p className="eyebrow">Prompt</p>
-                      <strong>Grok</strong>
-                    </div>
-                  </div>
-                  <p className="muted">
-                    {busy ? "Grok is reading your message." : "This is who you prompt. Include the source so Grok does not search for it."}
-                  </p>
-                  <label>
-                    Message to Grok
-                    <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
-                  </label>
-                  {shown ? (
-                    <p className="grok-card__reply">
-                      {shown.reasonable ? "Grok answered without a search." : "Grok had to search. The grade is below."}
-                    </p>
-                  ) : null}
-                </section>
-              ) : (
-                <label>
-                  <span className="play-label">
-                    {session.mode === "collaborate" ? "Shared message" : "Your message"}
-                  </span>
-                  <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
-                </label>
-              )}
+              <label>
+                <span className="play-label">
+                  {session.mode === "collaborate" ? "Shared message" : "Your message"}
+                </span>
+                <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
+              </label>
               <p className="muted">
                 {session.mode === "collaborate" && squad
                   ? "Your partner has a different piece. The shared message needs both."
@@ -347,6 +490,40 @@ export default function PlayPage() {
         </>
       ) : null}
     </main>
+  );
+}
+
+function SourceNote({
+  title,
+  ask,
+  body,
+  onInclude,
+}: {
+  title?: string;
+  ask: string;
+  body: string;
+  onInclude?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="chat-msg is-grok">
+      <span className="chat-msg__who">Grok</span>
+      <p>{ask}</p>
+      <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide the source" : "See the source"}
+      </button>
+      {open ? (
+        <>
+          {title ? <p className="eyebrow">{title}</p> : null}
+          <pre className="fixture">{body}</pre>
+          {onInclude ? (
+            <button className="btn-ghost" type="button" onClick={onInclude}>
+              Include this source
+            </button>
+          ) : null}
+        </>
+      ) : null}
+    </div>
   );
 }
 
