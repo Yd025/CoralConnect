@@ -68,6 +68,7 @@ def health() -> dict:
         "chatModel": settings.grok_model,
         "imageModel": settings.grok_image_model,
         "imagesEnabled": configured and settings.grok_images,
+        "grokRoles": ["answer the player's prompt", "judge that prompt from the solver API call"],
         "lanIp": game.lan_ip(),
         "formula": FORMULA,
     }

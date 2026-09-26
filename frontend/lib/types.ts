@@ -80,6 +80,10 @@ export type Submission = {
   turnIndex: number;
   turnCount: number;
   followUp: boolean;
+  reasonable: boolean;
+  verdictReason: string;
+  judgedByModel: boolean;
+  serverSideTools: number;
 };
 
 export type ReefEvent = {
@@ -97,6 +101,8 @@ export type GameSession = {
   code: string;
   mode: Mode;
   status: Status;
+  playerMin: number;
+  playerMax: number;
   challenge: Challenge | null;
   reefHealth: number;
   reefBand: ReefBand;
@@ -115,6 +121,7 @@ export type Health = {
   chatModel: string;
   imageModel: string;
   imagesEnabled: boolean;
+  grokRoles: string[];
   lanIp: string;
   formula: {
     energyKwhPer1kTokens: number;

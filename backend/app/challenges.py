@@ -1,3 +1,12 @@
+"""Challenges the booth can run.
+
+Add a Challenge to CHALLENGES when you design a new round.
+Each beat is one turn. anchors are the facts the latest message must contain
+so the solver does not have to look them up. They stay on the server.
+Phones only receive ask, fixtureTitle, and fixture.
+simulated_reply is the answer used until XAI_API_KEY is set.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

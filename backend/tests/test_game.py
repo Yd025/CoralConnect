@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.carbon import grade_for, reef_band
 from app.game import _pair
+from app.grok import call_trace, finalize_verdict, parse_verdict
 from app.main import app
 from app.models import Player
 from app.store import store
@@ -49,6 +50,75 @@ def test_pairing_groups_by_language_then_mixes_leftovers():
     assert sizes == [2, 2]
 
 
+def test_compete_caps_at_ten_players():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "compete", "challengeId": "invoice-bug"},
+    )
+    assert created.status_code == 200
+    code = created.json()["session"]["code"]
+    assert created.json()["session"]["playerMin"] == 1
+    assert created.json()["session"]["playerMax"] == 10
+    for index in range(10):
+        joined = client.post(
+            f"/api/sessions/{code}/join",
+            json={"name": f"P{index}", "language": "Python"},
+        )
+        assert joined.status_code == 200
+    extra = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Extra", "language": "Python"},
+    )
+    assert extra.status_code == 409
+    assert "10" in extra.json()["error"]
+
+
+def test_collaborate_requires_two_to_four_players():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    assert created["session"]["playerMin"] == 2
+    assert created["session"]["playerMax"] == 4
+
+    alone = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Ada", "language": "Python"},
+    )
+    assert alone.status_code == 200
+    too_soon = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    assert too_soon.status_code == 409
+
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Grace", "language": "Python"},
+    )
+    started = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    assert started.status_code == 200
+
+    full = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    full_code = full["session"]["code"]
+    for name in ("Ada", "Grace", "Lin", "Kay"):
+        joined = client.post(
+            f"/api/sessions/{full_code}/join",
+            json={"name": name, "language": "Python"},
+        )
+        assert joined.status_code == 200
+    fifth = client.post(
+        f"/api/sessions/{full_code}/join",
+        json={"name": "Nia", "language": "Python"},
+    )
+    assert fifth.status_code == 409
+    assert "4" in fifth.json()["error"]
+
+
 def test_compete_flow_grades_and_poisons_the_reef():
     client = TestClient(app)
     created = client.post(
@@ -87,6 +157,8 @@ def test_compete_flow_grades_and_poisons_the_reef():
     assert tight.status_code == 200
     tight_body = tight.json()["submission"]
     assert tight_body["grade"] in {"A+", "A"}
+    assert tight_body["reasonable"] is True
+    assert tight_body["judgedByModel"] is False
     assert tight_body["turnIndex"] == 0
     assert tight_body["followUp"] is True
     assert tight_body["simulated"] is True
@@ -103,6 +175,7 @@ def test_compete_flow_grades_and_poisons_the_reef():
     assert bloated.status_code == 200
     poisoned = bloated.json()
     assert poisoned["submission"]["grade"] == "F"
+    assert poisoned["submission"]["reasonable"] is False
     assert poisoned["submission"]["reefDelta"] < 0
     assert poisoned["session"]["reefHealth"] < 100
     assert poisoned["session"]["reefBand"] in {"thriving", "stressed", "bleaching", "dead"}
@@ -177,6 +250,29 @@ def test_follow_up_keeps_the_bloated_history_on_the_bill():
     assert second["submission"]["lookupTokens"] == 0
     assert second["submission"]["grade"] in {"A+", "A"}
     assert second["session"]["threads"][0]["done"] is True
+
+
+def test_judge_reads_a_web_search_even_if_it_calls_the_prompt_reasonable():
+    verdict = parse_verdict('Sure. {"reasonable": true, "reason": "The message names the function."}')
+    assert verdict == {"reasonable": True, "reason": "The message names the function."}
+    assert parse_verdict("no json here") is None
+    trace = call_trace(
+        {
+            "output": [{"type": "web_search_call"}, {"type": "message", "content": "done"}],
+            "usage": {"input_tokens": 40, "output_tokens": 12, "num_server_side_tools_used": 1},
+        }
+    )
+    assert trace["serverSideTools"] == 1
+    assert trace["inputTokens"] == 40
+    reasonable, reason, judged = finalize_verdict(
+        verdict,
+        trace,
+        local_reasonable=True,
+        local_reason="local",
+    )
+    assert reasonable is False
+    assert judged is True
+    assert "searched the web" in reason
 
 
 def test_websocket_sends_a_snapshot():
