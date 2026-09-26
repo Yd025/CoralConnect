@@ -229,23 +229,22 @@ export function AnimatedBackground() {
       const timer = window.setTimeout(() => {
         timers.delete(timer);
         setRipples((items) => items.filter((item) => item.id !== id));
-      }, 1250);
+      }, 1700);
       timers.add(timer);
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerdown", spawn);
-    window.addEventListener("click", spawn);
+    window.addEventListener("pointerdown", spawn, true);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerdown", spawn);
-      window.removeEventListener("click", spawn);
+      window.removeEventListener("pointerdown", spawn, true);
       if (frame) cancelAnimationFrame(frame);
       timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, []);
 
   return (
+    <>
     <div className="ambient" ref={rootRef} aria-hidden="true">
       <svg className="ambient-rays" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMin slice">
         <polygon points="140,0 210,0 280,520 120,520" fill="#e7f6f2" opacity="0.07" />
@@ -276,9 +275,12 @@ export function AnimatedBackground() {
           </span>
         </div>
       ))}
+    </div>
+    <div className="ambient-ripples" aria-hidden="true">
       {ripples.map((ripple) => (
         <span key={ripple.id} className="ambient-ripple" style={{ left: ripple.x, top: ripple.y }} />
       ))}
     </div>
+    </>
   );
 }
