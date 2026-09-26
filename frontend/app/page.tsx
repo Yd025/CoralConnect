@@ -72,7 +72,7 @@ export default function HomePage() {
                 </label>
                 <button className="btn" type="submit" disabled={!code}>Join this compete room</button>
               </form>
-              <a className="panel stack choice" href="/collaborate">
+              <div className="panel stack choice">
                 <p className="eyebrow">Together</p>
                 <h2>Work with a partner</h2>
                 <p className="muted">Two questions, then someone who is already waiting. You share one prompt, and you can play more than once.</p>
@@ -80,8 +80,8 @@ export default function HomePage() {
                   <p><strong>You</strong><span>On your phone</span></p>
                   <p><strong>A partner</strong><span>Already waiting</span></p>
                 </div>
-                <span className="btn btn-warm">Work with a partner</span>
-              </a>
+                <a className="btn btn-warm" href="/collaborate">Work with a partner</a>
+              </div>
             </div>
           </section>
         </div>
