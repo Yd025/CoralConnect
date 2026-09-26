@@ -256,6 +256,7 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
   margin: 0;
   overflow: hidden;
 }
+.admin-desk { align-self: start; height: auto; }
 .admin-desk .hero-kicker { margin-bottom: 10px; }
 .admin-desk .lede { margin-top: 10px; font-size: 0.98rem; max-width: none; }
 .admin-desk form .btn { width: 100%; }
