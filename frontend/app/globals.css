@@ -375,11 +375,11 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 }
 .choice { text-decoration: none; color: inherit; align-content: start; }
 .choice h2 { margin: 0; }
-.landing .choice { padding: 14px 16px; }
-.landing .choice.stack { gap: 8px; }
+.landing .choice { padding: 14px 16px; height: 100%; }
+.landing .choice.stack { display: flex; flex-direction: column; gap: 8px; }
 .landing .choice h2 { font-size: 1.35rem; }
 .landing .choice .muted { font-size: 0.92rem; line-height: 1.35; }
-.landing .choice .btn { width: 100%; }
+.landing .choice .btn { width: 100%; margin-top: auto; }
 .landing-stage { overflow: hidden; }
 .podium { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .podium li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; }
