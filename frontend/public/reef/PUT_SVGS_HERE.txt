@@ -1,0 +1,10 @@
+Drop full-scene SVG files in this folder. The main stage picks them up on its own.
+
+  thriving.svg    reef health 75-100
+  stressed.svg    reef health 50-74
+  bleaching.svg   reef health 25-49
+  dead.svg        reef health 0-24
+
+A file that loads replaces the built-in drawing for that band. Missing files keep the drawing in components/reef/FallbackReef.tsx.
+
+Murk, the red flash, the sludge barrel, swimming fish, reward names, and the health number are wired in components/reef/ReefStage.tsx. Leave that component's props alone so the game can keep driving the tank.
