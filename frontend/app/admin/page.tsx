@@ -36,11 +36,7 @@ export default function AdminPage() {
       }
     }
     getChallenges()
-      .then((data) => {
-        const list = (data.challenges ?? []).filter((item): item is Challenge => Boolean(item));
-        setChallenges(list);
-        setChallengeId((current) => (list.some((item) => item.id === current) ? current : list[0]?.id ?? current));
-      })
+      .then((data) => setChallenges((data.challenges ?? []).filter((item): item is Challenge => Boolean(item))))
       .catch(() => undefined);
   }, []);
 
@@ -114,15 +110,15 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <div className={session ? "admin-layout" : "admin-layout is-waiting"}>
-          <section className="panel admin-pane" aria-labelledby="admin-title">
-            <p className="eyebrow">Versus</p>
+        <div className="admin-layout">
+          <section className="admin-intro" aria-labelledby="admin-title">
+            <p className="hero-kicker"><i />Versus</p>
             <h1 id="admin-title">Open a versus round.</h1>
             <p className="lede">
-              Up to 10 players, each prompting on their own. The shared reef shows who made the model do less work.
+              Up to 10 players, each prompting on their own. The shared reef shows who made the model do less work. Ending the round opens the top 3.
             </p>
             {error ? <p className="error">{error}</p> : null}
-            <form className="stack" onSubmit={onCreate}>
+            <form className="panel stack" onSubmit={onCreate}>
               <label>
                 Challenge
                 <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
@@ -137,8 +133,40 @@ export default function AdminPage() {
                 {saved ? "New versus round" : "Open a versus round"}
               </button>
             </form>
-            {saved && session ? (
+          </section>
+
+          <section className="panel stack admin-side">
+            {!saved || !session ? (
+              <p className="muted">The join code shows up here.</p>
+            ) : (
               <>
+                <div className="code-block">
+                  <div>
+                    <p className="eyebrow">
+                      Versus · {session.status === "lobby" ? "waiting to start" : session.status}
+                    </p>
+                    <strong>{session.code}</strong>
+                  </div>
+                  {play ? (
+                    <div className="qr-card">
+                      <QRCodeSVG value={play} size={168} bgColor="#f4fff9" fgColor="#042630" />
+                      <p>Scan to join</p>
+                    </div>
+                  ) : null}
+                </div>
+                <label>
+                  Phone link host
+                  <input value={host} onChange={(event) => updateHost(event.target.value)} />
+                </label>
+                <p className="link-line">{play}</p>
+                <div className="btn-row">
+                  <button className="btn-ghost" type="button" onClick={() => copy(play, "play")}>
+                    {copied === "play" ? "Copied" : "Copy join link"}
+                  </button>
+                  <button className="btn" type="button" onClick={() => window.open(stage, "coral-stage")}>
+                    Open main stage
+                  </button>
+                </div>
                 <div className="health-inline">
                   <span>{reefLabel(session.reefBand)} · reef {session.reefHealth}</span>
                   <i><b style={{ width: `${session.reefHealth}%` }} /></i>
@@ -147,46 +175,13 @@ export default function AdminPage() {
                   <button className="btn" type="button" disabled={busy || !canStart} onClick={() => run(() => startSession(saved.code, saved.adminToken))}>
                     Start round
                   </button>
-                  <button className="btn btn-ghost" type="button" disabled={busy || session.status !== "playing"} onClick={() => run(() => setChallenge(saved.code, saved.adminToken, challengeId))}>
+                  <button className="btn-ghost" type="button" disabled={busy || session.status !== "playing"} onClick={() => run(() => setChallenge(saved.code, saved.adminToken, challengeId))}>
                     Apply challenge
                   </button>
-                  <button className="btn btn-danger" type="button" disabled={busy || session.status === "ended"} onClick={() => run(() => endSession(saved.code, saved.adminToken))}>
+                  <button className="btn-danger" type="button" disabled={busy || session.status === "ended"} onClick={() => run(() => endSession(saved.code, saved.adminToken))}>
                     End game
                   </button>
                 </div>
-              </>
-            ) : null}
-          </section>
-
-          {saved && session ? (
-            <section className="panel admin-pane" aria-label="Join this versus round">
-              <div className="admin-join">
-                <div>
-                  <p className="eyebrow">
-                    Versus · {session.status === "lobby" ? "waiting to start" : session.status}
-                  </p>
-                  <p className="admin-code">{session.code}</p>
-                </div>
-                {play ? (
-                  <div className="qr-card">
-                    <QRCodeSVG value={play} size={148} bgColor="#f4fff9" fgColor="#042630" />
-                  </div>
-                ) : null}
-              </div>
-              <label>
-                Phone link host
-                <input value={host} onChange={(event) => updateHost(event.target.value)} />
-              </label>
-              <p className="link-line">{play}</p>
-              <div className="btn-row">
-                <button className="btn btn-ghost" type="button" onClick={() => copy(play, "play")}>
-                  {copied === "play" ? "Copied" : "Copy join link"}
-                </button>
-                <button className="btn" type="button" onClick={() => window.open(stage, "coral-stage")}>
-                  Open main stage
-                </button>
-              </div>
-              <div className="admin-roster">
                 <h2>Players · {roster.length} / {playerMax}</h2>
                 {roster.length >= playerMax ? <p className="muted">This room is full.</p> : null}
                 {roster.length === 0 ? (
@@ -204,9 +199,9 @@ export default function AdminPage() {
                     ))}
                   </ul>
                 )}
-              </div>
-            </section>
-          ) : null}
+              </>
+            )}
+          </section>
         </div>
       </div>
     </main>
