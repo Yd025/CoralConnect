@@ -57,8 +57,9 @@ export default function PlayPage() {
   const canPlay = session?.mode === "collaborate" ? paired && session.status !== "ended" : session?.status === "playing";
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
-  const beat = session?.challenge?.beats?.[thread?.step ?? 0];
-  const turnCount = session?.challenge?.turnCount ?? session?.challenge?.beats?.length ?? 1;
+  const beats = session?.challenge?.beats ?? [];
+  const beat = beats[Math.min(thread?.step ?? 0, Math.max(beats.length - 1, 0))];
+  const turnCount = thread?.turnLimit || session?.turnsAllowed || session?.challenge?.turnCount || beats.length || 1;
   const turnNumber = Math.min((thread?.step ?? 0) + 1, turnCount);
 
   useEffect(() => {
@@ -278,7 +279,7 @@ export default function PlayPage() {
           ) : null}
 
           {identity && session.status === "playing" && thread?.done && session.mode !== "collaborate" ? (
-            <p className="panel">This thread is closed. Both turns are on the reef.</p>
+            <p className="panel">This thread is closed. Your turns are on the reef.</p>
           ) : null}
 
           {identity && canPlay && !thread?.done ? (

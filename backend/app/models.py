@@ -16,6 +16,16 @@ def player_bounds(mode: str) -> tuple[int, int]:
     return 1, 10
 
 
+def turns_for_table(player_count: int) -> int:
+    """Smaller tables get a few extra turns so the reef still has time to change."""
+    size = max(player_count, 1)
+    if size <= 2:
+        return 4
+    if size <= 4:
+        return 3
+    return 2
+
+
 @dataclass
 class Player:
     id: str
@@ -62,6 +72,7 @@ class Thread:
     done: bool = False
     score_sum: int = 0
     turns_graded: int = 0
+    turn_limit: int = 0
 
 
 @dataclass

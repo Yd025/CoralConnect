@@ -21,7 +21,7 @@ from .challenges import get_challenge
 from .config import settings
 from .grok import complete, describe_pair, finalize_verdict, imagine, review_call
 from .hub import hub
-from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
+from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
 from .serialize import public_session
 from .store import store
 
@@ -530,10 +530,11 @@ async def submit(
         if thread and thread.done:
             raise GameError(409, "This thread is closed. Ask the host for the next challenge.")
         step = thread.step if thread else 0
-        if step >= len(challenge.beats):
+        limit = thread.turn_limit if thread and thread.turn_limit else turns_for_table(len(_roster(session)))
+        if step >= limit:
             raise GameError(409, "This thread is closed. Ask the host for the next challenge.")
         history = list(thread.messages) if thread else []
-        beat = challenge.beats[step]
+        beat = challenge.beats[min(step, len(challenge.beats) - 1)]
         challenge_id = challenge.id
         mode = session.mode
 
@@ -547,7 +548,7 @@ async def submit(
         local_grams,
         local_excess,
         turn=step + 1,
-        turn_count=len(challenge.beats),
+        turn_count=limit,
     )
     messages = [{"role": message.role, "content": message.content} for message in history]
     messages.append({"role": "user", "content": text})
@@ -574,7 +575,7 @@ async def submit(
     grams = carbon_grams(looked_up)
     excess_kg = excess_kg_at_scale(looked_up, 0)
     summary = verdict_reason if judged else explain(
-        looked_up, grams, excess_kg, turn=step + 1, turn_count=len(challenge.beats)
+        looked_up, grams, excess_kg, turn=step + 1, turn_count=limit
     )
     if judged and looked_up > 0:
         summary = f"{verdict_reason} About {grams:.3f} g CO2e."
@@ -596,14 +597,16 @@ async def submit(
             owner_id = player.id
         thread = next((item for item in session.threads if item.owner_id == owner_id), None)
         if thread is None:
-            thread = Thread(owner_id=owner_id, messages=[])
+            thread = Thread(owner_id=owner_id, messages=[], turn_limit=limit)
             session.threads.append(thread)
+        elif not thread.turn_limit:
+            thread.turn_limit = limit
         if thread.done or thread.step != step:
             raise GameError(409, "The host moved on. Take a look at the new challenge.")
         thread.messages.append(ChatMessage(role="user", content=text))
         thread.messages.append(ChatMessage(role="assistant", content=answer))
         thread.step += 1
-        thread.done = thread.step >= len(challenge.beats)
+        thread.done = thread.step >= thread.turn_limit
         thread.score_sum += score
         thread.turns_graded += 1
         averaged = round(thread.score_sum / thread.turns_graded)
@@ -647,7 +650,7 @@ async def submit(
             event_type=kind,
             created_at=time.time(),
             turn_index=step,
-            turn_count=len(challenge.beats),
+            turn_count=thread.turn_limit,
             reasonable=reasonable,
             verdict_reason=verdict_reason,
             judged_by_model=judged,

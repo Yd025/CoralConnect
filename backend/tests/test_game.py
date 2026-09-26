@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.carbon import grade_for, reef_band
+from app.models import turns_for_table
 from app.game import _pair
 from app.grok import call_trace, finalize_verdict, parse_verdict
 from app.main import app
@@ -22,6 +23,15 @@ def clean_store():
         store.path.unlink()
     yield
     store.sessions.clear()
+
+
+def test_smaller_tables_get_more_turns():
+    assert turns_for_table(1) == 4
+    assert turns_for_table(2) == 4
+    assert turns_for_table(3) == 3
+    assert turns_for_table(4) == 3
+    assert turns_for_table(5) == 2
+    assert turns_for_table(10) == 2
 
 
 def test_grade_bands_and_reef_thresholds():
@@ -368,10 +378,43 @@ def test_follow_up_keeps_the_bloated_history_on_the_bill():
         json={**body, "prompt": "If tax_exempt, return the amount unchanged."},
     ).json()
     assert second["submission"]["turnIndex"] == 1
-    assert second["submission"]["followUp"] is False
+    assert second["submission"]["followUp"] is True
+    assert second["session"]["threads"][0]["turnLimit"] == 4
     assert first["lookupTokens"] > 0
     assert second["submission"]["lookupTokens"] == 0
     assert second["submission"]["grade"] in {"A+", "A"}
+    assert second["session"]["threads"][0]["done"] is False
+    third = client.post(
+        f"/api/sessions/{code}/submit",
+        json={**body, "prompt": "Still on tax_exempt. Leave the amount unchanged."},
+    )
+    assert third.status_code == 200
+    assert third.json()["submission"]["turnIndex"] == 2
+
+
+def test_a_fuller_table_still_closes_after_two_turns():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "compete", "challengeId": "invoice-bug"},
+    ).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    first = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Ada", "language": "Python"},
+    ).json()
+    for index in range(4):
+        client.post(f"/api/sessions/{code}/join", json={"name": f"P{index}", "language": "Python"})
+    client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    body = {"playerId": first["player"]["id"], "playerToken": first["playerToken"]}
+    client.post(f"/api/sessions/{code}/submit", json={**body, "prompt": "Please fix it."})
+    second = client.post(
+        f"/api/sessions/{code}/submit",
+        json={**body, "prompt": "If tax_exempt, return the amount unchanged."},
+    ).json()
+    assert second["session"]["turnsAllowed"] == 2
+    assert second["submission"]["followUp"] is False
     assert second["session"]["threads"][0]["done"] is True
 
 
