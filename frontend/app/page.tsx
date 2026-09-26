@@ -25,50 +25,51 @@ export default function HomePage() {
     <main className="landing">
       <AnimatedBackground />
       <div className="shell landing-ui">
-        <header className="topbar">
-          <a className="brand" href="/">CoralConnect</a>
-          <nav aria-label="Site">
-            <a className="btn-ghost" href="/admin">Admin</a>
-          </nav>
-        </header>
+        <div className="landing-stage">
+          <header className="landing-top">
+            <a className="brand" href="/">
+              <svg className="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+                <path d="M14 3 L16.2 11.2 L14 9.4 L11.8 11.2 Z" fill="currentColor" />
+                <path d="M6 8 L9.2 13.2 L8 12 L6.6 14.2 Z" fill="currentColor" />
+                <path d="M22 8 L18.8 13.2 L20 12 L21.4 14.2 Z" fill="currentColor" />
+                <path d="M14 10.5 V24" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+              CoralConnect
+            </a>
+            <nav className="landing-nav" aria-label="Site">
+              <a href="#explain">The reef</a>
+              <a href="#join">Join</a>
+            </nav>
+            <div className="landing-tools">
+              <span>HackGT booth</span>
+              <a className="btn-ghost" href="/admin">Admin</a>
+            </div>
+          </header>
 
-        <section className="hero" aria-labelledby="hero-title">
-          <p className="eyebrow">HackGT · A Marina’s Mission</p>
-          <h1 id="hero-title">The hidden cost</h1>
-          <p className="hero-script">is the lookup.</p>
-          <p className="lede">
-            CoralConnect is a HackGT booth game. A thin prompt makes the model search the web, and that lookup is the carbon cost.
-            Include the source, and the shared reef shows the difference.
-          </p>
-          <div className="actions">
-            <a className="btn btn-warm" href="#join">Join with a code</a>
-            <a className="btn-ghost" href="#explain">How the booth works</a>
-          </div>
-        </section>
-
-        <section className="join" id="join" aria-labelledby="join-title">
-          <div>
-            <p className="eyebrow">On this phone</p>
-            <h2 id="join-title">Enter the code from the booth</h2>
-            <p className="muted">
-              The laptop at the table shows a short code. Join here and this phone becomes your controller.
+          <section className="hero" aria-labelledby="hero-title">
+            <p className="hero-kicker"><i />A Marina’s Mission</p>
+            <h1 id="hero-title">The hidden<br />cost.</h1>
+            <p className="lede">
+              CoralConnect is a HackGT booth game. A thin prompt makes the model search the web, and that lookup is the carbon cost. Include the source, and the shared reef shows the difference.
             </p>
-          </div>
-          <form className="panel stack" onSubmit={join}>
-            <label htmlFor="game-code">Game code</label>
-            <input
-              id="game-code"
-              value={code}
-              onChange={(event) => setCode(sanitizeCode(event.target.value))}
-              maxLength={CODE_LIMIT}
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="CODE"
-            />
-            <button className="btn" type="submit" disabled={!code}>Join on this phone</button>
-          </form>
-        </section>
+            <form id="join" className="hero-join" onSubmit={join}>
+              <label className="hero-code" htmlFor="game-code">
+                <span>Booth code</span>
+                <input
+                  id="game-code"
+                  value={code}
+                  onChange={(event) => setCode(sanitizeCode(event.target.value))}
+                  maxLength={CODE_LIMIT}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="CODE"
+                />
+              </label>
+              <button className="btn" type="submit" disabled={!code}>Join the reef</button>
+            </form>
+          </section>
+        </div>
 
         <section className="explain" id="explain" aria-labelledby="explain-title">
           <h2 id="explain-title">How the booth works</h2>
