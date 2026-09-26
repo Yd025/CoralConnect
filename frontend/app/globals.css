@@ -37,7 +37,7 @@ img { max-width: 100%; }
 .muted { color: var(--muted); }
 .lede { font-size: 1.2rem; line-height: 1.5; max-width: 46rem; }
 
-.hero { display: block; max-width: 38rem; min-height: calc(100dvh - 120px); padding-top: 12vh; }
+.hero { display: block; max-width: 38rem; padding-top: 8vh; margin-bottom: 8vh; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .panel {
   background: var(--panel);
@@ -254,7 +254,7 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .ambient-reef {
   top: auto;
   bottom: 0;
-  height: min(58vh, 560px);
+  height: min(72vh, 680px);
 }
 .ambient-reef-art {
   display: block;

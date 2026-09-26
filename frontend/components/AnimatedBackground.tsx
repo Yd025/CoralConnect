@@ -21,16 +21,13 @@ type Drifter = {
 type Ripple = { id: number; x: number; y: number };
 
 const DRIFTERS: Drifter[] = [
-  { id: "f1", kind: "tang", size: 28, top: "16%", duration: 34, delay: -6, depth: 0.15, fade: 0.28, reverse: false, color: "#04141c", bob: 6.2 },
-  { id: "f2", kind: "damsel", size: 18, top: "24%", duration: 22, delay: -12, depth: 0.42, fade: 0.4, reverse: true, color: "#06202a", bob: 5 },
-  { id: "f3", kind: "butterfly", size: 22, top: "34%", duration: 27, delay: -3, depth: 0.28, fade: 0.32, reverse: false, color: "#071820", bob: 5.6 },
-  { id: "f4", kind: "tang", size: 46, top: "48%", duration: 19, delay: -8, depth: 0.85, fade: 0.55, reverse: true, color: "#031016", bob: 4.2 },
-  { id: "f5", kind: "damsel", size: 16, top: "12%", duration: 16, delay: -1, depth: 0.62, fade: 0.45, reverse: false, color: "#0a2430", bob: 4.8 },
-  { id: "f6", kind: "butterfly", size: 14, top: "62%", duration: 31, delay: -15, depth: 0.22, fade: 0.25, reverse: true, color: "#04141c", bob: 6 },
-  { id: "f7", kind: "damsel", size: 34, top: "72%", duration: 24, delay: -9, depth: 0.5, fade: 0.38, reverse: false, color: "#052028", bob: 5.1 },
-  { id: "b1", kind: "bubble", size: 7, top: "30%", duration: 20, delay: -4, depth: 0.7, fade: 0.35, reverse: false, color: "#e7f6f2", bob: 6 },
-  { id: "b2", kind: "bubble", size: 5, top: "46%", duration: 15, delay: -8, depth: 0.35, fade: 0.28, reverse: true, color: "#d7f3ee", bob: 5 },
-  { id: "b3", kind: "bubble", size: 9, top: "18%", duration: 26, delay: -14, depth: 0.2, fade: 0.22, reverse: false, color: "#f4fff9", bob: 7 },
+  { id: "tang-near", kind: "tang", size: 110, top: "22%", duration: 32, delay: -8, depth: 0.7, fade: 0.92, reverse: false, color: "var(--sand)", bob: 4.2 },
+  { id: "butterfly-mid", kind: "butterfly", size: 84, top: "40%", duration: 26, delay: -14, depth: 0.46, fade: 0.88, reverse: true, color: "var(--coral)", bob: 4.8 },
+  { id: "damsel-fast", kind: "damsel", size: 64, top: "58%", duration: 18, delay: -3, depth: 0.95, fade: 0.9, reverse: false, color: "var(--teal)", bob: 3.4 },
+  { id: "tang-far", kind: "tang", size: 42, top: "14%", duration: 40, delay: -18, depth: 0.2, fade: 0.45, reverse: true, color: "var(--warn)", bob: 5.2 },
+  { id: "damsel-low", kind: "damsel", size: 48, top: "74%", duration: 23, delay: -11, depth: 0.55, fade: 0.7, reverse: true, color: "var(--good)", bob: 4 },
+  { id: "b1", kind: "bubble", size: 14, top: "30%", duration: 20, delay: -6, depth: 0.8, fade: 0.55, reverse: false, color: "var(--sand)", bob: 5.5 },
+  { id: "b2", kind: "bubble", size: 9, top: "48%", duration: 15, delay: -9, depth: 0.35, fade: 0.4, reverse: true, color: "var(--ink)", bob: 5 },
 ];
 
 function isControl(target: EventTarget | null) {
@@ -40,24 +37,40 @@ function isControl(target: EventTarget | null) {
 export function ReefFish({ variant }: { variant: Exclude<Kind, "bubble"> }) {
   if (variant === "butterfly") {
     return (
-      <g fill="currentColor">
-        <path d="M150 50 C168 34 184 30 196 26 C176 48 174 56 174 50 C174 44 176 56 196 74 C184 66 166 58 150 52 Z" />
-        <path d="M28 50 C36 34 70 28 108 32 C140 36 158 44 162 50 C158 58 140 68 108 70 C70 74 36 66 28 50 Z" />
+      <g>
+        <path d="M148 48 C166 30 182 24 194 18 C174 44 172 54 172 50 C172 46 174 58 194 82 C180 72 162 60 148 52 Z" fill="currentColor" />
+        <path d="M24 50 C30 42 40 40 48 44 C40 50 40 54 48 58 C40 62 30 58 24 50 Z" fill="currentColor" />
+        <path d="M46 50 C52 30 78 20 108 22 C138 24 156 36 160 50 C156 64 138 78 108 78 C78 80 52 70 46 50 Z" fill="currentColor" />
+        <path d="M78 24 C96 14 124 16 140 28 C118 22 94 22 78 28 Z" fill="currentColor" opacity="0.85" />
+        <path d="M82 74 C102 88 130 84 144 70 C122 76 98 76 82 72 Z" fill="currentColor" opacity="0.75" />
+        <path d="M62 28 C70 50 66 68 54 78" fill="none" stroke="#2a2118" strokeWidth="7" strokeLinecap="round" />
+        <path d="M104 24 C114 50 108 72 94 82" fill="none" stroke="#2a2118" strokeWidth="6" strokeLinecap="round" />
+        <circle cx="52" cy="44" r="6" fill="#f4fff9" />
+        <circle cx="54" cy="44" r="3.2" fill="#042630" />
       </g>
     );
   }
   if (variant === "damsel") {
     return (
-      <g fill="currentColor">
-        <path d="M132 50 L186 34 L160 50 L186 66 Z" />
-        <path d="M26 50 C40 38 78 36 128 44 C146 47 156 50 158 50 C156 53 146 56 128 58 C78 64 40 62 26 50 Z" />
+      <g>
+        <path d="M136 46 L188 22 L162 50 L188 78 Z" fill="currentColor" />
+        <path d="M30 50 C42 32 78 28 118 36 C142 40 156 46 160 50 C156 54 142 62 118 64 C78 72 42 68 30 50 Z" fill="currentColor" />
+        <path d="M70 34 C92 24 118 28 136 40" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" opacity="0.7" />
+        <ellipse cx="122" cy="46" rx="9" ry="7" fill="#042630" opacity="0.55" />
+        <circle cx="50" cy="46" r="5.5" fill="#f4fff9" />
+        <circle cx="52" cy="46" r="2.8" fill="#042630" />
       </g>
     );
   }
   return (
-    <g fill="currentColor">
-      <path d="M138 48 C158 32 176 26 192 22 C172 46 170 54 170 50 C170 46 172 56 192 78 C176 68 156 58 138 52 Z" />
-      <path d="M36 50 C46 32 78 24 112 28 C140 32 156 42 160 50 C156 60 140 72 112 74 C78 78 46 68 36 50 Z" />
+    <g>
+      <path d="M140 44 C162 24 180 14 196 8 C174 40 172 52 172 50 C172 48 174 62 196 92 C180 80 160 64 140 54 Z" fill="currentColor" />
+      <path d="M70 26 C92 8 124 8 146 26 C122 18 92 18 70 28 Z" fill="currentColor" />
+      <path d="M76 76 C98 96 130 92 148 74 C124 82 96 84 76 76 Z" fill="currentColor" opacity="0.85" />
+      <path d="M34 50 C44 28 76 16 110 18 C140 20 158 34 162 50 C158 66 140 82 110 82 C76 84 44 72 34 50 Z" fill="currentColor" />
+      <path d="M126 64 L114 86 L136 70 Z" fill="#f7f4ee" />
+      <circle cx="58" cy="44" r="6" fill="#f4fff9" />
+      <circle cx="60" cy="44" r="3.2" fill="#042630" />
     </g>
   );
 }
@@ -71,9 +84,9 @@ function Shape({ kind, size, bob }: { kind: Kind; size: number; bob: number }) {
       </svg>
     );
   }
-  const height = kind === "butterfly" ? size * 0.5 : kind === "damsel" ? size * 0.4 : size * 0.48;
+  const height = kind === "butterfly" ? size * 0.62 : kind === "damsel" ? size * 0.5 : size * 0.58;
   return (
-    <svg className="drifter-fish" width={size} height={height} viewBox="0 0 200 100" style={{ animationDuration: `${bob}s` }}>
+    <svg className="drifter-fish" width={size} height={height} viewBox="0 0 200 110" style={{ animationDuration: `${bob}s` }}>
       <ReefFish variant={kind} />
     </svg>
   );
