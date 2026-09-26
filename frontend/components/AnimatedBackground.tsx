@@ -229,15 +229,17 @@ export function AnimatedBackground() {
       const timer = window.setTimeout(() => {
         timers.delete(timer);
         setRipples((items) => items.filter((item) => item.id !== id));
-      }, 1700);
+      }, 3300);
       timers.add(timer);
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerdown", spawn, true);
+    window.addEventListener("click", spawn, true);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", spawn, true);
+      window.removeEventListener("click", spawn, true);
       if (frame) cancelAnimationFrame(frame);
       timers.forEach((timer) => window.clearTimeout(timer));
     };
