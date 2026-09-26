@@ -192,7 +192,9 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 
 body:has(.landing) { height: 100dvh; overflow: hidden; }
+body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
 .landing { height: 100dvh; overflow: hidden; }
+.admin-page.landing { height: auto; min-height: 100dvh; overflow: visible; }
 .landing .shell {
   width: min(1240px, calc(100% - 56px));
   height: 100%;
@@ -200,6 +202,30 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   display: flex;
   flex-direction: column;
 }
+.admin-page .shell {
+  height: auto;
+  min-height: 100dvh;
+  padding-bottom: 36px;
+}
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 8px;
+}
+.admin-intro { display: grid; align-content: start; gap: 12px; max-width: 40rem; }
+.admin-page.landing h1 { font-size: clamp(3rem, 5vw, 4.6rem); }
+.admin-intro .lede { margin-top: 0; }
+.admin-intro .panel { margin-top: 6px; }
+.admin-page .panel {
+  background: rgba(4, 22, 34, 0.62);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.admin-side { min-height: 220px; }
+.admin-board, .admin-pitch { margin-top: 18px; }
+.admin-pitch summary { cursor: pointer; font-weight: 650; }
+.admin-page .landing-tools .pill { display: inline-flex; }
 .landing-ui { position: relative; z-index: 2; }
 .landing-stage {
   min-height: 0;
@@ -732,7 +758,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .reef__latest { margin: 0; max-width: 46rem; font-size: 1.05rem; text-shadow: 0 4px 16px rgba(0,0,0,0.45); }
 
 @media (max-width: 860px) {
-  .hero, .admin-grid, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
+  .hero, .admin-grid, .admin-layout, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
   .landing .shell { width: min(100% - 28px, 1240px); }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }

@@ -2,6 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useEffect, useState } from "react";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Leaderboard } from "@/components/Leaderboard";
 import { apiBase, createSession, endSession, getChallenges, getHealth, setChallenge, simulate, startSession } from "@/lib/api";
 import { playUrl, stageUrl, useBoothOrigin } from "@/lib/booth";
@@ -78,21 +79,39 @@ export default function AdminPage() {
   const stage = saved && origin ? stageUrl(origin, saved.code) : "";
 
   return (
-    <main className="shell">
-      <div className="topbar">
-        <a className="brand" href="/">CoralConnect</a>
-        <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
-      </div>
-      <p className="eyebrow">Booth console</p>
-      <h1>Set the game, then point people at the reef.</h1>
-      {error ? <p className="error">{error}</p> : null}
-      <p className="muted">
-        Engine: {apiBase()}
-        {health ? ` · ${health.grokConfigured ? `Grok live (${health.chatModel})` : "Grok key not set — grades still run, answers are simulated"}` : ""}
-      </p>
+    <main className="landing admin-page">
+      <AnimatedBackground />
+      <div className="shell landing-ui">
+        <header className="landing-top">
+          <a className="brand" href="/">
+            <svg className="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+              <path d="M14 3 L16.2 11.2 L14 9.4 L11.8 11.2 Z" fill="currentColor" />
+              <path d="M6 8 L9.2 13.2 L8 12 L6.6 14.2 Z" fill="currentColor" />
+              <path d="M22 8 L18.8 13.2 L20 12 L21.4 14.2 Z" fill="currentColor" />
+              <path d="M14 10.5 V24" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+            CoralConnect
+          </a>
+          <nav className="landing-nav" aria-label="Site">
+            <a href="/">The reef</a>
+          </nav>
+          <div className="landing-tools">
+            <span>HackGT booth</span>
+            <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
+          </div>
+        </header>
 
-      <div className="admin-grid">
-        <form className="panel stack" onSubmit={onCreate}>
+        <div className="admin-layout">
+          <section className="admin-intro" aria-labelledby="admin-title">
+            <p className="hero-kicker"><i />Booth console</p>
+            <h1 id="admin-title">Set the game.</h1>
+            <p className="lede">Then point people at the reef. This laptop keeps the code, the QR, and the shared water.</p>
+            {error ? <p className="error">{error}</p> : null}
+            <p className="muted">
+              Engine: {apiBase()}
+              {health ? ` · ${health.grokConfigured ? `Grok live (${health.chatModel})` : "Grok key not set — grades still run, answers are simulated"}` : ""}
+            </p>
+            <form className="panel stack" onSubmit={onCreate}>
           <div className="mode-grid">
             <button type="button" className={mode === "collaborate" ? "mode is-on" : "mode"} onClick={() => setMode("collaborate")}>
               <strong>Collaborate</strong>
@@ -117,9 +136,10 @@ export default function AdminPage() {
             {saved ? "Start a fresh game" : "Create game and QR"}
           </button>
           <p className="muted">The admin key stays in this browser. Keep the tab open during the demo.</p>
-        </form>
+            </form>
+          </section>
 
-        <section className="panel stack">
+          <section className="panel stack admin-side">
           {!saved || !session ? (
             <p className="muted">The QR code shows up here. Phones should be on the same Wi-Fi as this laptop.</p>
           ) : (
@@ -194,16 +214,16 @@ export default function AdminPage() {
               </details>
             </>
           )}
-        </section>
-      </div>
-
-      {session ? (
-        <div className="panel" style={{ marginTop: 18 }}>
-          <Leaderboard session={session} />
+          </section>
         </div>
-      ) : null}
 
-      <details className="panel" style={{ marginTop: 18 }}>
+        {session ? (
+          <div className="panel admin-board">
+            <Leaderboard session={session} />
+          </div>
+        ) : null}
+
+        <details className="panel admin-pitch">
         <summary>60 second pitch</summary>
         <p>
           A thin prompt that leaves out the source makes the model look the fact up. That extra work is the waste.
@@ -217,7 +237,8 @@ export default function AdminPage() {
             Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
           </p>
         ) : null}
-      </details>
+        </details>
+      </div>
     </main>
   );
 }
