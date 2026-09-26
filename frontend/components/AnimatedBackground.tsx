@@ -10,32 +10,19 @@ function isControl(target: EventTarget | null) {
 
 function Anchor({
   className,
-  depth,
   layer,
-  drift,
-  reverse,
-  delay,
   children,
 }: {
   className: string;
-  depth: number;
   layer: number;
-  drift: number;
-  reverse?: boolean;
-  delay?: number;
   children: ReactNode;
 }) {
   return (
     <div
       className={`ambient-parallax scene-anchor ${className}`}
-      style={{ ["--depth" as string]: depth, ["--layer" as string]: layer }}
+      style={{ ["--depth" as string]: 0, ["--layer" as string]: layer }}
     >
-      <span
-        className={reverse ? "ambient-track scene-drift is-reverse" : "ambient-track scene-drift"}
-        style={{ animationDuration: `${drift}s`, animationDelay: `${delay ?? 0}s` }}
-      >
-        {children}
-      </span>
+      <span className="scene-plant">{children}</span>
     </div>
   );
 }
@@ -79,7 +66,13 @@ function Lane({
 }
 
 function Cast({ src, flip, still }: { src: string; flip?: boolean; still?: boolean }) {
-  const img = <img className={flip ? "cast-art cast-flip" : "cast-art"} src={src} alt="" />;
+  const img = (
+    <img
+      className={["cast-art", flip ? "cast-flip" : "", still ? "cast-still" : ""].filter(Boolean).join(" ")}
+      src={src}
+      alt=""
+    />
+  );
   return still ? img : <span className="avoid">{img}</span>;
 }
 
@@ -274,19 +267,19 @@ export function AnimatedBackground() {
         <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={84} delay={-34} reverse>
           <Cast src="/reef/05-otto-octopus.svg" />
         </Lane>
-        <Anchor className="cast-crab" depth={0.28} layer={7} drift={24} delay={-9}>
+        <Anchor className="cast-crab" layer={7}>
           <Cast src="/reef/01-clover-crab.svg" still />
         </Anchor>
-        <Anchor className="cast-coral" depth={0.16} layer={7} drift={26}>
+        <Anchor className="cast-coral" layer={7}>
           <Cast src="/reef/10-coral-bloom.svg" still />
         </Anchor>
-        <Anchor className="cast-star" depth={0.22} layer={7} drift={19} delay={-5}>
+        <Anchor className="cast-star" layer={7}>
           <Cast src="/reef/07-sunny-star.svg" still />
         </Anchor>
-        <Anchor className="cast-shell" depth={0.34} layer={7} drift={21} delay={-7}>
+        <Anchor className="cast-shell" layer={7}>
           <Cast src="/reef/08-shell-badge.svg" still />
         </Anchor>
-        <Anchor className="cast-kelp" depth={0.18} layer={6} drift={17} reverse>
+        <Anchor className="cast-kelp" layer={6}>
           <Cast src="/reef/11-seaweed-garden.svg" still />
         </Anchor>
         {motes.map((item) => (

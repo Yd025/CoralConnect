@@ -396,7 +396,8 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .cast-shell img { width: 96px; }
 .cast-kelp img { width: 150px; }
 .ambient-parallax.scene-anchor { width: auto; }
-.scene-anchor .scene-drift { position: relative; animation-name: scene-drift; animation-timing-function: ease-in-out; }
+.scene-anchor .scene-plant { position: relative; display: block; }
+.cast-art.cast-still { animation: none; }
 .ambient-parallax.cast-jelly,
 .ambient-parallax.cast-whale,
 .ambient-parallax.cast-turtle,
@@ -407,10 +408,6 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .ambient-parallax.cast-star { top: auto; bottom: 22%; left: 18%; }
 .ambient-parallax.cast-shell { top: auto; bottom: 24%; left: 72%; }
 .ambient-parallax.cast-kelp { top: auto; bottom: 16%; left: auto; right: 0; }
-@keyframes scene-drift {
-  0%, 100% { transform: translate3d(-12px, 5px, 0); }
-  50% { transform: translate3d(16px, -8px, 0); }
-}
 .cast-art {
   display: block;
   overflow: visible;
@@ -733,7 +730,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   .swimmer, .bubble, .barrel, .reef__flash, .resident, .reef__toast,
-  .ambient-track, .ambient-ripple, .drifter-fish, .reef-sway, .cast-art, .scene-drift { animation: none; }
+  .ambient-track, .ambient-ripple, .drifter-fish, .reef-sway, .cast-art { animation: none; }
   .ambient-parallax { transform: none; }
   .ambient-track:not(.is-reverse) .drifter-fish { transform: scaleX(-1); }
   .cast-art.cast-flip { transform: scaleX(-1); }
