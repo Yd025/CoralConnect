@@ -304,7 +304,7 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   padding: 8px 14px;
 }
 .landing .hero {
-  max-width: 34rem;
+  max-width: none;
   margin: 0;
   padding: 0;
   flex: 1;
@@ -312,6 +312,7 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   display: flex;
   flex-direction: column;
   justify-content: center;
+  overflow: hidden;
 }
 .hero-kicker {
   display: flex;
@@ -331,7 +332,7 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
 .landing h1 {
   font-family: var(--font-sans), "Avenir Next", sans-serif;
   font-weight: 650;
-  font-size: clamp(3.2rem, 5.6vw, 5.2rem);
+  font-size: clamp(2.6rem, 4.6vw, 4.4rem);
   line-height: 0.9;
   letter-spacing: -0.048em;
   color: #f7fbff;
@@ -345,9 +346,21 @@ body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
   margin: 12px 0 0;
 }
 .hero-links { margin: 16px 0 0; }
-.choice-grid { display: grid; gap: 16px; margin-top: 28px; }
-.choice { text-decoration: none; color: inherit; }
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+  min-height: 0;
+}
+.choice { text-decoration: none; color: inherit; align-content: start; }
 .choice h2 { margin: 0; }
+.landing .choice { padding: 14px 16px; }
+.landing .choice.stack { gap: 8px; }
+.landing .choice h2 { font-size: 1.35rem; }
+.landing .choice .muted { font-size: 0.92rem; line-height: 1.35; }
+.landing .choice .btn { justify-self: start; }
+.landing-stage { overflow: hidden; }
 .podium { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .podium li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; }
 .board-page { max-width: 720px; margin: 0 auto; padding: 28px 16px 64px; }
@@ -993,8 +1006,12 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }
   .landing-tools span { display: none; }
-  .landing h1 { font-size: clamp(2.5rem, 11vw, 3.4rem); }
+  .landing h1 { font-size: clamp(2.1rem, 9vw, 2.8rem); }
   .landing .lede { font-size: 0.9rem; }
+  .landing .choice { padding: 10px 10px; }
+  .landing .choice h2 { font-size: 1.05rem; }
+  .landing .choice .muted { font-size: 0.78rem; }
+  .choice-grid { margin-top: 10px; gap: 8px; }
   .landing .steps { grid-template-columns: repeat(3, 1fr); }
   .landing .steps .panel { padding: 8px 8px; }
   .landing .steps h3 { font-size: 0.78rem; }
