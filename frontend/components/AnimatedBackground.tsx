@@ -166,8 +166,8 @@ export function AnimatedBackground() {
         <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={46} delay={-18}>
           <Cast src="/reef/06-winnie-whale.svg" flip />
         </Lane>
-        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={30} delay={-9} reverse>
-          <Cast src="/reef/02-moss-turtle.svg" />
+        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={30} delay={-9}>
+          <Cast src="/reef/02-moss-turtle.svg" flip />
         </Lane>
         <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={22} delay={-7}>
           <Cast src="/reef/04-pip-fish.svg" flip />
