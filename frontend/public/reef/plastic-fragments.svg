@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="plastic-fragments-title plastic-fragments-desc">
+  <title id="plastic-fragments-title">Plastic fragments</title>
+  <desc id="plastic-fragments-desc">Three sparse irregular pieces of weathered rigid plastic. Transparent editable vector, CoralConnect Deep Water collection.</desc>
+  <defs>
+    <linearGradient id="plastic-fragments-plastic" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d5e1d8" stop-opacity=".64" />
+      <stop offset=".5" stop-color="#94b4b0" stop-opacity=".38" />
+      <stop offset="1" stop-color="#4d787f" stop-opacity=".56" />
+    </linearGradient>
+    <linearGradient id="plastic-fragments-fold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#dae5db" stop-opacity=".6" />
+      <stop offset="1" stop-color="#7eaaa5" stop-opacity=".1" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M113 163 L211 151 L201 194 L220 213 L159 251 L118 218Z" fill="url(#plastic-fragments-plastic)" stroke="#9fb7af" stroke-width="1.8" />
+    <path d="M121 169 L192 160 L174 203 L154 238Z" fill="url(#plastic-fragments-fold)" opacity=".6" />
+    <path d="M297 237 L348 207 L396 237 L379 281 L339 277 L333 289 L309 277Z" fill="#75969a" stroke="#b0c1b1" stroke-width="1.7" opacity=".65" />
+    <path d="M308 239 L346 217 L381 239" fill="none" stroke="#d1dccc" stroke-width="2" opacity=".65" />
+    <path d="M206 321 L252 306 L270 347 L229 362 L208 349Z" fill="#b9ad94" stroke="#899b93" stroke-width="1.7" opacity=".74" />
+    <path d="M211 325 L243 316 L260 345" fill="none" stroke="#e0d6bb" stroke-width="1.5" opacity=".65" />
+  </g>
+</svg>
