@@ -48,17 +48,17 @@ export default function HomePage() {
 
           <section className="hero" aria-labelledby="hero-title">
             <p className="hero-kicker"><i />A Marina’s Mission</p>
-            <h1 id="hero-title">The hidden<br />cost.</h1>
+            <h1 id="hero-title">Include<br />the source.</h1>
             <p className="lede">
-              Join a live competition, or find a pair and play on your own.
+              Leave the file out and the model searches. That search is the cost the reef shows.
             </p>
             <div className="choice-grid">
               <form id="join" className="panel stack choice" onSubmit={join}>
-                <p className="eyebrow">1</p>
-                <h2>Join a competition</h2>
-                <p className="muted">Enter the code from the competition screen. You prompt on your own. Up to 10 people.</p>
+                <p className="eyebrow">Compete</p>
+                <h2>You have a room code</h2>
+                <p className="muted">Up to 10 people. You prompt on your own phone. The laptop keeps the shared reef.</p>
                 <label htmlFor="game-code">
-                  Competition code
+                  Room code
                   <input
                     id="game-code"
                     value={code}
@@ -70,13 +70,13 @@ export default function HomePage() {
                     placeholder="CODE"
                   />
                 </label>
-                <button className="btn" type="submit" disabled={!code}>Join competition</button>
+                <button className="btn" type="submit" disabled={!code}>Join this compete room</button>
               </form>
               <a className="panel stack choice" href="/collaborate">
-                <p className="eyebrow">2</p>
-                <h2>Find a pair</h2>
-                <p className="muted">A two-tap questionnaire, then a partner who is already waiting. No code. You can play more than once.</p>
-                <span className="btn">Find a pair</span>
+                <p className="eyebrow">Pair</p>
+                <h2>You don’t have a code</h2>
+                <p className="muted">Two questions, then a partner who is already waiting. You can play more than once.</p>
+                <span className="btn btn-warm">Answer two questions</span>
               </a>
             </div>
           </section>

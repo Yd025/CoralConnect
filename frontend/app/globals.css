@@ -349,11 +349,11 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
   display: block;
 }
 .landing h1 {
-  font-family: var(--font-sans), "Avenir Next", sans-serif;
-  font-weight: 650;
-  font-size: clamp(2.6rem, 4.6vw, 4.4rem);
-  line-height: 0.9;
-  letter-spacing: -0.048em;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: clamp(2.6rem, 4.6vw, 4.2rem);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
   color: #f7fbff;
   margin: 0;
 }
@@ -378,7 +378,7 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 .landing .choice.stack { gap: 8px; }
 .landing .choice h2 { font-size: 1.35rem; }
 .landing .choice .muted { font-size: 0.92rem; line-height: 1.35; }
-.landing .choice .btn { justify-self: start; }
+.landing .choice .btn { width: 100%; }
 .landing-stage { overflow: hidden; }
 .podium { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .podium li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; }
