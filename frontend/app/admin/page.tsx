@@ -4,11 +4,12 @@ import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
-import { createSession, endSession, getChallenges, setChallenge, startSession } from "@/lib/api";
+import { Leaderboard } from "@/components/Leaderboard";
+import { apiBase, createSession, endSession, getChallenges, getHealth, setChallenge, simulate, startSession } from "@/lib/api";
 import { playUrl, stageUrl, useBoothOrigin } from "@/lib/booth";
 import { personLine } from "@/lib/connection";
 import { reefLabel } from "@/lib/reef";
-import type { Challenge } from "@/lib/types";
+import type { Challenge, Health } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
 
 const ADMIN_KEY = "coral-admin";
@@ -18,6 +19,7 @@ type SavedAdmin = { code: string; adminToken: string };
 export default function AdminPage() {
   const router = useRouter();
   const { origin, host, updateHost } = useBoothOrigin();
+  const [health, setHealth] = useState<Health | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [challengeId, setChallengeId] = useState("farm-water");
   const [saved, setSaved] = useState<SavedAdmin | null>(null);
@@ -35,6 +37,7 @@ export default function AdminPage() {
         window.localStorage.removeItem(ADMIN_KEY);
       }
     }
+    getHealth().then(setHealth).catch((err: Error) => setError(err.message));
     getChallenges()
       .then((data) => setChallenges((data.challenges ?? []).filter((item): item is Challenge => Boolean(item))))
       .catch(() => undefined);
@@ -112,12 +115,22 @@ export default function AdminPage() {
 
         <div className="admin-layout">
           <section className="admin-intro" aria-labelledby="admin-title">
-            <p className="hero-kicker"><i />Versus</p>
-            <h1 id="admin-title">Open a versus round.</h1>
+            <p className="hero-kicker"><i />Booth console</p>
+            <h1 id="admin-title">Open a compete room.</h1>
             <p className="lede">
-              Up to 10 players, each prompting on their own. The shared reef shows who made the model do less work. Ending the round opens the top 3.
+              One live round, up to 10 people, each prompting alone. Ending the round opens the top 3. Pair finding is a different screen.
             </p>
             {error ? <p className="error">{error}</p> : null}
+            <p className="muted">
+              Engine: {apiBase()}
+              {health
+                ? ` · ${
+                    health.grokConfigured
+                      ? `Grok live (${health.chatModel}): it answers the player, then a second call grades the prompt`
+                      : "Grok key not set. Grades still run from the rubric (the facts in the message, plus its length), and answers are stand-ins"
+                  }`
+                : ""}
+            </p>
             <form className="panel stack" onSubmit={onCreate}>
               <label>
                 Challenge
@@ -130,20 +143,42 @@ export default function AdminPage() {
                 </select>
               </label>
               <button className="btn" disabled={busy} type="submit">
-                {saved ? "New versus round" : "Open a versus round"}
+                {saved ? "Start a fresh game" : "Create game and QR"}
               </button>
+              <p className="muted">The admin key stays in this browser. Keep the tab open during the demo.</p>
             </form>
+            {session ? (
+              <div className="panel admin-board">
+                <Leaderboard session={session} />
+              </div>
+            ) : null}
+            <details className="panel admin-pitch">
+              <summary>60 second pitch</summary>
+              <p>
+                A thin prompt that leaves out the source makes the model look the fact up. Pasting the whole file makes it read what it does not need. Both are waste.
+                Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
+                Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
+              </p>
+              {health ? (
+                <p className="muted">
+                  Carbon model: {health.formula.energyKwhPer1kTokens} kWh per 1,000 lookup tokens × {health.formula.carbonGramsPerKwh} g CO2/kWh.
+                  Each missing fact is charged as a {health.formula.webLookupTokens}-token web lookup, the message's own tokens count too,
+                  and the total is graded against a {health.formula.budgetTokens ?? 200}-token budget.
+                  Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
+                </p>
+              ) : null}
+            </details>
           </section>
 
           <section className="panel stack admin-side">
             {!saved || !session ? (
-              <p className="muted">The join code shows up here.</p>
+              <p className="muted">The QR code shows up here. It uses the public site, so phones do not need this computer's Wi-Fi.</p>
             ) : (
               <>
                 <div className="code-block">
                   <div>
                     <p className="eyebrow">
-                      Versus · {session.status === "lobby" ? "waiting to start" : session.status}
+                      Compete · {session.status === "lobby" ? "waiting to start one round" : session.status}
                     </p>
                     <strong>{session.code}</strong>
                   </div>
@@ -182,10 +217,14 @@ export default function AdminPage() {
                     End game
                   </button>
                 </div>
+                <p className="muted">One round for everyone here, up to 10. Start when the room should go at once.</p>
                 <h2>Players · {roster.length} / {playerMax}</h2>
+                {session.status === "lobby" && roster.length < playerMin ? (
+                  <p className="muted">Compete starts once someone joins, up to 10.</p>
+                ) : null}
                 {roster.length >= playerMax ? <p className="muted">This room is full.</p> : null}
                 {roster.length === 0 ? (
-                  <p className="muted">Nobody has joined yet.</p>
+                  <p className="muted">Nobody has scanned in yet.</p>
                 ) : (
                   <ul className="roster">
                     {roster.map((player) => (
@@ -199,6 +238,24 @@ export default function AdminPage() {
                     ))}
                   </ul>
                 )}
+                <details>
+                  <summary>Booth rehearsal</summary>
+                  <p className="muted">
+                    Drops a sample prompt into this game as a Rehearsal player, for its current turn, so you can check the reef before anyone arrives.
+                    Adequate should grade A+, Whole file lower than that, Vague F.
+                  </p>
+                  <div className="btn-row">
+                    <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "efficient"))}>
+                      Adequate prompt
+                    </button>
+                    <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "bloated"))}>
+                      Whole file pasted
+                    </button>
+                    <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "vague"))}>
+                      Vague prompt
+                    </button>
+                  </div>
+                </details>
               </>
             )}
           </section>

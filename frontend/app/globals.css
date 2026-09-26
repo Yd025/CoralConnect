@@ -262,6 +262,8 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 .admin-side { display: grid; align-content: start; }
 .admin-side .code-block strong { font-size: 2rem; }
 .admin-side .qr-card svg { width: 112px; height: 112px; }
+.admin-board, .admin-pitch { margin-top: 0; }
+.admin-pitch summary { cursor: pointer; font-weight: 650; }
 .admin-page .landing-tools .pill { display: inline-flex; }
 .landing-ui { position: relative; z-index: 2; }
 .landing-stage {
