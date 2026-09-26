@@ -11,7 +11,7 @@ from .config import settings
 from .grading import beat_for, grade_prompt, redact, summary as turn_summary
 from .grok import describe_pair, imagine
 from .hub import hub
-from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
+from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
 from .serialize import public_session
 from .store import store
 
@@ -555,10 +555,11 @@ async def submit(
         if thread and thread.done:
             raise GameError(409, "This thread is closed. Ask the host for the next challenge.")
         step = thread.step if thread else 0
-        if step >= len(challenge.beats):
+        limit = thread.turn_limit if thread and thread.turn_limit else turns_for_table(len(_roster(session)))
+        if step >= limit:
             raise GameError(409, "This thread is closed. Ask the host for the next challenge.")
         history = list(thread.messages) if thread else []
-        beat = challenge.beats[step]
+        beat = challenge.beats[min(step, len(challenge.beats) - 1)]
         challenge_id = challenge.id
         # Pieces are dealt only to a real pair. The rehearsal squad has one seat.
         mode = "collaborate" if session.mode == "collaborate" and squad and len(squad.player_ids) >= 2 else "compete"
@@ -603,7 +604,7 @@ async def submit(
     looked_up = graded.lookup_tokens
     grams = graded.grams
     excess_kg = graded.excess_kg
-    summary = turn_summary(graded, turn=step + 1, turn_count=len(challenge.beats))
+    summary = turn_summary(graded, turn=step + 1, turn_count=limit)
     delta = reef_delta(grade)
     kind = event_type(grade)
     server_side_tools = graded.searches
@@ -622,14 +623,16 @@ async def submit(
             owner_id = player.id
         thread = next((item for item in session.threads if item.owner_id == owner_id), None)
         if thread is None:
-            thread = Thread(owner_id=owner_id, messages=[])
+            thread = Thread(owner_id=owner_id, messages=[], turn_limit=limit)
             session.threads.append(thread)
+        elif not thread.turn_limit:
+            thread.turn_limit = limit
         if thread.done or thread.step != step:
             raise GameError(409, "The host moved on. Take a look at the new challenge.")
         thread.messages.append(ChatMessage(role="user", content=model_text))
         thread.messages.append(ChatMessage(role="assistant", content=answer))
         thread.step += 1
-        thread.done = thread.step >= len(challenge.beats)
+        thread.done = thread.step >= thread.turn_limit
         thread.score_sum += score
         thread.turns_graded += 1
         averaged = round(thread.score_sum / thread.turns_graded)
@@ -673,7 +676,7 @@ async def submit(
             event_type=kind,
             created_at=time.time(),
             turn_index=step,
-            turn_count=len(challenge.beats),
+            turn_count=thread.turn_limit,
             reasonable=graded.reasonable,
             verdict_reason=graded.reviewer_reason,
             judged_by_model=graded.judged_by_model,
@@ -820,7 +823,19 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
         elif kind == "bloated":
             prompts = (challenge.example_whole_file(step),)
         else:
-            prompts = (challenge.example_vague[step],)
+            prompts = (challenge.example_vague[step],) if step < len(challenge.example_vague) else ()
+        # Sample lines only cover the written beats. A small table may still
+        # have turns left, so an empty script starts the rehearsal over.
+        if not prompts:
+            if thread is not None:
+                session.threads = [item for item in session.threads if item is not thread]
+            step = 0
+            if kind == "efficient":
+                prompts = tuple(challenge.example_efficient)
+            elif kind == "bloated":
+                prompts = (challenge.example_whole_file(0),)
+            else:
+                prompts = (challenge.example_vague[0],)
         player_token = player.token
         player_id = player.id
         _persist(session)

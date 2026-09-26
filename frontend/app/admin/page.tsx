@@ -2,6 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { FormEvent, useEffect, useState } from "react";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Leaderboard } from "@/components/Leaderboard";
 import { apiBase, createSession, endSession, getChallenges, getHealth, setChallenge, simulate, startSession } from "@/lib/api";
 import { playUrl, stageUrl, useBoothOrigin } from "@/lib/booth";
@@ -82,160 +83,178 @@ export default function AdminPage() {
   const canStart = session?.mode === "compete" && session.status === "lobby" && roster.length >= playerMin && roster.length <= playerMax;
 
   return (
-    <main className="shell">
-      <div className="topbar">
-        <a className="brand" href="/">CoralConnect</a>
-        <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
-      </div>
-      <p className="eyebrow">Booth console</p>
-      <h1>Open a compete room.</h1>
-      {error ? <p className="error">{error}</p> : null}
-      <p className="muted">
-        Engine: {apiBase()}
-        {health
-          ? ` · ${
-              health.grokConfigured
-                ? `Grok live (${health.chatModel}): it answers the player, then a second call grades the prompt`
-                : "Grok key not set. Grades still run from the rubric (the facts in the message, plus its length), and answers are stand-ins"
-            }`
-          : ""}
-      </p>
+    <main className="landing admin-page">
+      <AnimatedBackground />
+      <div className="shell landing-ui">
+        <header className="landing-top">
+          <a className="brand" href="/">
+            <svg className="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+              <path d="M14 3 L16.2 11.2 L14 9.4 L11.8 11.2 Z" fill="currentColor" />
+              <path d="M6 8 L9.2 13.2 L8 12 L6.6 14.2 Z" fill="currentColor" />
+              <path d="M22 8 L18.8 13.2 L20 12 L21.4 14.2 Z" fill="currentColor" />
+              <path d="M14 10.5 V24" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+            CoralConnect
+          </a>
+          <nav className="landing-nav" aria-label="Site">
+            <a href="/">The reef</a>
+          </nav>
+          <div className="landing-tools">
+            <span>HackGT booth</span>
+            <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
+          </div>
+        </header>
 
-      <div className="admin-grid">
-        <form className="panel stack" onSubmit={onCreate}>
-          <p className="muted">
-            One round for this room, up to 10 people, started together from here.
-            Pair finding is separate. People open Find a pair on their own phones and wait for someone else.
-          </p>
-          <label>
-            Challenge
-            <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
-              {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, beats: [] }]).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title} · {item.turnCount || item.beats.length || 2} turns
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="btn" disabled={busy} type="submit">
-            {saved ? "Start a fresh game" : "Create game and QR"}
-          </button>
-          <p className="muted">The admin key stays in this browser. Keep the tab open during the demo.</p>
-        </form>
-
-        <section className="panel stack">
-          {!saved || !session ? (
-            <p className="muted">The QR code shows up here. Phones should be on the same Wi-Fi as this laptop.</p>
-          ) : (
-            <>
-              <div className="code-block">
-                <div>
-                  <p className="eyebrow">
-                    Compete · {session.status === "lobby" ? "waiting to start one round" : session.status}
-                  </p>
-                  <strong>{session.code}</strong>
-                </div>
-                {play ? (
-                  <div className="qr-card">
-                    <QRCodeSVG value={play} size={168} bgColor="#f4fff9" fgColor="#042630" />
-                    <p>Scan to join</p>
-                  </div>
-                ) : null}
-              </div>
+        <div className="admin-layout">
+          <section className="admin-intro" aria-labelledby="admin-title">
+            <p className="hero-kicker"><i />Booth console</p>
+            <h1 id="admin-title">Open a compete room.</h1>
+            <p className="lede">
+              One round for this room, up to 10 people, started together from here. Pair finding is separate. People open Find a pair on their own phones and wait for someone else.
+            </p>
+            {error ? <p className="error">{error}</p> : null}
+            <p className="muted">
+              Engine: {apiBase()}
+              {health
+                ? ` · ${
+                    health.grokConfigured
+                      ? `Grok live (${health.chatModel}): it answers the player, then a second call grades the prompt`
+                      : "Grok key not set. Grades still run from the rubric (the facts in the message, plus its length), and answers are stand-ins"
+                  }`
+                : ""}
+            </p>
+            <form className="panel stack" onSubmit={onCreate}>
               <label>
-                Phone link host
-                <input value={host} onChange={(event) => updateHost(event.target.value)} />
-              </label>
-              <p className="link-line">{play}</p>
-              <div className="btn-row">
-                <button className="btn-ghost" type="button" onClick={() => copy(play, "play")}>
-                  {copied === "play" ? "Copied" : "Copy join link"}
-                </button>
-                <button className="btn" type="button" onClick={() => window.open(stage, "coral-stage")}>
-                  Open main stage
-                </button>
-              </div>
-              <div className="health-inline">
-                <span>{reefLabel(session.reefBand)} · reef {session.reefHealth}</span>
-                <i><b style={{ width: `${session.reefHealth}%` }} /></i>
-              </div>
-              <div className="btn-row">
-                <button className="btn" type="button" disabled={busy || !canStart} onClick={() => run(() => startSession(saved.code, saved.adminToken))}>
-                  Start round
-                </button>
-                <button className="btn-ghost" type="button" disabled={busy || session.status !== "playing"} onClick={() => run(() => setChallenge(saved.code, saved.adminToken, challengeId))}>
-                  Apply challenge
-                </button>
-                <button className="btn-danger" type="button" disabled={busy || session.status === "ended"} onClick={() => run(() => endSession(saved.code, saved.adminToken))}>
-                  End game
-                </button>
-              </div>
-              <p className="muted">One round for everyone here, up to 10. Start when the room should go at once.</p>
-              <h2>Players · {roster.length} / {playerMax}</h2>
-              {session.status === "lobby" && roster.length < playerMin ? (
-                <p className="muted">Compete starts once someone joins, up to 10.</p>
-              ) : null}
-              {roster.length >= playerMax ? <p className="muted">This room is full.</p> : null}
-              {roster.length === 0 ? (
-                <p className="muted">Nobody has scanned in yet.</p>
-              ) : (
-                <ul className="roster">
-                  {roster.map((player) => (
-                    <li key={player.id}>
-                      <span>
-                        <strong>{player.name}</strong>
-                        <small>{personLine(player.builds, player.cares)}{player.connected ? "" : " · left"}</small>
-                      </span>
-                      <b>{player.score}</b>
-                    </li>
+                Challenge
+                <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
+                  {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, beats: [] }]).map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title} · {item.turnCount || item.beats.length || 2} turns
+                    </option>
                   ))}
-                </ul>
-              )}
-              <details>
-                <summary>Booth rehearsal</summary>
-                <p className="muted">
-                  Drops a sample prompt into this game as a Rehearsal player, for its current turn, so you can check the reef before anyone arrives.
-                  Adequate should grade A+, Whole file lower than that, Vague F.
-                </p>
+                </select>
+              </label>
+              <button className="btn" disabled={busy} type="submit">
+                {saved ? "Start a fresh game" : "Create game and QR"}
+              </button>
+              <p className="muted">The admin key stays in this browser. Keep the tab open during the demo.</p>
+            </form>
+          </section>
+
+          <section className="panel stack admin-side">
+            {!saved || !session ? (
+              <p className="muted">The QR code shows up here. Phones should be on the same Wi-Fi as this laptop.</p>
+            ) : (
+              <>
+                <div className="code-block">
+                  <div>
+                    <p className="eyebrow">
+                      Compete · {session.status === "lobby" ? "waiting to start one round" : session.status}
+                    </p>
+                    <strong>{session.code}</strong>
+                  </div>
+                  {play ? (
+                    <div className="qr-card">
+                      <QRCodeSVG value={play} size={168} bgColor="#f4fff9" fgColor="#042630" />
+                      <p>Scan to join</p>
+                    </div>
+                  ) : null}
+                </div>
+                <label>
+                  Phone link host
+                  <input value={host} onChange={(event) => updateHost(event.target.value)} />
+                </label>
+                <p className="link-line">{play}</p>
                 <div className="btn-row">
-                  <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "efficient"))}>
-                    Adequate prompt
+                  <button className="btn-ghost" type="button" onClick={() => copy(play, "play")}>
+                    {copied === "play" ? "Copied" : "Copy join link"}
                   </button>
-                  <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "bloated"))}>
-                    Whole file pasted
-                  </button>
-                  <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "vague"))}>
-                    Vague prompt
+                  <button className="btn" type="button" onClick={() => window.open(stage, "coral-stage")}>
+                    Open main stage
                   </button>
                 </div>
-              </details>
-            </>
-          )}
-        </section>
-      </div>
-
-      {session ? (
-        <div className="panel" style={{ marginTop: 18 }}>
-          <Leaderboard session={session} />
+                <div className="health-inline">
+                  <span>{reefLabel(session.reefBand)} · reef {session.reefHealth}</span>
+                  <i><b style={{ width: `${session.reefHealth}%` }} /></i>
+                </div>
+                <div className="btn-row">
+                  <button className="btn" type="button" disabled={busy || !canStart} onClick={() => run(() => startSession(saved.code, saved.adminToken))}>
+                    Start round
+                  </button>
+                  <button className="btn-ghost" type="button" disabled={busy || session.status !== "playing"} onClick={() => run(() => setChallenge(saved.code, saved.adminToken, challengeId))}>
+                    Apply challenge
+                  </button>
+                  <button className="btn-danger" type="button" disabled={busy || session.status === "ended"} onClick={() => run(() => endSession(saved.code, saved.adminToken))}>
+                    End game
+                  </button>
+                </div>
+                <p className="muted">One round for everyone here, up to 10. Start when the room should go at once.</p>
+                <h2>Players · {roster.length} / {playerMax}</h2>
+                {session.status === "lobby" && roster.length < playerMin ? (
+                  <p className="muted">Compete starts once someone joins, up to 10.</p>
+                ) : null}
+                {roster.length >= playerMax ? <p className="muted">This room is full.</p> : null}
+                {roster.length === 0 ? (
+                  <p className="muted">Nobody has scanned in yet.</p>
+                ) : (
+                  <ul className="roster">
+                    {roster.map((player) => (
+                      <li key={player.id}>
+                        <span>
+                          <strong>{player.name}</strong>
+                          <small>{personLine(player.builds, player.cares)}{player.connected ? "" : " · left"}</small>
+                        </span>
+                        <b>{player.score}</b>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <details>
+                  <summary>Booth rehearsal</summary>
+                  <p className="muted">
+                    Drops a sample prompt into this game as a Rehearsal player, for its current turn, so you can check the reef before anyone arrives.
+                    Adequate should grade A+, Whole file lower than that, Vague F.
+                  </p>
+                  <div className="btn-row">
+                    <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "efficient"))}>
+                      Adequate prompt
+                    </button>
+                    <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "bloated"))}>
+                      Whole file pasted
+                    </button>
+                    <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "vague"))}>
+                      Vague prompt
+                    </button>
+                  </div>
+                </details>
+              </>
+            )}
+          </section>
         </div>
-      ) : null}
 
-      <details className="panel" style={{ marginTop: 18 }}>
-        <summary>60 second pitch</summary>
-        <p>
-          A thin prompt that leaves out the source makes the model look the fact up. Pasting the whole file makes it read what it does not need. Both are waste.
-          Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
-          Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
-        </p>
-        {health ? (
-          <p className="muted">
-            Carbon model: {health.formula.energyKwhPer1kTokens} kWh per 1,000 lookup tokens × {health.formula.carbonGramsPerKwh} g CO2/kWh.
-            Each missing fact is charged as a {health.formula.webLookupTokens}-token web lookup, the message's own tokens count too,
-            and the total is graded against a {health.formula.budgetTokens ?? 200}-token budget.
-            Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
-          </p>
+        {session ? (
+          <div className="panel admin-board">
+            <Leaderboard session={session} />
+          </div>
         ) : null}
-      </details>
+
+        <details className="panel admin-pitch">
+          <summary>60 second pitch</summary>
+          <p>
+            A thin prompt that leaves out the source makes the model look the fact up. Pasting the whole file makes it read what it does not need. Both are waste.
+            Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
+            Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
+          </p>
+          {health ? (
+            <p className="muted">
+              Carbon model: {health.formula.energyKwhPer1kTokens} kWh per 1,000 lookup tokens × {health.formula.carbonGramsPerKwh} g CO2/kWh.
+              Each missing fact is charged as a {health.formula.webLookupTokens}-token web lookup, the message's own tokens count too,
+              and the total is graded against a {health.formula.budgetTokens ?? 200}-token budget.
+              Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
+            </p>
+          ) : null}
+        </details>
+      </div>
     </main>
   );
 }

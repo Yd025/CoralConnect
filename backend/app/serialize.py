@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .carbon import VERDICT_WORDS, reef_band
 from .challenges import get_challenge, public_challenge
-from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
+from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
 
 
 def _piece(session: Session, player: Player, challenge) -> dict | None:
@@ -12,10 +12,10 @@ def _piece(session: Session, player: Player, challenge) -> dict | None:
     if squad is None or player.id not in squad.player_ids:
         return None
     thread = next((item for item in session.threads if item.owner_id == squad.id), None)
-    step = thread.step if thread else 0
-    if step >= len(challenge.beats):
+    if thread and thread.done:
         return None
-    beat = challenge.beats[step]
+    step = thread.step if thread else 0
+    beat = challenge.beats[min(step, len(challenge.beats) - 1)]
     if len(beat.parts) < 2:
         return None
     seat = squad.player_ids.index(player.id)
@@ -107,6 +107,7 @@ def public_thread(thread: Thread) -> dict:
         "ownerId": thread.owner_id,
         "step": thread.step,
         "done": thread.done,
+        "turnLimit": thread.turn_limit,
         "messages": [{"role": message.role, "content": message.content} for message in thread.messages],
     }
 
@@ -142,4 +143,5 @@ def public_session(session: Session) -> dict:
         "threads": [public_thread(thread) for thread in session.threads],
         "createdAt": session.created_at,
         "revision": session.revision,
+        "turnsAllowed": turns_for_table(len([player for player in session.players if player.id != "p_rehearsal"])),
     }

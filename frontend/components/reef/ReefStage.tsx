@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
-import { AmbientLife, BandArt, Bloom, Fish, SludgeBarrel, Turtle } from "@/components/reef/FallbackReef";
-import { reefLabel, slot } from "@/lib/reef";
+import { AmbientLife, BandArt, SludgeBarrel } from "@/components/reef/FallbackReef";
+import { reefLabel } from "@/lib/reef";
 import type { GameSession, ReefEvent, Submission } from "@/lib/types";
 
 export function ReefStage({
@@ -18,27 +19,20 @@ export function ReefStage({
 }) {
   const health = session.reefHealth;
   const band = session.reefBand;
-  const residents = session.events
-    .filter((event) => event.type === "turtle" || event.type === "bloom" || event.type === "fish")
-    .slice(0, 8);
   const shock = liveEvent?.type === "sludge" || liveEvent?.type === "murk";
+  const latest = session.submissions[0] ?? null;
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [latest?.id]);
 
   return (
     <section className={`reef reef--${band}`} style={{ ["--health" as string]: health }}>
       <BandArt band={band} />
-      <AmbientLife />
+      <AmbientLife band={band} health={health} />
       <div className="reef__murk" />
       {shock && liveEvent ? <div key={liveEvent.id} className="reef__flash" /> : null}
-      {liveEvent?.type === "sludge" ? <SludgeBarrel key={liveEvent.id} /> : null}
-
-      <div className="reef__residents" aria-hidden>
-        {residents.map((event) => (
-          <figure key={event.id} className="resident" style={{ left: `${slot(event.id)}%`, bottom: `${12 + (slot(event.id) % 18)}%` }}>
-            <Reward event={event} />
-            <figcaption>{event.actor}</figcaption>
-          </figure>
-        ))}
-      </div>
+      {liveEvent?.type === "sludge" ? <SludgeBarrel key={liveEvent.id} seed={liveEvent.id} /> : null}
 
       {liveEvent && (liveEvent.type === "turtle" || liveEvent.type === "bloom") ? (
         <div key={liveEvent.id} className="reef__toast">
@@ -49,6 +43,35 @@ export function ReefStage({
           </div>
         </div>
       ) : null}
+
+      <aside className="reef__ai">
+        <img src="/reef/05-otto-octopus.svg" alt="" />
+        <div>
+          <p className="eyebrow">Prompt</p>
+          <strong>Grok</strong>
+          {latest ? (
+            <>
+              <p className="reef__ai-prompt">
+                <span>{latest.actor} · {latest.grade}</span>
+                {latest.reasonable
+                  ? "The source was in the message."
+                  : "The source was missing, so Grok searched."}
+              </p>
+              <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+                {open ? "Hide the details" : latest.reasonable ? "See Grok's answer" : "See the problems"}
+              </button>
+              {open ? (
+                <div className="reef__ai-details">
+                  <p>{latest.verdictReason || latest.summary}</p>
+                  <p>{clip(latest.aiResponse, 360)}</p>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="reef__ai-reply">Waiting for a message. Prompt Grok from a phone.</p>
+          )}
+        </div>
+      </aside>
 
       <header className="reef__hud">
         <div>
@@ -87,7 +110,18 @@ export function ReefStage({
   );
 }
 
-// The judge's numbers for the most recent turn, big enough to read from the table.
+const REWARD_ART: Record<string, string> = {
+  turtle: "/reef/02-moss-turtle.svg",
+  bloom: "/reef/10-coral-bloom.svg",
+  fish: "/reef/04-pip-fish.svg",
+};
+
+function clip(text: string, max = 220) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max).trim()}…`;
+}
+
 function LastTurn({ submission }: { submission: Submission | undefined }) {
   if (!submission) return null;
   const verdict = submission.verdict || (submission.reasonable ? "okay" : "wasteful");
@@ -118,7 +152,5 @@ function Reward({ event }: { event: ReefEvent }) {
   if (event.imageUrl) {
     return <img className="reward-img" src={event.imageUrl} alt="" />;
   }
-  if (event.type === "turtle") return <Turtle />;
-  if (event.type === "bloom") return <Bloom />;
-  return <Fish />;
+  return <img className="reward-img reward-svg" src={REWARD_ART[event.type] ?? REWARD_ART.fish} alt="" />;
 }

@@ -185,6 +185,10 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .meter.warn b { background: var(--warn); }
 .meter.bad b { background: var(--bad); }
 .result { display: grid; gap: 8px; }
+.result .btn-ghost, .thread-log .btn-ghost, .reef__ai .btn-ghost { justify-self: start; }
+.result-details { display: grid; gap: 8px; }
+.reef__ai-details { margin-top: 8px; display: grid; gap: 8px; }
+.reef__ai-details p { margin: 0; }
 .fixture, .thread-log p {
   margin: 0;
   white-space: pre-wrap;
@@ -217,7 +221,9 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 
 body:has(.landing) { height: 100dvh; overflow: hidden; }
+body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
 .landing { height: 100dvh; overflow: hidden; }
+.admin-page.landing { height: auto; min-height: 100dvh; overflow: visible; }
 .landing .shell {
   width: min(1240px, calc(100% - 56px));
   height: 100%;
@@ -225,6 +231,30 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   display: flex;
   flex-direction: column;
 }
+.admin-page .shell {
+  height: auto;
+  min-height: 100dvh;
+  padding-bottom: 36px;
+}
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 8px;
+}
+.admin-intro { display: grid; align-content: start; gap: 12px; max-width: 40rem; }
+.admin-page.landing h1 { font-size: clamp(3rem, 5vw, 4.6rem); }
+.admin-intro .lede { margin-top: 0; }
+.admin-intro .panel { margin-top: 6px; }
+.admin-page .panel {
+  background: rgba(4, 22, 34, 0.62);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.admin-side { min-height: 220px; }
+.admin-board, .admin-pitch { margin-top: 18px; }
+.admin-pitch summary { cursor: pointer; font-weight: 650; }
+.admin-page .landing-tools .pill { display: inline-flex; }
 .landing-ui { position: relative; z-index: 2; }
 .landing-stage {
   min-height: 0;
@@ -599,6 +629,185 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 }
 
 .phone { width: min(520px, calc(100% - 28px)); margin: 0 auto; padding: 18px 0 28px; display: grid; gap: 14px; }
+body:has(.compete-play) { height: 100dvh; overflow: hidden; }
+.compete-play {
+  position: relative;
+  z-index: 1;
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  padding: 58px 28px;
+}
+.compete-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #062844;
+}
+.compete-scene__band { width: 100%; height: 100%; object-fit: cover; display: block; }
+.compete-scene .swimmer { z-index: 1; }
+.compete-scene .swimmer img { width: 48px; }
+.compete-scene .s1 { top: 6px; }
+.compete-scene .s2 { top: auto; bottom: 6px; }
+.compete-scene .s3 { top: auto; bottom: 8px; }
+.compete-scene .s3 img { width: 40px; }
+.compete-scene .s-whale { top: 2px; }
+.compete-scene .s-whale img { width: 72px; }
+.compete-scene .s-trash { top: 8px; }
+.compete-scene .s-trash img { width: 36px; }
+.compete-scene .s-trash.t2 { top: auto; bottom: 8px; }
+.chat {
+  position: relative;
+  z-index: 1;
+  width: min(680px, 100%);
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #071820;
+  border: 1px solid rgba(167, 230, 214, 0.2);
+  border-radius: 22px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #071820;
+  flex: none;
+}
+.chat-face { display: flex; flex: none; }
+.chat-face img { width: 46px; max-width: none; height: auto; display: block; }
+.chat-id { min-width: 0; flex: 1; }
+.chat-id strong {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.chat-id span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-health { flex: none; width: 84px; font-size: 0.75rem; color: var(--sand); }
+.chat-head .pill { flex: none; }
+.chat-log {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #071820;
+}
+.chat-msg {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  line-height: 1.45;
+}
+.chat-msg p { margin: 0; white-space: pre-wrap; }
+.chat-msg.is-grok {
+  align-self: flex-start;
+  background: rgba(61, 222, 200, 0.08);
+  border: 1px solid rgba(61, 222, 200, 0.16);
+  border-bottom-left-radius: 6px;
+}
+.chat-msg.is-you {
+  align-self: flex-end;
+  background: rgba(240, 215, 164, 0.1);
+  border: 1px solid rgba(240, 215, 164, 0.22);
+  border-bottom-right-radius: 6px;
+}
+.chat-msg__who {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sand);
+}
+.chat-msg__title { font-family: var(--font-display), Georgia, serif; font-size: 1.25rem; }
+.chat-msg .btn-ghost { justify-self: start; }
+.chat .result.panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  backdrop-filter: none;
+}
+.chat .result .code-block strong { font-size: 1.6rem; letter-spacing: 0.06em; }
+.chat .fixture { max-height: 160px; }
+.chat-join { align-self: stretch; }
+.chat-board {
+  flex: none;
+  max-height: 36%;
+  overflow: auto;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #071820;
+}
+.chat-board summary { cursor: pointer; color: var(--muted); }
+.chat-board[open] summary { margin-bottom: 8px; }
+.chat-compose {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 10px;
+  align-items: end;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: #06141a;
+}
+.chat-compose textarea { min-height: 48px; max-height: 120px; resize: none; }
+.chat-compose .btn { min-width: 76px; height: 48px; }
+.chat-compose .muted { grid-column: 1 / -1; margin: 0; font-size: 0.75rem; }
+.chat-compose .live-verdict { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .compete-play { padding: 52px 12px; }
+}
+.play-label { display: flex; align-items: center; gap: 8px; }
+.grok-card__head { display: flex; gap: 12px; align-items: center; }
+.grok-card__head img { width: 88px; max-width: none; height: auto; flex: none; }
+.grok-card__head strong { display: block; font-family: var(--font-display), Georgia, serif; font-size: 2rem; line-height: 1; }
+.grok-card__reply { margin: 0; white-space: pre-wrap; color: var(--sand); }
+.reef__ai {
+  position: absolute;
+  z-index: 8;
+  left: 18px;
+  top: 168px;
+  width: min(460px, 40vw);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  max-height: calc(100dvh - 320px);
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(4, 22, 34, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.reef__ai img { width: 96px; max-width: none; height: auto; flex: none; }
+.reef__ai strong { display: block; font-family: var(--font-display), Georgia, serif; font-size: 2rem; line-height: 1; }
+.reef__ai-prompt, .reef__ai-reply { margin: 8px 0 0; }
+.reef__ai-prompt span { display: block; color: var(--sand); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.reef__ai-reply { color: white; }
+.compete-play .panel {
+  background: rgba(4, 22, 34, 0.78);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.compete-play .topbar .brand { color: white; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
 .sticky-submit {
   position: sticky;
   bottom: 0;
@@ -648,10 +857,22 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   100% { background: rgba(170, 24, 16, 0); }
 }
 .swimmer { position: absolute; animation: swim 26s linear infinite; }
+.swimmer img { width: 128px; max-width: none; height: auto; display: block; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.28)); }
+.swimmer.is-flip img { transform: scaleX(-1); }
 .s1 { top: 28%; }
 .s2 { top: 46%; animation-duration: 34s; animation-direction: reverse; animation-delay: -8s; }
-.s2 svg { transform: scaleX(-1); }
-.s3 { top: 64%; animation-duration: 20s; animation-delay: -12s; opacity: 0.85; }
+.s3 { top: 64%; animation-duration: 40s; animation-delay: -12s; }
+.s3 img { width: 110px; }
+.s-whale { top: 8%; animation-duration: 70s; animation-delay: -24s; }
+.s-whale img { width: 280px; }
+.s-turtle { top: 36%; animation-duration: 52s; animation-delay: -16s; }
+.s-turtle img { width: 190px; }
+.s-octo { top: 70%; animation-duration: 46s; animation-direction: reverse; animation-delay: -20s; }
+.s-octo img { width: 150px; }
+.s-trash { top: 22%; animation-duration: 38s; }
+.s-trash img { width: 96px; }
+.s-trash.t2 { top: 54%; animation-direction: reverse; animation-duration: 44s; }
+.s-trash.t3 { top: 76%; animation-duration: 30s; animation-delay: -9s; }
 @keyframes swim {
   from { transform: translateX(-20vw); }
   to { transform: translateX(105vw); }
@@ -696,6 +917,8 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   padding: 2px 8px;
 }
 .reward-img { width: 96px; height: 96px; object-fit: cover; border-radius: 18px; }
+.reward-svg { width: 120px; height: auto; object-fit: contain; border-radius: 0; background: transparent; }
+.barrel img { width: 120px; height: auto; display: block; }
 @keyframes settle {
   from { transform: translateY(-24px); opacity: 0; }
   to { transform: none; opacity: 1; }
@@ -758,7 +981,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .reef__latest { margin: 0; max-width: 46rem; font-size: 1.05rem; text-shadow: 0 4px 16px rgba(0,0,0,0.45); }
 
 @media (max-width: 860px) {
-  .hero, .admin-grid, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
+  .hero, .admin-grid, .admin-layout, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
   .landing .shell { width: min(100% - 28px, 1240px); }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }
@@ -774,6 +997,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   .cast-turtle img { width: 180px; }
   .cast-octopus img { width: 120px; }
   .reef__side { position: static; width: auto; margin: 0 12px; }
+  .reef__ai { position: relative; left: auto; top: auto; width: auto; max-height: none; margin: 12px; }
   .reef__hud { position: relative; padding-top: 8px; }
   .reef { min-height: 100dvh; display: flex; flex-direction: column; }
   .reef__foot { position: relative; left: auto; right: auto; padding: 12px; }

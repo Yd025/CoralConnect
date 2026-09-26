@@ -39,8 +39,9 @@ GRADES = ("A+", "A", "B", "C", "D", "F")
 # The word the judge shows next to each grade.
 VERDICT_WORDS = {"A+": "efficient", "A": "efficient", "B": "okay", "C": "okay", "D": "wasteful", "F": "horrible"}
 
-# Keep these thresholds in sync with frontend/lib/reef.ts
-REEF_DELTAS = {"A+": 4, "A": 2, "B": 0, "C": -8, "D": -16, "F": -28}
+# A thin prompt is a web lookup (about 1,200 tokens) and wilts the reef by a step.
+# It does not skip a whole health band. A prompt that includes the source heals a little.
+REEF_DELTAS = {"A+": 4, "A": 2, "B": 0, "C": -3, "D": -5, "F": -8}
 EVENT_TYPES = {
     "A+": "turtle",
     "A": "bloom",

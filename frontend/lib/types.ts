@@ -30,6 +30,7 @@ export type Thread = {
   ownerId: string;
   step: number;
   done: boolean;
+  turnLimit: number;
   messages: ChatMessage[];
 };
 
@@ -174,6 +175,7 @@ export type GameSession = {
   submissions: Submission[];
   events: ReefEvent[];
   threads: Thread[];
+  turnsAllowed: number;
   createdAt: number;
   revision: number;
 };

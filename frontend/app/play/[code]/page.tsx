@@ -6,9 +6,11 @@ import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LiveVerdict } from "@/components/LiveVerdict";
 import { Receipt } from "@/components/Receipt";
+import { reefPresence } from "@/components/reef/FallbackReef";
 import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
-import type { Identity, Submission, Thread } from "@/lib/types";
+import { estimateTokens } from "@/lib/reef";
+import type { Identity, ReefBand, Submission, Thread } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
 
 export default function PlayPage() {
@@ -25,6 +27,7 @@ export default function PlayPage() {
   const [latest, setLatest] = useState<Submission | null>(null);
   const draftTimer = useRef<number | null>(null);
   const sawPrompt = useRef(false);
+  const logRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(storageKey(code));
@@ -57,8 +60,9 @@ export default function PlayPage() {
   const canPlay = session?.mode === "collaborate" ? paired && session.status !== "ended" : session?.status === "playing";
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
-  const beat = session?.challenge?.beats?.[thread?.step ?? 0];
-  const turnCount = session?.challenge?.turnCount ?? session?.challenge?.beats?.length ?? 1;
+  const beats = session?.challenge?.beats ?? [];
+  const beat = beats[Math.min(thread?.step ?? 0, Math.max(beats.length - 1, 0))];
+  const turnCount = thread?.turnLimit || session?.turnsAllowed || session?.challenge?.turnCount || beats.length || 1;
   const turnNumber = Math.min((thread?.step ?? 0) + 1, turnCount);
 
   useEffect(() => {
@@ -130,6 +134,12 @@ export default function PlayPage() {
     }, 90);
   }
 
+  useEffect(() => {
+    const node = logRef.current;
+    if (!node) return;
+    node.scrollTop = node.scrollHeight;
+  }, [thread?.messages.length, shown?.id, busy, session?.status, identity?.playerId, localError]);
+
   const piece = session?.mode === "collaborate" ? me?.piece : null;
   const sourceTitle = piece?.title ?? beat?.fixtureTitle;
   const sourceBody = piece?.body ?? beat?.fixture;
@@ -138,6 +148,177 @@ export default function PlayPage() {
     if (!sourceBody) return;
     const next = prompt.trim() ? `${prompt.trim()}\n\n${sourceBody}` : sourceBody;
     onPrompt(next);
+  }
+
+  const tokens = estimateTokens(prompt);
+  const compete = session?.mode === "compete";
+
+  if (compete && session) {
+    const ask = beat?.ask;
+    return (
+      <main className="compete-play">
+        <CompeteScene band={session.reefBand} health={session.reefHealth} />
+        <section className="chat" aria-label="Chat with Grok">
+          <header className="chat-head">
+            <a className="chat-face" href="/" aria-label="CoralConnect home">
+              <img src="/reef/05-otto-octopus.svg" alt="" />
+            </a>
+            <div className="chat-id">
+              <strong>Grok</strong>
+              <span>Turn {turnNumber} of {turnCount} · {code}</span>
+            </div>
+            <div className="chat-health health-inline">
+              <span>Reef {session.reefHealth}</span>
+              <i><b style={{ width: `${session.reefHealth}%` }} /></i>
+            </div>
+            <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
+          </header>
+
+          <details className="chat-board">
+            <summary>Leaderboard</summary>
+            <Leaderboard session={session} compact />
+          </details>
+
+          <div className="chat-log" ref={logRef}>
+            {error || localError ? <p className="error">{localError || error}</p> : null}
+
+            <div className="chat-msg is-grok">
+              <span className="chat-msg__who">Grok</span>
+              {session.challenge?.title ? <p className="chat-msg__title">{session.challenge.title}</p> : null}
+              {session.challenge?.brief ? <p>{session.challenge.brief}</p> : null}
+              {session.challenge?.hint ? <p className="muted">{session.challenge.hint}</p> : null}
+            </div>
+
+            {ask && sourceBody ? (
+              <SourceNote title={sourceTitle} ask={ask} body={sourceBody} onInclude={identity ? includeSource : undefined} />
+            ) : null}
+
+            {!identity && tableFull ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>This table is full. Compete holds up to 10 players.</p>
+              </div>
+            ) : null}
+
+            {!identity && !tableFull ? (
+              <form className="chat-join stack" onSubmit={onJoin}>
+                <label>
+                  Your name
+                  <input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} required />
+                </label>
+                <fieldset className="chips">
+                  <legend>You build</legend>
+                  {BUILDS.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={builds === item ? "is-on" : ""}
+                      onClick={() => setBuilds(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </fieldset>
+                <fieldset className="chips">
+                  <legend>You care about</legend>
+                  {CARES.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={cares === item ? "is-on" : ""}
+                      onClick={() => setCares(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </fieldset>
+                <button className="btn" disabled={busy || !builds || !cares}>
+                  Join the reef
+                </button>
+              </form>
+            ) : null}
+
+            {identity && session.status === "lobby" ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>You're in, {identity.name}. This round starts when the table says go. {roster.length} of {playerMax} here.</p>
+                <button
+                  className="btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    void leaveSession(code, identity).then((data) => ingest(data.session));
+                    window.localStorage.removeItem(storageKey(code));
+                    setIdentity(null);
+                  }}
+                >
+                  Leave lobby
+                </button>
+              </div>
+            ) : null}
+
+            {thread?.messages.map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={message.role === "user" ? "chat-msg is-you" : "chat-msg is-grok"}
+              >
+                <span className="chat-msg__who">{message.role === "user" ? "You" : "Grok"}</span>
+                <p>{message.content}</p>
+              </div>
+            ))}
+
+            {shown ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <ResultCard shown={shown} />
+              </div>
+            ) : null}
+
+            {identity && session.status === "playing" && thread?.done ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>This thread is closed. Your turns are on the reef.</p>
+              </div>
+            ) : null}
+
+            {session.status === "ended" ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Grok</span>
+                <p>This round is over. Check the big screen for the reef you left behind.</p>
+              </div>
+            ) : null}
+          </div>
+
+          {identity && canPlay && !thread?.done ? (
+            <form className="chat-compose" onSubmit={onSubmit}>
+              <textarea
+                value={prompt}
+                onChange={(event) => onPrompt(event.target.value)}
+                placeholder="Message Grok"
+                aria-label="Message to Grok"
+                rows={2}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
+              />
+              <button className="btn" disabled={busy || !prompt.trim()} type="submit">
+                {busy ? "Sending" : "Send"}
+              </button>
+              <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
+              <LiveVerdict
+                prompt={prompt}
+                challengeId={session.challenge?.id}
+                mode={session.mode}
+                turn={turnNumber}
+                history={thread?.messages ?? []}
+              />
+            </form>
+          ) : null}
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -278,7 +459,7 @@ export default function PlayPage() {
           ) : null}
 
           {identity && session.status === "playing" && thread?.done && session.mode !== "collaborate" ? (
-            <p className="panel">This thread is closed. Both turns are on the reef.</p>
+            <p className="panel">This thread is closed. Your turns are on the reef.</p>
           ) : null}
 
           {identity && canPlay && !thread?.done ? (
@@ -302,7 +483,9 @@ export default function PlayPage() {
                 </section>
               ) : null}
               <label>
-                {session.mode === "collaborate" ? "Shared message" : "Your message"}
+                <span className="play-label">
+                  {session.mode === "collaborate" ? "Shared message" : "Your message"}
+                </span>
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
               {session.mode === "collaborate" && squad ? (
@@ -325,40 +508,7 @@ export default function PlayPage() {
 
           {session.status === "ended" ? <p className="panel">This round is over. Check the big screen for the reef you left behind.</p> : null}
 
-          {shown ? (
-            <section className="panel result">
-              <div className="code-block">
-                <GradeBadge grade={shown.grade} />
-                <strong>{shown.score}</strong>
-              </div>
-              <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
-                {shown.reasonable ? "Reasonable prompt" : "Too much work"}
-              </p>
-              <p>{shown.summary}</p>
-              {shown.savedVsVague > 0 ? (
-                <p className="saved-line">
-                  This prompt saved {shown.savedVsVague.toLocaleString()} tokens compared with a vague one.
-                </p>
-              ) : null}
-              <Receipt submission={shown} />
-              {shown.betterPrompt ? (
-                <div className="better-prompt">
-                  <p className="eyebrow">Shorter, with every detail</p>
-                  <p>{shown.betterPrompt}</p>
-                  <p className="muted small">
-                    {shown.measuredSaved > 0
-                      ? `Measured with Grok: ${shown.measuredTokens.toLocaleString()} real tokens for yours, ${shown.betterMeasuredTokens.toLocaleString()} for this one. Saves ${shown.measuredSaved.toLocaleString()}.`
-                      : `Saves about ${shown.betterSaves.toLocaleString()} tokens by the judge's count.`}
-                  </p>
-                </div>
-              ) : null}
-              {shown.judgedByModel ? (
-                <p className="muted small">A second Grok call reviewed this prompt. It can add cost, never remove it.</p>
-              ) : null}
-              <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
-              <pre>{shown.aiResponse}</pre>
-            </section>
-          ) : null}
+          {shown ? <ResultCard shown={shown} /> : null}
 
           {thread ? <ThreadLog thread={thread} /> : null}
           <Leaderboard session={session} />
@@ -368,17 +518,125 @@ export default function PlayPage() {
   );
 }
 
+function SourceNote({
+  title,
+  ask,
+  body,
+  onInclude,
+}: {
+  title?: string;
+  ask: string;
+  body: string;
+  onInclude?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="chat-msg is-grok">
+      <span className="chat-msg__who">Grok</span>
+      <p>{ask}</p>
+      <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide the source" : "See the source"}
+      </button>
+      {open ? (
+        <>
+          {title ? <p className="eyebrow">{title}</p> : null}
+          <pre className="fixture">{body}</pre>
+          {onInclude ? (
+            <button className="btn-ghost" type="button" onClick={onInclude}>
+              Include this source
+            </button>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function CompeteScene({ band, health }: { band: ReefBand; health: number }) {
+  const life = reefPresence(health);
+  return (
+    <div className="compete-scene" aria-hidden="true">
+      <img className="compete-scene__band" src={`/reef/${band}.svg`} alt="" />
+      {life.fish ? <span className="swimmer s1 is-flip"><img src="/reef/04-pip-fish.svg" alt="" /></span> : null}
+      {life.school ? <span className="swimmer s2"><img src="/reef/04-pip-fish.svg" alt="" /></span> : null}
+      {life.jelly ? <span className="swimmer s3"><img src="/reef/03-juno-jellyfish.svg" alt="" /></span> : null}
+      {life.whale ? <span className="swimmer s-whale is-flip"><img src="/reef/06-winnie-whale.svg" alt="" /></span> : null}
+      {life.bag ? <span className="swimmer s-trash"><img src="/reef/plastic-bag.svg" alt="" /></span> : null}
+      {life.bottle ? <span className="swimmer s-trash t2"><img src="/reef/crushed-bottle.svg" alt="" /></span> : null}
+      {life.bones ? <span className="swimmer s-trash t3"><img src="/reef/fishbones-small.svg" alt="" /></span> : null}
+    </div>
+  );
+}
+
+function ResultCard({ shown }: { shown: Submission }) {
+  const [open, setOpen] = useState(false);
+  const problems = !shown.reasonable;
+  return (
+    <section className="panel result">
+      <div className="code-block">
+        <GradeBadge grade={shown.grade} />
+        <strong>{shown.score}</strong>
+      </div>
+      <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
+        {shown.reasonable ? "Reasonable prompt" : "Too much work"}
+      </p>
+      <p>
+        {shown.reasonable
+          ? "The source was in the message, so Grok did no extra search."
+          : "The source was missing, so Grok searched and the reef paid for it."}
+      </p>
+      <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide the details" : problems ? "See the problems" : "See Grok's answer"}
+      </button>
+      {open ? (
+        <div className="result-details stack">
+          <p>{shown.verdictReason || shown.summary}</p>
+          {shown.savedVsVague > 0 ? (
+            <p>This prompt saved {shown.savedVsVague.toLocaleString()} tokens compared with a vague one.</p>
+          ) : null}
+          <Receipt submission={shown} />
+          {shown.betterPrompt ? (
+            <div className="better-prompt">
+              <p className="eyebrow">Shorter, with every detail</p>
+              <p>{shown.betterPrompt}</p>
+              <p className="muted">
+                {shown.measuredSaved > 0
+                  ? `Measured with Grok: ${shown.measuredTokens.toLocaleString()} real tokens for yours, ${shown.betterMeasuredTokens.toLocaleString()} for this one. Saves ${shown.measuredSaved.toLocaleString()}.`
+                  : `Saves about ${shown.betterSaves.toLocaleString()} tokens by the judge's count.`}
+              </p>
+            </div>
+          ) : null}
+          {shown.judgedByModel ? (
+            <p className="muted">A second Grok call reviewed this prompt. It can add cost, never remove it.</p>
+          ) : null}
+          {shown.serverSideTools > 0 ? (
+            <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
+          ) : null}
+          <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
+          <pre>{shown.aiResponse}</pre>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ThreadLog({ thread }: { thread: Thread }) {
+  const [open, setOpen] = useState(false);
   if (thread.messages.length === 0) return null;
   return (
     <section className="panel stack thread-log">
       <h2>This thread</h2>
-      {thread.messages.map((message, index) => (
-        <p key={`${message.role}-${index}`}>
-          <strong>{message.role === "user" ? "You" : "Grok"}</strong>
-          {message.content}
-        </p>
-      ))}
+      <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide the thread" : "See the thread"}
+      </button>
+      {open
+        ? thread.messages.map((message, index) => (
+            <p key={`${message.role}-${index}`}>
+              <strong>{message.role === "user" ? "You" : "Grok"}</strong>
+              {message.content}
+            </p>
+          ))
+        : null}
     </section>
   );
 }
