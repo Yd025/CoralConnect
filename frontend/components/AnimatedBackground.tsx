@@ -40,6 +40,44 @@ function Anchor({
   );
 }
 
+function Lane({
+  className,
+  top,
+  depth,
+  layer,
+  duration,
+  delay,
+  reverse,
+  children,
+}: {
+  className: string;
+  top: string;
+  depth: number;
+  layer: number;
+  duration: number;
+  delay: number;
+  reverse?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`ambient-parallax ${className}`}
+      style={{ top, ["--depth" as string]: depth, ["--layer" as string]: layer }}
+    >
+      <span
+        className={reverse ? "ambient-track is-reverse" : "ambient-track"}
+        style={{
+          animationDuration: `${duration}s`,
+          animationDelay: `${delay}s`,
+          ["--fade" as string]: 1,
+        }}
+      >
+        {children}
+      </span>
+    </div>
+  );
+}
+
 function Cast({ src, flip }: { src: string; flip?: boolean }) {
   return <img className={flip ? "cast-art cast-flip" : "cast-art"} src={src} alt="" />;
 }
@@ -94,7 +132,7 @@ export function AnimatedBackground() {
       const timer = window.setTimeout(() => {
         timers.delete(timer);
         setRipples((items) => items.filter((item) => item.id !== id));
-      }, 3300);
+      }, 2200);
       timers.add(timer);
     };
 
@@ -122,21 +160,24 @@ export function AnimatedBackground() {
         <div className="ambient-parallax ambient-photo" style={{ ["--depth" as string]: 0.06, ["--layer" as string]: 0 }}>
           <img src="/reef/reef-backdrop.png" alt="" />
         </div>
-        <Anchor className="cast-jelly" depth={0.35} layer={3} drift={16} delay={-2}>
+        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} duration={36} delay={-8}>
           <Cast src="/reef/03-juno-jellyfish.svg" />
-        </Anchor>
-        <Anchor className="cast-whale" depth={0.55} layer={4} drift={22} delay={-6}>
+        </Lane>
+        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={46} delay={-18}>
           <Cast src="/reef/06-winnie-whale.svg" flip />
-        </Anchor>
-        <Anchor className="cast-turtle" depth={0.72} layer={5} drift={18} reverse delay={-4}>
+        </Lane>
+        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={30} delay={-9} reverse>
           <Cast src="/reef/02-moss-turtle.svg" />
-        </Anchor>
-        <Anchor className="cast-tang" depth={0.9} layer={6} drift={14} reverse delay={-8}>
+        </Lane>
+        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={22} delay={-7}>
+          <Cast src="/reef/04-pip-fish.svg" flip />
+        </Lane>
+        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={16} delay={-3} reverse>
           <Cast src="/reef/04-pip-fish.svg" />
-        </Anchor>
-        <Anchor className="cast-octopus" depth={0.4} layer={6} drift={20} delay={-3}>
+        </Lane>
+        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={40} delay={-16} reverse>
           <Cast src="/reef/05-otto-octopus.svg" />
-        </Anchor>
+        </Lane>
         <Anchor className="cast-crab" depth={0.28} layer={7} drift={24} delay={-9}>
           <Cast src="/reef/01-clover-crab.svg" />
         </Anchor>
@@ -179,7 +220,9 @@ export function AnimatedBackground() {
       </div>
       <div className="ambient-ripples" aria-hidden="true">
         {ripples.map((ripple) => (
-          <span key={ripple.id} className="ambient-ripple" style={{ left: ripple.x, top: ripple.y }} />
+          <span key={ripple.id} className="ambient-ripple" style={{ left: ripple.x, top: ripple.y }}>
+            <i /><i /><i />
+          </span>
         ))}
       </div>
     </>
