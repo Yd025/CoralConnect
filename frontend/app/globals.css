@@ -492,21 +492,44 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   left: 0;
   display: block;
   opacity: var(--fade, 0.55);
+  --wave: 80px;
   animation-name: ambient-drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
+.ambient-track.path-rise { animation-name: path-rise; }
+.ambient-track.path-dip { animation-name: path-dip; }
 .ambient-track.is-reverse { animation-direction: reverse; }
 @keyframes ambient-drift {
-  0% { transform: translate3d(-22vw, 0, 0); }
-  12.5% { transform: translate3d(-6vw, -14px, 0); }
-  25% { transform: translate3d(12vw, -22px, 0); }
-  37.5% { transform: translate3d(30vw, -14px, 0); }
-  50% { transform: translate3d(48vw, 0, 0); }
-  62.5% { transform: translate3d(66vw, 14px, 0); }
-  75% { transform: translate3d(84vw, 22px, 0); }
-  87.5% { transform: translate3d(100vw, 14px, 0); }
-  100% { transform: translate3d(116vw, 0, 0); }
+  0% { transform: translate3d(-80vw, 0, 0); }
+  12% { transform: translate3d(-28vw, calc(var(--wave) * -0.55), 0); }
+  24% { transform: translate3d(4vw, calc(var(--wave) * 0.95), 0); }
+  37% { transform: translate3d(32vw, calc(var(--wave) * -0.35), 0); }
+  50% { transform: translate3d(58vw, calc(var(--wave) * 0.75), 0); }
+  63% { transform: translate3d(86vw, calc(var(--wave) * -1), 0); }
+  76% { transform: translate3d(112vw, calc(var(--wave) * 0.4), 0); }
+  88% { transform: translate3d(142vw, calc(var(--wave) * -0.2), 0); }
+  100% { transform: translate3d(180vw, 0, 0); }
+}
+@keyframes path-rise {
+  0% { transform: translate3d(-80vw, calc(var(--wave) * 0.15), 0); }
+  14% { transform: translate3d(-18vw, calc(var(--wave) * 1), 0); }
+  28% { transform: translate3d(12vw, calc(var(--wave) * 0.2), 0); }
+  44% { transform: translate3d(40vw, calc(var(--wave) * 0.72), 0); }
+  60% { transform: translate3d(70vw, calc(var(--wave) * -0.45), 0); }
+  76% { transform: translate3d(102vw, calc(var(--wave) * -1), 0); }
+  90% { transform: translate3d(138vw, calc(var(--wave) * -0.25), 0); }
+  100% { transform: translate3d(180vw, calc(var(--wave) * 0.15), 0); }
+}
+@keyframes path-dip {
+  0% { transform: translate3d(-80vw, calc(var(--wave) * -0.1), 0); }
+  15% { transform: translate3d(-16vw, calc(var(--wave) * -0.95), 0); }
+  30% { transform: translate3d(14vw, calc(var(--wave) * -0.15), 0); }
+  46% { transform: translate3d(42vw, calc(var(--wave) * -0.8), 0); }
+  62% { transform: translate3d(74vw, calc(var(--wave) * 0.55), 0); }
+  78% { transform: translate3d(108vw, calc(var(--wave) * 1), 0); }
+  90% { transform: translate3d(140vw, calc(var(--wave) * 0.3), 0); }
+  100% { transform: translate3d(180vw, calc(var(--wave) * -0.1), 0); }
 }
 .ambient-ripples {
   position: fixed;

@@ -35,6 +35,8 @@ function Lane({
   duration,
   delay,
   reverse,
+  wave,
+  path = "weave",
   children,
 }: {
   className: string;
@@ -44,6 +46,8 @@ function Lane({
   duration: number;
   delay: number;
   reverse?: boolean;
+  wave: number;
+  path?: "weave" | "rise" | "dip";
   children: ReactNode;
 }) {
   return (
@@ -52,11 +56,12 @@ function Lane({
       style={{ top, ["--depth" as string]: depth, ["--layer" as string]: layer }}
     >
       <span
-        className={reverse ? "ambient-track is-reverse" : "ambient-track"}
+        className={reverse ? `ambient-track path-${path} is-reverse` : `ambient-track path-${path}`}
         style={{
           animationDuration: `${duration}s`,
           animationDelay: `${delay}s`,
           ["--fade" as string]: 1,
+          ["--wave" as string]: `${wave}px`,
         }}
       >
         {children}
@@ -212,22 +217,22 @@ export function AnimatedBackground() {
         <div className="ambient-parallax ambient-photo" style={{ ["--depth" as string]: 0.06, ["--layer" as string]: 0 }}>
           <img src="/reef/reef-backdrop.png" alt="" />
         </div>
-        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} duration={72} delay={-16}>
+        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} duration={104} delay={-16} wave={120} path="rise">
           <Cast src="/reef/03-juno-jellyfish.svg" />
         </Lane>
-        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={96} delay={-38}>
+        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={140} delay={-38} wave={86} path="weave">
           <Cast src="/reef/06-winnie-whale.svg" flip />
         </Lane>
-        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={68} delay={-20}>
+        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={98} delay={-20} wave={130} path="dip">
           <Cast src="/reef/02-moss-turtle.svg" />
         </Lane>
-        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={50} delay={-16}>
+        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={72} delay={-16} wave={96} path="weave">
           <Cast src="/reef/04-pip-fish.svg" flip />
         </Lane>
-        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={40} delay={-8} reverse>
+        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={58} delay={-8} wave={70} path="rise" reverse>
           <Cast src="/reef/04-pip-fish.svg" />
         </Lane>
-        <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={44} delay={-12}>
+        <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={64} delay={-12} wave={110} path="dip">
           <School
             flip
             size={150}
@@ -240,7 +245,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={38} delay={-20} reverse>
+        <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={55} delay={-20} wave={78} path="weave" reverse>
           <School
             size={130}
             spots={[
@@ -251,7 +256,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={56} delay={-26}>
+        <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={81} delay={-26} wave={140} path="rise">
           <School
             flip
             size={118}
@@ -265,7 +270,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={84} delay={-34} reverse>
+        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={122} delay={-34} wave={100} path="dip" reverse>
           <Cast src="/reef/05-otto-octopus.svg" />
         </Lane>
         <Anchor className="cast-crab" layer={7}>
@@ -300,6 +305,7 @@ export function AnimatedBackground() {
                 animationDuration: `${item.duration}s`,
                 animationDelay: `${item.delay}s`,
                 ["--fade" as string]: item.fade,
+                ["--wave" as string]: "22px",
               } as CSSProperties}
             >
               <Mote size={item.size} />
