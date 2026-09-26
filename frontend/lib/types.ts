@@ -70,6 +70,12 @@ export type Squad = {
   lastGrade: Grade | null;
 };
 
+export type ReceiptLine = {
+  tone: "info" | "good" | "cost" | "bad";
+  text: string;
+  tokens: number;
+};
+
 export type Submission = {
   id: string;
   playerId: string;
@@ -97,6 +103,50 @@ export type Submission = {
   verdictReason: string;
   judgedByModel: boolean;
   serverSideTools: number;
+  effectiveTokens: number;
+  leaked: boolean;
+  receipt: ReceiptLine[];
+  verdict: Verdict | "";
+  flags: string[];
+  reviewerVerdict: string;
+  betterPrompt: string;
+  betterSaves: number;
+  savedVsVague: number;
+  measuredTokens: number;
+  betterMeasuredTokens: number;
+  measuredSaved: number;
+};
+
+export type Verdict = "efficient" | "okay" | "wasteful" | "horrible";
+
+// POST /api/judge (backend/app/judge.py public_verdict)
+export type JudgeResult = {
+  mode: "game" | "general";
+  modeUsed: "fast" | "full";
+  verdict: Verdict;
+  grade: Grade;
+  score: number;
+  measured: boolean;
+  tokens: {
+    prompt: number;
+    lookups: number;
+    ask: number;
+    output: number;
+    extraRounds: number;
+    effective: number;
+    budget: number;
+    measured: number | null;
+    betterMeasured: number | null;
+  };
+  missing: string[];
+  flags: string[];
+  betterPrompt: string;
+  betterPromptSaves: number;
+  measuredSaved: number;
+  savedVsVague: number;
+  gramsCO2e: number;
+  reviewer: { used: boolean; verdict: string; reason: string; missing: string[] };
+  reasons: ReceiptLine[];
 };
 
 export type ReefEvent = {
@@ -141,6 +191,8 @@ export type Health = {
     carbonGramsPerKwh: number;
     scaleQueries: number;
     webLookupTokens: number;
+    budgetTokens: number;
+    askTokens: number;
     tokenizer: string;
     note: string;
   };

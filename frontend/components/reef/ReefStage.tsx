@@ -1,10 +1,11 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
+import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { AmbientLife, BandArt, Bloom, Fish, SludgeBarrel, Turtle } from "@/components/reef/FallbackReef";
 import { reefLabel, slot } from "@/lib/reef";
-import type { GameSession, ReefEvent } from "@/lib/types";
+import type { GameSession, ReefEvent, Submission } from "@/lib/types";
 
 export function ReefStage({
   session,
@@ -77,9 +78,39 @@ export function ReefStage({
             </div>
           </div>
         ) : null}
-        <p className="reef__latest">{session.events[0]?.title}</p>
+        <div className="reef__footnote">
+          <LastTurn submission={session.submissions[0]} />
+          <p className="reef__latest">{session.events[0]?.title}</p>
+        </div>
       </footer>
     </section>
+  );
+}
+
+// The judge's numbers for the most recent turn, big enough to read from the table.
+function LastTurn({ submission }: { submission: Submission | undefined }) {
+  if (!submission) return null;
+  const verdict = submission.verdict || (submission.reasonable ? "okay" : "wasteful");
+  return (
+    <div className="reef__turn">
+      <div className="reef__turn-head">
+        <GradeBadge grade={submission.grade} />
+        <strong>{submission.actor}</strong>
+        <span className="reef__turn-verdict">{verdict}</span>
+      </div>
+      <p>
+        {(submission.effectiveTokens || submission.tokenCount).toLocaleString()} tokens of model work
+        {submission.savedVsVague > 0 ? ` · saved ${submission.savedVsVague.toLocaleString()} vs a vague prompt` : ""}
+      </p>
+      {submission.measuredTokens > 0 ? (
+        <p>
+          Real Grok run: {submission.measuredTokens.toLocaleString()} tokens
+          {submission.betterMeasuredTokens > 0
+            ? ` · better prompt ${submission.betterMeasuredTokens.toLocaleString()} · saved ${submission.measuredSaved.toLocaleString()}`
+            : ""}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
