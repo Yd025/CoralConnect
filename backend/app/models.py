@@ -9,6 +9,13 @@ def _take(cls, data: dict[str, Any]):
     return cls(**{key: value for key, value in data.items() if key in allowed})
 
 
+def player_bounds(mode: str) -> tuple[int, int]:
+    """Inclusive roster size for a mode. Rehearsal players do not count."""
+    if mode == "collaborate":
+        return 2, 4
+    return 1, 10
+
+
 @dataclass
 class Player:
     id: str

@@ -21,7 +21,7 @@ from .challenges import get_challenge
 from .config import settings
 from .grok import complete, finalize_verdict, icebreaker, imagine, review_call
 from .hub import hub
-from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread
+from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
 from .serialize import public_session
 from .store import store
 
@@ -81,6 +81,10 @@ def _player(session: Session, player_id: str, player_token: str) -> Player:
     if player is None or not secrets.compare_digest(player.token, player_token):
         raise GameError(403, "Rejoin this game from the phone that entered it.")
     return player
+
+
+def _roster(session: Session) -> list[Player]:
+    return [player for player in session.players if player.id != "p_rehearsal"]
 
 
 def _squad_for(session: Session, player: Player) -> Squad | None:
@@ -179,6 +183,11 @@ async def join(code: str, name: str, language: str) -> tuple[Session, Player]:
         session = _must(code)
         if session.status == "ended":
             raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        _, maximum = player_bounds(session.mode)
+        if len(_roster(session)) >= maximum:
+            if session.mode == "collaborate":
+                raise GameError(409, "This collaborate table is full. It holds 2 to 4 players.")
+            raise GameError(409, "This compete table is full. It holds up to 10 players.")
         player = Player(
             id=_id("p"),
             token=secrets.token_urlsafe(18),
@@ -231,9 +240,12 @@ async def start(code: str, admin_token: str) -> Session:
     async with store.lock:
         session = _must(code)
         _check_admin(session, admin_token)
-        connected = [p for p in session.players if p.connected]
-        if not connected:
-            raise GameError(409, "Wait for at least one player to join.")
+        connected = [p for p in _roster(session) if p.connected]
+        minimum, maximum = player_bounds(session.mode)
+        if len(connected) < minimum or len(connected) > maximum:
+            if session.mode == "collaborate":
+                raise GameError(409, "Collaborate needs 2 to 4 players before the round starts.")
+            raise GameError(409, "Compete needs 1 to 10 players before the round starts.")
         if session.mode == "collaborate":
             _form_squads(session, connected)
         session.status = "playing"

@@ -101,6 +101,8 @@ export type GameSession = {
   code: string;
   mode: Mode;
   status: Status;
+  playerMin: number;
+  playerMax: number;
   challenge: Challenge | null;
   reefHealth: number;
   reefBand: ReefBand;

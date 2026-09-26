@@ -50,6 +50,75 @@ def test_pairing_groups_by_language_then_mixes_leftovers():
     assert sizes == [2, 2]
 
 
+def test_compete_caps_at_ten_players():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "compete", "challengeId": "invoice-bug"},
+    )
+    assert created.status_code == 200
+    code = created.json()["session"]["code"]
+    assert created.json()["session"]["playerMin"] == 1
+    assert created.json()["session"]["playerMax"] == 10
+    for index in range(10):
+        joined = client.post(
+            f"/api/sessions/{code}/join",
+            json={"name": f"P{index}", "language": "Python"},
+        )
+        assert joined.status_code == 200
+    extra = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Extra", "language": "Python"},
+    )
+    assert extra.status_code == 409
+    assert "10" in extra.json()["error"]
+
+
+def test_collaborate_requires_two_to_four_players():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    assert created["session"]["playerMin"] == 2
+    assert created["session"]["playerMax"] == 4
+
+    alone = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Ada", "language": "Python"},
+    )
+    assert alone.status_code == 200
+    too_soon = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    assert too_soon.status_code == 409
+
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Grace", "language": "Python"},
+    )
+    started = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    assert started.status_code == 200
+
+    full = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    full_code = full["session"]["code"]
+    for name in ("Ada", "Grace", "Lin", "Kay"):
+        joined = client.post(
+            f"/api/sessions/{full_code}/join",
+            json={"name": name, "language": "Python"},
+        )
+        assert joined.status_code == 200
+    fifth = client.post(
+        f"/api/sessions/{full_code}/join",
+        json={"name": "Nia", "language": "Python"},
+    )
+    assert fifth.status_code == 409
+    assert "4" in fifth.json()["error"]
+
+
 def test_compete_flow_grades_and_poisons_the_reef():
     client = TestClient(app)
     created = client.post(
