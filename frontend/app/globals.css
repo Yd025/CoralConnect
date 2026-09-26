@@ -499,6 +499,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 }
 .ambient-track.path-rise { animation-name: path-rise; }
 .ambient-track.path-dip { animation-name: path-dip; }
+.ambient-track.swim { animation: none; }
 .ambient-track.is-reverse { animation-direction: reverse; }
 @keyframes ambient-drift {
   0% { transform: translate3d(-80vw, 0, 0); }

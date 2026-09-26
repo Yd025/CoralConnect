@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 type Ripple = { id: number; x: number; y: number };
 
@@ -32,22 +32,18 @@ function Lane({
   top,
   depth,
   layer,
-  duration,
-  delay,
-  reverse,
+  pace,
   wave,
-  path = "weave",
+  direction = 1,
   children,
 }: {
   className: string;
   top: string;
   depth: number;
   layer: number;
-  duration: number;
-  delay: number;
-  reverse?: boolean;
+  pace: number;
   wave: number;
-  path?: "weave" | "rise" | "dip";
+  direction?: 1 | -1;
   children: ReactNode;
 }) {
   return (
@@ -56,13 +52,11 @@ function Lane({
       style={{ top, ["--depth" as string]: depth, ["--layer" as string]: layer }}
     >
       <span
-        className={reverse ? `ambient-track path-${path} is-reverse` : `ambient-track path-${path}`}
-        style={{
-          animationDuration: `${duration}s`,
-          animationDelay: `${delay}s`,
-          ["--fade" as string]: 1,
-          ["--wave" as string]: `${wave}px`,
-        }}
+        className="ambient-track swim"
+        data-dir={direction}
+        data-pace={pace}
+        data-wave={wave}
+        style={{ ["--fade" as string]: 1 }}
       >
         {children}
       </span>
@@ -106,69 +100,127 @@ export function AnimatedBackground() {
   const ids = useRef(0);
   const [ripples, setRipples] = useState<Ripple[]>([]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = rootRef.current;
     if (!node) return;
 
     const point = { x: 0, y: 0 };
-    const scares: { x: number; y: number; until: number }[] = [];
-    const dodge = new WeakMap<HTMLElement, { x: number; y: number }>();
     let frame = 0;
     let lastRipple = 0;
+    let last = performance.now();
     const timers = new Set<number>();
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const swimmers = [...node.querySelectorAll<HTMLElement>(".swim")].map((el) => {
+      const dir = Number(el.dataset.dir) >= 0 ? 1 : -1;
+      const cruise = Number(el.dataset.pace) || 28;
+      const amp = Number(el.dataset.wave) || 80;
+      const pace = cruise * (0.72 + Math.random() * 0.56);
+      return {
+        el,
+        x: (Math.random() * 1.25 - 0.12) * window.innerWidth,
+        y: (Math.random() - 0.5) * amp,
+        vx: dir * pace,
+        vy: (Math.random() - 0.5) * 10,
+        want: dir * pace,
+        dir,
+        cruise,
+        amp,
+        steer: Math.random() * 2 - 1,
+        rise: 16 + Math.random() * 22,
+        retarget: performance.now() + Math.random() * 4000,
+      };
+    });
 
-    const tick = () => {
-      frame = 0;
-      const now = performance.now();
-      for (let i = scares.length - 1; i >= 0; i -= 1) {
-        if (scares[i].until <= now) scares.splice(i, 1);
-      }
+    const place = () => {
+      swimmers.forEach((swimmer) => {
+        swimmer.el.style.transform = `translate3d(${swimmer.x.toFixed(1)}px, ${swimmer.y.toFixed(1)}px, 0)`;
+      });
+    };
+
+    const nudge = (px: number, py: number) => {
+      swimmers.forEach((swimmer) => {
+        let nearest = Infinity;
+        let dx = 0;
+        let dy = -1;
+        let reach = 0;
+        swimmer.el.querySelectorAll("img").forEach((img) => {
+          const box = img.getBoundingClientRect();
+          const cx = box.left + box.width / 2;
+          const cy = box.top + box.height / 2;
+          const ddx = cx - px;
+          const ddy = cy - py;
+          const dist = Math.hypot(ddx, ddy);
+          const zone = Math.min(box.width, box.height) * 0.22 + 78;
+          if (dist < zone && dist < nearest) {
+            nearest = dist;
+            dx = ddx;
+            dy = ddy;
+            reach = zone;
+          }
+        });
+        if (!Number.isFinite(nearest) || nearest === Infinity) return;
+        const dist = Math.max(1, nearest);
+        const impulse = (reach - nearest) * 1.7;
+        swimmer.vy += (dy / dist) * impulse;
+        const shoved = swimmer.vx + (dx / dist) * impulse * 0.4;
+        if (shoved * swimmer.dir < swimmer.cruise * 0.18) {
+          swimmer.vy += Math.sign(dy || -1) * Math.abs((dx / dist) * impulse) * 0.65;
+          swimmer.vx = swimmer.dir * swimmer.cruise * 0.18;
+        } else {
+          swimmer.vx = shoved;
+        }
+      });
+    };
+
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+      last = now;
       node.style.setProperty("--px", point.x.toFixed(4));
       node.style.setProperty("--py", point.y.toFixed(4));
+      if (reduced) return;
 
-      let settling = false;
-      node.querySelectorAll<HTMLElement>(".avoid").forEach((el) => {
-        const state = dodge.get(el) ?? { x: 0, y: 0 };
-        const box = el.getBoundingClientRect();
-        const left = box.left - state.x;
-        const top = box.top - state.y;
-        const cx = left + box.width / 2;
-        const cy = top + box.height / 2;
-        const clear = Math.min(box.width, box.height) * 0.22 + 72;
-        let tx = 0;
-        let ty = 0;
-        let best = 0;
-        scares.forEach((scare) => {
-          let dx = cx - scare.x;
-          let dy = cy - scare.y;
-          let dist = Math.hypot(dx, dy);
-          if (dist >= clear) return;
-          if (dist < 1) {
-            dx = 0;
-            dy = -1;
-            dist = 1;
-          }
-          const push = clear - dist;
-          if (push <= best) return;
-          best = push;
-          tx = (dx / dist) * push;
-          ty = (dy / dist) * push;
-        });
-        state.x += (tx - state.x) * 0.07;
-        state.y += (ty - state.y) * 0.07;
-        if (Math.hypot(state.x, state.y) > 0.6 || Math.hypot(tx, ty) > 0.6) settling = true;
-        dodge.set(el, state);
-        el.style.setProperty("--dodge-x", `${state.x.toFixed(1)}px`);
-        el.style.setProperty("--dodge-y", `${state.y.toFixed(1)}px`);
+      const view = window.innerWidth;
+      swimmers.forEach((swimmer) => {
+        if (now > swimmer.retarget) {
+          swimmer.steer = Math.random() * 2 - 1;
+          swimmer.want = swimmer.dir * swimmer.cruise * (0.68 + Math.random() * 0.64);
+          swimmer.retarget = now + 2400 + Math.random() * 6200;
+        }
+        if (swimmer.y > swimmer.amp) swimmer.steer = Math.min(swimmer.steer, -0.35);
+        if (swimmer.y < -swimmer.amp) swimmer.steer = Math.max(swimmer.steer, 0.35);
+        swimmer.vx += (swimmer.want - swimmer.vx) * Math.min(1, dt * 0.28);
+        swimmer.vy += (swimmer.steer * swimmer.rise - swimmer.vy) * Math.min(1, dt * 0.45);
+        swimmer.x += swimmer.vx * dt;
+        swimmer.y += swimmer.vy * dt;
+
+        const span = swimmer.el.offsetWidth || 220;
+        if (swimmer.dir > 0 && swimmer.x > view + span) {
+          swimmer.x = -span - Math.random() * 320;
+          swimmer.y = (Math.random() - 0.5) * swimmer.amp;
+          swimmer.vy = 0;
+          swimmer.want = swimmer.dir * swimmer.cruise * (0.7 + Math.random() * 0.5);
+          swimmer.vx = swimmer.want;
+        } else if (swimmer.dir < 0 && swimmer.x < -span) {
+          swimmer.x = view + Math.random() * 320;
+          swimmer.y = (Math.random() - 0.5) * swimmer.amp;
+          swimmer.vy = 0;
+          swimmer.want = swimmer.dir * swimmer.cruise * (0.7 + Math.random() * 0.5);
+          swimmer.vx = swimmer.want;
+        }
       });
-
-      if (settling || scares.length > 0) frame = requestAnimationFrame(tick);
+      place();
     };
+
+    place();
+    const loop = (now: number) => {
+      frame = requestAnimationFrame(loop);
+      step(now);
+    };
+    frame = requestAnimationFrame(loop);
 
     const onMove = (event: PointerEvent) => {
       point.x = (event.clientX / window.innerWidth - 0.5) * 2;
       point.y = (event.clientY / window.innerHeight - 0.5) * 2;
-      if (frame === 0) frame = requestAnimationFrame(tick);
     };
 
     const spawn = (event: Event) => {
@@ -180,7 +232,7 @@ export function AnimatedBackground() {
       lastRipple = now;
       const id = ++ids.current;
       const ripple = { id, x: pointer.clientX, y: pointer.clientY };
-      scares.push({ x: pointer.clientX, y: pointer.clientY, until: now + 2200 });
+      if (!reduced) nudge(pointer.clientX, pointer.clientY);
       setRipples((items) => {
         const next = [...items, ripple];
         return next.length > 10 ? next.slice(next.length - 10) : next;
@@ -190,7 +242,6 @@ export function AnimatedBackground() {
         setRipples((items) => items.filter((item) => item.id !== id));
       }, 2200);
       timers.add(timer);
-      if (frame === 0) frame = requestAnimationFrame(tick);
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -217,22 +268,22 @@ export function AnimatedBackground() {
         <div className="ambient-parallax ambient-photo" style={{ ["--depth" as string]: 0.06, ["--layer" as string]: 0 }}>
           <img src="/reef/reef-backdrop.png" alt="" />
         </div>
-        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} duration={104} delay={-16} wave={120} path="rise">
+        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} pace={24} wave={100}>
           <Cast src="/reef/03-juno-jellyfish.svg" />
         </Lane>
-        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={140} delay={-38} wave={86} path="weave">
+        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} pace={16} wave={70}>
           <Cast src="/reef/06-winnie-whale.svg" flip />
         </Lane>
-        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={98} delay={-20} wave={130} path="dip">
+        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} pace={28} wave={110}>
           <Cast src="/reef/02-moss-turtle.svg" />
         </Lane>
-        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={72} delay={-16} wave={96} path="weave">
+        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} pace={32} wave={80}>
           <Cast src="/reef/04-pip-fish.svg" flip />
         </Lane>
-        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={58} delay={-8} wave={70} path="rise" reverse>
+        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} pace={38} wave={60} direction={-1}>
           <Cast src="/reef/04-pip-fish.svg" />
         </Lane>
-        <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={64} delay={-12} wave={110} path="dip">
+        <Lane className="cast-school" top="20%" depth={0.32} layer={3} pace={34} wave={90}>
           <School
             flip
             size={150}
@@ -245,7 +296,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={55} delay={-20} wave={78} path="weave" reverse>
+        <Lane className="cast-school" top="40%" depth={0.62} layer={5} pace={40} wave={70} direction={-1}>
           <School
             size={130}
             spots={[
@@ -256,7 +307,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={81} delay={-26} wave={140} path="rise">
+        <Lane className="cast-school" top="56%" depth={0.8} layer={6} pace={30} wave={120}>
           <School
             flip
             size={118}
@@ -270,7 +321,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={122} delay={-34} wave={100} path="dip" reverse>
+        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} pace={18} wave={85} direction={-1}>
           <Cast src="/reef/05-otto-octopus.svg" />
         </Lane>
         <Anchor className="cast-crab" layer={7}>
