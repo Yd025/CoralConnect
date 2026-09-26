@@ -76,10 +76,13 @@ function Cast({ src, flip, still }: { src: string; flip?: boolean; still?: boole
 }
 
 function School({ flip, size, spots }: { flip?: boolean; size: number; spots: { x: number; y: number }[] }) {
+  const top = Math.min(...spots.map((spot) => spot.y));
+  const width = Math.max(...spots.map((spot) => spot.x)) + size;
+  const height = Math.max(...spots.map((spot) => spot.y)) - top + size;
   return (
-    <span className="school">
+    <span className="school" style={{ width, height }}>
       {spots.map((spot, index) => (
-        <span key={index} className="avoid school-fish" style={{ left: spot.x, top: spot.y, width: size }}>
+        <span key={index} className="avoid school-fish" style={{ left: spot.x, top: spot.y - top, width: size }}>
           <img className={flip ? "cast-art cast-flip" : "cast-art"} src="/reef/04-pip-fish.svg" alt="" />
         </span>
       ))}
@@ -110,17 +113,20 @@ export function AnimatedBackground() {
     let last = performance.now();
     const timers = new Set<number>();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const swimmers = [...node.querySelectorAll<HTMLElement>(".swim")].map((el) => {
+    const nodes = [...node.querySelectorAll<HTMLElement>(".swim")];
+    const swimmers = nodes.map((el, index) => {
       const dir = Number(el.dataset.dir) >= 0 ? 1 : -1;
       const cruise = Number(el.dataset.pace) || 28;
       const amp = Number(el.dataset.wave) || 80;
       const pace = cruise * (0.72 + Math.random() * 0.56);
+      const view = window.innerWidth;
+      const slot = ((index + 0.35) / nodes.length) * (view * 1.4) - view * 0.2;
       return {
         el,
-        x: (Math.random() * 1.25 - 0.12) * window.innerWidth,
-        y: (Math.random() - 0.5) * amp,
+        x: slot + (Math.random() - 0.5) * 36,
+        y: (Math.random() - 0.5) * amp * 0.35,
         vx: dir * pace,
-        vy: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.5) * 8,
         want: dir * pace,
         dir,
         cruise,
@@ -208,6 +214,36 @@ export function AnimatedBackground() {
           swimmer.vx = swimmer.want;
         }
       });
+
+      const bodies = swimmers.map((swimmer) => {
+        const box = swimmer.el.getBoundingClientRect();
+        return {
+          swimmer,
+          cx: box.left + box.width / 2,
+          cy: box.top + box.height / 2,
+          w: box.width,
+          h: box.height,
+        };
+      });
+      for (let i = 0; i < bodies.length; i += 1) {
+        for (let j = i + 1; j < bodies.length; j += 1) {
+          const a = bodies[i];
+          const b = bodies[j];
+          let dx = a.cx - b.cx;
+          let dy = a.cy - b.cy;
+          const overlapX = (Math.min(a.w, 340) + Math.min(b.w, 340)) / 2 - Math.abs(dx);
+          const overlapY = (Math.min(a.h, 260) + Math.min(b.h, 260)) / 2 - Math.abs(dy);
+          if (overlapX <= 0 || overlapY <= 0) continue;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          dx /= dist;
+          dy /= dist;
+          const push = Math.min(90, Math.min(overlapX, overlapY) * 2.2) * dt;
+          a.swimmer.vy = Math.max(-70, Math.min(70, a.swimmer.vy + dy * push));
+          b.swimmer.vy = Math.max(-70, Math.min(70, b.swimmer.vy - dy * push));
+          a.swimmer.want = a.swimmer.dir * Math.min(a.swimmer.cruise * 1.35, Math.abs(a.swimmer.want) + push * 0.35);
+          b.swimmer.want = b.swimmer.dir * Math.min(b.swimmer.cruise * 1.35, Math.abs(b.swimmer.want) + push * 0.35);
+        }
+      }
       place();
     };
 
@@ -286,38 +322,37 @@ export function AnimatedBackground() {
         <Lane className="cast-school" top="20%" depth={0.32} layer={3} pace={34} wave={90}>
           <School
             flip
-            size={150}
+            size={120}
             spots={[
-              { x: 0, y: 18 },
-              { x: 78, y: -8 },
-              { x: 86, y: 42 },
-              { x: 156, y: 8 },
-              { x: 168, y: 48 },
+              { x: 0, y: 28 },
+              { x: 168, y: 0 },
+              { x: 336, y: 52 },
+              { x: 504, y: 12 },
+              { x: 672, y: 40 },
             ]}
           />
         </Lane>
         <Lane className="cast-school" top="40%" depth={0.62} layer={5} pace={40} wave={70} direction={-1}>
           <School
-            size={130}
+            size={112}
             spots={[
-              { x: 0, y: 12 },
-              { x: 70, y: -16 },
-              { x: 74, y: 40 },
-              { x: 140, y: 6 },
+              { x: 0, y: 24 },
+              { x: 176, y: 0 },
+              { x: 352, y: 48 },
+              { x: 528, y: 16 },
             ]}
           />
         </Lane>
         <Lane className="cast-school" top="56%" depth={0.8} layer={6} pace={30} wave={120}>
           <School
             flip
-            size={118}
+            size={104}
             spots={[
-              { x: 0, y: 16 },
-              { x: 64, y: -6 },
-              { x: 60, y: 38 },
-              { x: 124, y: 10 },
-              { x: 132, y: 42 },
-              { x: 186, y: 4 },
+              { x: 0, y: 20 },
+              { x: 160, y: 48 },
+              { x: 320, y: 0 },
+              { x: 480, y: 36 },
+              { x: 640, y: 10 },
             ]}
           />
         </Lane>
