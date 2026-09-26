@@ -185,8 +185,13 @@ export function AnimatedBackground() {
         const box = member.el.getBoundingClientRect();
         const hit = shove(box.left + box.width / 2, box.top + box.height / 2, px, py, Math.min(box.width, box.height) * 0.22 + 78);
         if (!hit) return;
-        member.vx += hit.vx;
-        member.vy += hit.vy;
+        member.vx += hit.vx * 0.45;
+        member.vy += hit.vy * 0.45;
+        const speed = Math.hypot(member.vx, member.vy);
+        if (speed > 80) {
+          member.vx *= 80 / speed;
+          member.vy *= 80 / speed;
+        }
       });
       swimmers.forEach((swimmer) => {
         if (swimmer.el.querySelector(".school")) return;
@@ -283,18 +288,18 @@ export function AnimatedBackground() {
 
       members.forEach((member) => {
         if (now > member.retarget) {
-          member.aimX = (Math.random() - 0.5) * 20;
-          member.aimY = (Math.random() - 0.5) * 16;
+          member.aimX = (Math.random() - 0.5) * 26;
+          member.aimY = (Math.random() - 0.5) * 18;
           member.retarget = now + 2000 + Math.random() * 4800;
         }
         const ox = member.homeX - member.x;
         const oy = member.homeY - member.y;
         const off = Math.hypot(ox, oy);
-        const gain = 0.1 + Math.min(0.42, off / 260);
+        const gain = 0.16 + Math.min(0.5, off / 180);
         const pullX = ox * gain + member.aimX;
         const pullY = oy * gain + member.aimY;
-        member.vx += (pullX - member.vx) * Math.min(1, dt * 0.45);
-        member.vy += (pullY - member.vy) * Math.min(1, dt * 0.45);
+        member.vx += (pullX - member.vx) * Math.min(1, dt * 1.35);
+        member.vy += (pullY - member.vy) * Math.min(1, dt * 1.35);
         member.x += member.vx * dt;
         member.y += member.vy * dt;
       });
