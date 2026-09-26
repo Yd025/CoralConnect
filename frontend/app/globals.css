@@ -395,6 +395,12 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .cast-star img { width: 84px; }
 .cast-shell img { width: 96px; }
 .cast-kelp img { width: 150px; }
+.cast-boat img { width: 220px; }
+.cast-wave img { width: 170px; }
+.cast-bottle img { width: 78px; }
+.cast-light img { width: 120px; }
+.cast-stall img { width: 140px; }
+.cast-pearl img { width: 70px; }
 .ambient-parallax.scene-anchor { width: auto; }
 .scene-anchor .scene-drift { position: relative; animation-name: scene-drift; animation-timing-function: ease-in-out; }
 .ambient-parallax.cast-jelly,
@@ -407,6 +413,9 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .ambient-parallax.cast-star { top: auto; bottom: 22%; left: 18%; }
 .ambient-parallax.cast-shell { top: auto; bottom: 24%; left: 72%; }
 .ambient-parallax.cast-kelp { top: auto; bottom: 16%; left: auto; right: 0; }
+.ambient-parallax.cast-light { top: auto; bottom: 20%; left: 7%; }
+.ambient-parallax.cast-stall { top: auto; bottom: 12%; left: 28%; }
+.ambient-parallax.cast-pearl { top: auto; bottom: 22%; left: 62%; }
 @keyframes scene-drift {
   0%, 100% { transform: translate3d(-12px, 5px, 0); }
   50% { transform: translate3d(16px, -8px, 0); }
