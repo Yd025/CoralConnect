@@ -9,6 +9,13 @@ def _take(cls, data: dict[str, Any]):
     return cls(**{key: value for key, value in data.items() if key in allowed})
 
 
+def player_bounds(mode: str) -> tuple[int, int]:
+    """Inclusive roster size for a mode. Rehearsal players do not count."""
+    if mode == "collaborate":
+        return 2, 4
+    return 1, 10
+
+
 @dataclass
 class Player:
     id: str
@@ -74,6 +81,10 @@ class Submission:
     turn_index: int = 0
     turn_count: int = 1
     lookup_tokens: int = 0
+    reasonable: bool = True
+    verdict_reason: str = ""
+    judged_by_model: bool = False
+    server_side_tools: int = 0
 
 
 @dataclass

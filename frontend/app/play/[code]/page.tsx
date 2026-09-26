@@ -43,6 +43,9 @@ export default function PlayPage() {
     }
   }, [session, identity, code]);
 
+  const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
+  const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 4 : 10);
+  const tableFull = roster.length >= playerMax;
   const me = session?.players.find((player) => player.id === identity?.playerId);
   const squad = session?.squads.find((item) => item.id === me?.squadId);
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
@@ -147,7 +150,18 @@ export default function PlayPage() {
             </div>
           </section>
 
-          {!identity ? (
+          {!identity && tableFull ? (
+            <section className="panel stack">
+              <h2>This table is full.</h2>
+              <p className="muted">
+                {session.mode === "collaborate"
+                  ? "Collaborate holds 2 to 4 players."
+                  : "Compete holds up to 10 players."}
+              </p>
+            </section>
+          ) : null}
+
+          {!identity && !tableFull ? (
             <form className="panel stack" onSubmit={onJoin}>
               <label>
                 Your name
@@ -169,7 +183,7 @@ export default function PlayPage() {
             <section className="panel stack">
               <h2>You're in, {identity.name}.</h2>
               <p>Look at the big screen. The round starts when the table says go.</p>
-              <p className="muted">{session.players.length} here · you picked {me?.language}</p>
+              <p className="muted">{roster.length} of {playerMax} here · you picked {me?.language}</p>
               <button
                 className="btn-ghost"
                 type="button"
@@ -232,12 +246,16 @@ export default function PlayPage() {
                 <GradeBadge grade={shown.grade} />
                 <strong>{shown.score}</strong>
               </div>
-              <p>{shown.summary}</p>
-              <p className="muted">
-                {shown.lookupTokens > 0
-                  ? `The model looked it up (~${shown.lookupTokens} tokens). That is what hit the reef.`
-                  : "The model answered from what you gave it."}
+              <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
+                {shown.reasonable ? "Reasonable prompt" : "Too much work"}
               </p>
+              <p>{shown.verdictReason || shown.summary}</p>
+              {shown.judgedByModel ? (
+                <p className="muted">A second Grok call read the solver request and graded this prompt.</p>
+              ) : null}
+              {shown.serverSideTools > 0 ? (
+                <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
+              ) : null}
               <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
               <pre>{shown.aiResponse}</pre>
             </section>

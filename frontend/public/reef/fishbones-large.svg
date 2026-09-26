@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="fishbones-large-title fishbones-large-desc">
+  <title id="fishbones-large-title">Fish skeleton</title>
+  <desc id="fishbones-large-desc">A small weathered ivory fish skeleton with fine curved ribs and an open tail fan. Transparent editable vector, CoralConnect Deep Water collection.</desc>
+  <defs>
+    <linearGradient id="fishbones-large-bone" x1="0" y1="0" x2=".25" y2="1">
+      <stop stop-color="#d6d0b9" />
+      <stop offset="1" stop-color="#8e9c93" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(-7 256 256)">
+      <path d="M142 230 Q123 211 100 222 L77 246 L57 259 L81 264 L73 276 L108 291 Q130 290 143 271 L164 264 L162 247Z" fill="url(#fishbones-large-bone)" stroke="#829086" stroke-width="1.3" />
+      <ellipse cx="114" cy="244" rx="9" ry="7" fill="#47616b" />
+      <path d="M63 260 L91 262 L85 274 M132 229 L124 260 L138 272" fill="none" stroke="#8c988c" stroke-width="1.7" />
+      <path d="M145 253 C206 244 291 277 376 256" fill="none" stroke="#a5b0a1" stroke-width="7" />
+      <path d="M145 252 C206 243 291 274 376 255" fill="none" stroke="#d5d0b6" stroke-width="3" />
+      <path d="M171 252 Q162 237 166 220 M171 252 Q167 272 159 285" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="171" cy="252" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 171 252)" />
+      <path d="M191 255 Q182 222 186 205 M191 255 Q187 286 179 299" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="191" cy="255" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 191 255)" />
+      <path d="M214 260 Q205 216 209 199 M214 260 Q210 296 202 309" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="214" cy="260" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 214 260)" />
+      <path d="M238 264 Q229 221 233 204 M238 264 Q234 295 226 308" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="238" cy="264" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 238 264)" />
+      <path d="M262 266 Q253 233 257 216 M262 266 Q258 289 250 302" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="262" cy="266" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 262 266)" />
+      <path d="M286 266 Q277 246 281 229 M286 266 Q282 282 274 295" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="286" cy="266" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 286 266)" />
+      <path d="M309 265 Q300 256 304 239 M309 265 Q305 273 297 286" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="309" cy="265" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 309 265)" />
+      <path d="M331 262 Q322 262 326 245 M331 262 Q327 265 319 278" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="331" cy="262" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 331 262)" />
+      <path d="M351 259 Q342 266 346 249 M351 259 Q347 257 339 270" fill="none" stroke="#bdc3ad" stroke-width="3.3" />
+      <ellipse cx="351" cy="259" rx="3.6" ry="4.4" fill="#a1ad9d" transform="rotate(10 351 259)" />
+      <path d="M372 256 Q396 242 428 220 Q415 250 432 291 Q398 274 372 259Z" fill="none" stroke="#bbc3ae" stroke-width="2.4" />
+      <path d="M378 257 L422 230 M380 258 L414 251 M380 259 L423 280" fill="none" stroke="#a5b29f" stroke-width="1.7" />
+      <path d="M212 254 L230 220 L244 257 M268 270 L281 296 L293 268" fill="none" stroke="#a6b29d" stroke-width="1.6" />
+    </g>
+  </g>
+</svg>

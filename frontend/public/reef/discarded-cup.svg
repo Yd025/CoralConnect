@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="discarded-cup-title discarded-cup-desc">
+  <title id="discarded-cup-title">Discarded plastic cup</title>
+  <desc id="discarded-cup-desc">A dented translucent takeaway cup with a bent rim. Transparent editable vector, CoralConnect Deep Water collection.</desc>
+  <defs>
+    <linearGradient id="discarded-cup-plastic" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d5e1d8" stop-opacity=".64" />
+      <stop offset=".5" stop-color="#94b4b0" stop-opacity=".38" />
+      <stop offset="1" stop-color="#4d787f" stop-opacity=".56" />
+    </linearGradient>
+    <linearGradient id="discarded-cup-fold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#dae5db" stop-opacity=".6" />
+      <stop offset="1" stop-color="#7eaaa5" stop-opacity=".1" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(-23 256 270)">
+      <path d="M161 182 L348 180 L320 380 Q281 403 220 381Z" fill="url(#discarded-cup-plastic)" stroke="#a4b7ad" stroke-width="1.7" />
+      <path d="M171 198 L211 361 Q250 383 277 377 L245 349 L227 210Z" fill="url(#discarded-cup-fold)" opacity=".7" />
+      <path d="M324 218 L303 348 L289 337 L313 200Z" fill="#456c74" opacity=".2" />
+      <ellipse cx="255" cy="181" rx="94" ry="25" fill="#9cb9b2" opacity=".7" stroke="#b9cbbd" stroke-width="2" />
+      <ellipse cx="255" cy="181" rx="81" ry="17" fill="#436975" opacity=".65" />
+      <path d="M181 184 Q221 199 299 188" fill="none" stroke="#d6dfcd" stroke-width="2" opacity=".45" />
+      <path d="M209 367 Q264 388 319 371" fill="none" stroke="#b4c7b8" stroke-width="2" opacity=".7" />
+      <path d="M176 235 L208 264 L215 305 M333 259 L306 275 L309 311" fill="none" stroke="#73948d" stroke-width="1.5" opacity=".7" />
+    </g>
+  </g>
+</svg>

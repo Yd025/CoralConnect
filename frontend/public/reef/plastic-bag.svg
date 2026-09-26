@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="plastic-bag-title plastic-bag-desc">
+  <title id="plastic-bag-title">Drifting plastic bag</title>
+  <desc id="plastic-bag-desc">A translucent crumpled grocery bag with open handles and soft creases. Transparent editable vector, CoralConnect Deep Water collection.</desc>
+  <defs>
+    <linearGradient id="plastic-bag-plastic" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d5e1d8" stop-opacity=".64" />
+      <stop offset=".5" stop-color="#94b4b0" stop-opacity=".38" />
+      <stop offset="1" stop-color="#4d787f" stop-opacity=".56" />
+    </linearGradient>
+    <linearGradient id="plastic-bag-fold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#dae5db" stop-opacity=".6" />
+      <stop offset="1" stop-color="#7eaaa5" stop-opacity=".1" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M146 106 Q171 94 193 101 L206 168 Q250 184 293 168 L307 100 Q331 97 356 110 L344 178 C343 221 371 268 375 319 Q379 371 350 388 Q286 377 250 394 Q196 404 149 383 C127 363 137 310 133 269 L128 206 Q135 159 146 106Z M158 119 L148 179 Q164 169 187 172 L178 118Z M320 117 L309 173 Q323 173 332 181 L340 121Z" fill="url(#plastic-bag-plastic)" stroke="#a6c1b8" stroke-width="1.6" fill-rule="evenodd" />
+    <path d="M148 196 C168 229 154 284 153 363 L185 327 L190 213Z" fill="url(#plastic-bag-fold)" />
+    <path d="M308 205 Q298 264 327 346 L352 375 Q330 288 329 227Z" fill="url(#plastic-bag-fold)" opacity=".5" />
+    <path d="M201 192 Q207 229 223 260 M299 190 Q276 234 268 291 M162 368 Q198 349 235 370 M341 371 Q305 357 275 376 M162 247 Q153 274 165 315" fill="none" stroke="#d4ded2" stroke-width="1.8" opacity=".43" />
+    <path d="M220 309 Q231 349 250 379 M289 269 Q277 319 280 345" fill="none" stroke="#52747b" stroke-width="1.5" opacity=".42" />
+  </g>
+</svg>

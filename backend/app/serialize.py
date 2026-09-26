@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .carbon import reef_band
 from .challenges import get_challenge, public_challenge
-from .models import Player, ReefEvent, Session, Squad, Submission, Thread
+from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
 
 
 def public_player(player: Player) -> dict:
@@ -58,6 +58,10 @@ def public_submission(submission: Submission) -> dict:
         "turnIndex": submission.turn_index,
         "turnCount": submission.turn_count,
         "followUp": submission.turn_index + 1 < submission.turn_count,
+        "reasonable": submission.reasonable,
+        "verdictReason": submission.verdict_reason,
+        "judgedByModel": submission.judged_by_model,
+        "serverSideTools": submission.server_side_tools,
     }
 
 
@@ -89,6 +93,8 @@ def public_session(session: Session) -> dict:
         "code": session.code,
         "mode": session.mode,
         "status": session.status,
+        "playerMin": player_bounds(session.mode)[0],
+        "playerMax": player_bounds(session.mode)[1],
         "challenge": public_challenge(challenge) if challenge else None,
         "reefHealth": session.reef_health,
         "reefBand": reef_band(session.reef_health),

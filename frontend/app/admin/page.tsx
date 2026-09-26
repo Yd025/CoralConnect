@@ -76,6 +76,10 @@ export default function AdminPage() {
 
   const play = saved && origin ? playUrl(origin, saved.code) : "";
   const stage = saved && origin ? stageUrl(origin, saved.code) : "";
+  const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
+  const playerMin = session?.playerMin ?? (session?.mode === "collaborate" ? 2 : 1);
+  const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 4 : 10);
+  const canStart = session?.status !== "playing" && roster.length >= playerMin && roster.length <= playerMax;
 
   return (
     <main className="shell">
@@ -88,7 +92,13 @@ export default function AdminPage() {
       {error ? <p className="error">{error}</p> : null}
       <p className="muted">
         Engine: {apiBase()}
-        {health ? ` · ${health.grokConfigured ? `Grok live (${health.chatModel})` : "Grok key not set — grades still run, answers are simulated"}` : ""}
+        {health
+          ? ` · ${
+              health.grokConfigured
+                ? `Grok live (${health.chatModel}): it answers the player, then a second call grades the prompt`
+                : "Grok key not set — grades still run from whether the source is in the message, and answers are simulated"
+            }`
+          : ""}
       </p>
 
       <div className="admin-grid">
@@ -96,11 +106,11 @@ export default function AdminPage() {
           <div className="mode-grid">
             <button type="button" className={mode === "collaborate" ? "mode is-on" : "mode"} onClick={() => setMode("collaborate")}>
               <strong>Collaborate</strong>
-              <small>Pair strangers by language into a reef squad. They share one prompt and one score.</small>
+              <small>2 to 4 players. Pair by language, then share one prompt and one score.</small>
             </button>
             <button type="button" className={mode === "compete" ? "mode is-on" : "mode"} onClick={() => setMode("compete")}>
               <strong>Compete</strong>
-              <small>Everyone writes alone. Less extra model work ranks higher. The reef is still shared.</small>
+              <small>Up to 10 players. Everyone writes alone. Less extra model work ranks higher. The reef is still shared.</small>
             </button>
           </div>
           <label>
@@ -154,7 +164,7 @@ export default function AdminPage() {
                 <i><b style={{ width: `${session.reefHealth}%` }} /></i>
               </div>
               <div className="btn-row">
-                <button className="btn" type="button" disabled={busy || session.status === "playing"} onClick={() => run(() => startSession(saved.code, saved.adminToken))}>
+                <button className="btn" type="button" disabled={busy || !canStart} onClick={() => run(() => startSession(saved.code, saved.adminToken))}>
                   Start round
                 </button>
                 <button className="btn-ghost" type="button" disabled={busy || session.status !== "playing"} onClick={() => run(() => setChallenge(saved.code, saved.adminToken, challengeId))}>
@@ -164,12 +174,20 @@ export default function AdminPage() {
                   End game
                 </button>
               </div>
-              <h2>Players</h2>
-              {session.players.filter((player) => player.id !== "p_rehearsal").length === 0 ? (
+              <h2>Players · {roster.length} / {playerMax}</h2>
+              {session.status === "lobby" && roster.length < playerMin ? (
+                <p className="muted">
+                  {session.mode === "collaborate"
+                    ? "Collaborate starts with 2 to 4 players."
+                    : "Compete starts once someone joins, up to 10."}
+                </p>
+              ) : null}
+              {roster.length >= playerMax ? <p className="muted">This table is full.</p> : null}
+              {roster.length === 0 ? (
                 <p className="muted">Nobody has scanned in yet.</p>
               ) : (
                 <ul className="roster">
-                  {session.players.filter((player) => player.id !== "p_rehearsal").map((player) => (
+                  {roster.map((player) => (
                     <li key={player.id}>
                       <span>
                         <strong>{player.name}</strong>

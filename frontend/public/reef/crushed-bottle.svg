@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="crushed-bottle-title crushed-bottle-desc">
+  <title id="crushed-bottle-title">Crushed plastic bottle</title>
+  <desc id="crushed-bottle-desc">A weathered empty bottle with dented ribs, muted teal cap and transparent walls. Transparent editable vector, CoralConnect Deep Water collection.</desc>
+  <defs>
+    <linearGradient id="crushed-bottle-plastic" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d5e1d8" stop-opacity=".64" />
+      <stop offset=".5" stop-color="#94b4b0" stop-opacity=".38" />
+      <stop offset="1" stop-color="#4d787f" stop-opacity=".56" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(24 256 256)">
+      <path d="M226 101 L280 101 L278 143 Q290 165 316 181 Q330 190 332 220 L328 262 L307 279 L331 297 L326 373 Q324 397 304 407 Q258 420 212 406 Q192 402 190 382 L185 313 L207 291 L186 270 L181 219 Q180 194 199 180 Q219 164 223 143Z" fill="url(#crushed-bottle-plastic)" stroke="#89aaa5" stroke-width="1.8" />
+      <path d="M201 211 Q256 225 315 207 M200 243 Q254 258 312 242 M206 273 L302 269 L292 283 L319 298 L220 310 L207 293 M205 337 Q249 349 312 334 M207 365 Q249 378 310 364" fill="none" stroke="#bfd3c7" stroke-width="2" opacity=".6" />
+      <path d="M198 216 L203 262 L222 287 L208 309 L219 384" fill="none" stroke="#e1eadb" stroke-width="5" opacity=".28" />
+      <path d="M236 153 L270 153" fill="none" stroke="#aec7b8" stroke-width="2" />
+      <path d="M221 86 Q253 78 285 86 L283 113 Q253 120 221 112Z" fill="#688a86" stroke="#42666d" stroke-width="1.4" />
+      <ellipse cx="253" cy="86" rx="32" ry="6" fill="#9db8a8" />
+      <path d="M229 91 L229 108 M240 93 L240 110 M253 94 L253 111 M267 93 L267 110 M279 91 L279 108" fill="none" stroke="#486d73" stroke-width="1.1" opacity=".7" />
+      <path d="M213 387 Q224 392 233 384 Q253 400 274 386 Q291 394 308 382" fill="none" stroke="#70958f" stroke-width="1.5" />
+    </g>
+  </g>
+</svg>
