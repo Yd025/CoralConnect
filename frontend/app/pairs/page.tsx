@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GradeBadge } from "@/components/GradeBadge";
+import { TeamMark } from "@/components/TeamMark";
 import { getPairs, type ResultCard } from "@/lib/api";
 import type { Grade } from "@/lib/types";
 
@@ -47,10 +48,13 @@ export default function PairsBoardPage() {
         {pairs.map((pair, index) => (
           <li key={pair.id}>
             <span className="board__rank">{index + 1}</span>
-            <span>
-              <strong>{pair.names.join(" and ")}</strong>
-              <small>{pair.challenge}</small>
-              <small>{pair.detail}</small>
+            <span className="board__who">
+              <TeamMark names={pair.names} />
+              <span>
+                <strong className="board__team">{pair.team || pair.names.join(" and ")}</strong>
+                <small className="board__members">{pair.names.join(" and ")}</small>
+                <small>{pair.challenge}</small>
+              </span>
             </span>
             <GradeBadge grade={(pair.grade || null) as Grade | null} />
             <b>{pair.score}</b>
