@@ -239,29 +239,58 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 }
 .admin-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.85fr);
-  gap: 22px;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-content: center;
   align-items: stretch;
   margin-top: 8px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-}
-.admin-intro, .admin-side {
-  min-height: 0;
   overflow: auto;
 }
-.admin-intro { display: grid; align-content: start; gap: 10px; max-width: none; }
-.admin-page.landing h1 { font-size: clamp(2.2rem, 3.6vw, 3.2rem); }
-.admin-intro .lede { margin-top: 0; font-size: 0.98rem; }
-.admin-intro .panel { margin-top: 0; }
+.admin-layout.is-waiting {
+  grid-template-columns: minmax(0, 520px);
+  justify-content: center;
+}
+.admin-pane {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+}
+.admin-page.landing h1 { font-size: clamp(2.1rem, 3.4vw, 3rem); line-height: 0.95; }
+.admin-pane .lede { margin-top: 0; font-size: 0.98rem; max-width: none; }
+.admin-pane .eyebrow { margin-bottom: 0; }
+.admin-pane form .btn { width: 100%; }
+.admin-pane .btn-row { display: flex; }
+.admin-pane .btn-row > button { flex: 1 1 0; min-width: 0; }
+.admin-code {
+  margin: 4px 0 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2.4rem, 4vw, 3.2rem);
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+.admin-join {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.admin-roster {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 12px;
+  max-height: 180px;
+  overflow: auto;
+}
+.admin-roster h2 { margin: 0 0 8px; font-size: 1.15rem; }
 .admin-page .panel {
   background: rgba(4, 22, 34, 0.62);
   border-color: rgba(255, 255, 255, 0.14);
 }
-.admin-side { display: grid; align-content: start; }
-.admin-side .code-block strong { font-size: 2rem; }
-.admin-side .qr-card svg { width: 112px; height: 112px; }
+.admin-pane .qr-card { padding: 8px; }
+.admin-pane .qr-card svg { width: 108px; height: 108px; }
 .admin-page .landing-tools .pill { display: inline-flex; }
 .landing-ui { position: relative; z-index: 2; }
 .landing-stage {
@@ -1010,8 +1039,8 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 
 @media (max-width: 860px) {
   .hero, .admin-grid, .admin-layout, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
-  .admin-layout { overflow: auto; }
-  .admin-intro, .admin-side { overflow: visible; }
+  .admin-layout, .admin-layout.is-waiting { grid-template-columns: 1fr; justify-content: stretch; align-content: start; overflow: auto; }
+  .admin-join { justify-content: space-between; }
   .landing .shell { width: min(100% - 28px, 1240px); }
   .landing-top { display: flex; flex-wrap: nowrap; }
   .landing-nav { display: none; }
