@@ -382,6 +382,10 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .cast-turtle img { width: 340px; }
 .cast-tang img { width: 150px; }
 .cast-tang-far img { width: 86px; }
+.avoid {
+  display: block;
+  transform: translate3d(var(--dodge-x, 0px), var(--dodge-y, 0px), 0);
+}
 .school { position: relative; display: block; width: 280px; height: 120px; }
 .school-fish { position: absolute; height: auto; max-width: none; }
 .cast-octopus img { width: 190px; }

@@ -72,7 +72,7 @@ function Lane({
           ["--fade" as string]: 1,
         }}
       >
-        {children}
+        <span className="avoid">{children}</span>
       </span>
     </div>
   );
@@ -115,21 +115,64 @@ export function AnimatedBackground() {
     const node = rootRef.current;
     if (!node) return;
 
-    const point = { x: 0, y: 0 };
+    const point = { x: 0, y: 0, cx: 0, cy: 0, inside: false };
+    const dodge = new WeakMap<HTMLElement, { x: number; y: number }>();
     let frame = 0;
     let lastRipple = 0;
     const timers = new Set<number>();
 
-    const flush = () => {
+    const tick = () => {
       frame = 0;
       node.style.setProperty("--px", point.x.toFixed(4));
       node.style.setProperty("--py", point.y.toFixed(4));
+
+      let settling = false;
+      node.querySelectorAll<HTMLElement>(".avoid").forEach((el) => {
+        const state = dodge.get(el) ?? { x: 0, y: 0 };
+        const box = el.getBoundingClientRect();
+        const left = box.left - state.x;
+        const top = box.top - state.y;
+        const cx = left + box.width / 2;
+        const cy = top + box.height / 2;
+        let dx = cx - point.cx;
+        let dy = cy - point.cy;
+        let dist = Math.hypot(dx, dy);
+        const reach = Math.max(box.width, box.height) * 0.45 + 140;
+        let tx = 0;
+        let ty = 0;
+        if (point.inside && dist < reach) {
+          if (dist < 1) {
+            dx = 0;
+            dy = -1;
+            dist = 1;
+          }
+          const push = (1 - dist / reach) * 150;
+          tx = (dx / dist) * push;
+          ty = (dy / dist) * push;
+        }
+        state.x += (tx - state.x) * 0.18;
+        state.y += (ty - state.y) * 0.18;
+        if (Math.hypot(state.x, state.y) > 0.6 || Math.hypot(tx, ty) > 0.6) settling = true;
+        dodge.set(el, state);
+        el.style.setProperty("--dodge-x", `${state.x.toFixed(1)}px`);
+        el.style.setProperty("--dodge-y", `${state.y.toFixed(1)}px`);
+      });
+
+      if (settling) frame = requestAnimationFrame(tick);
     };
 
     const onMove = (event: PointerEvent) => {
       point.x = (event.clientX / window.innerWidth - 0.5) * 2;
       point.y = (event.clientY / window.innerHeight - 0.5) * 2;
-      if (frame === 0) frame = requestAnimationFrame(flush);
+      point.cx = event.clientX;
+      point.cy = event.clientY;
+      point.inside = true;
+      if (frame === 0) frame = requestAnimationFrame(tick);
+    };
+
+    const onLeave = () => {
+      point.inside = false;
+      if (frame === 0) frame = requestAnimationFrame(tick);
     };
 
     const spawn = (event: Event) => {
@@ -153,10 +196,12 @@ export function AnimatedBackground() {
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerleave", onLeave);
     window.addEventListener("pointerdown", spawn, true);
     window.addEventListener("click", spawn, true);
     return () => {
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("pointerdown", spawn, true);
       window.removeEventListener("click", spawn, true);
       if (frame) cancelAnimationFrame(frame);
