@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatedBackground } from "@/components/AnimatedBackground";
-import { BUILDS, CARES } from "@/lib/connection";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -78,8 +77,8 @@ export default function HomePage() {
                 <h2>Work with a partner</h2>
                 <p className="muted">Two questions, then someone who is already waiting. You share one prompt, and you can play more than once.</p>
                 <div className="partner-match">
-                  <p><span>You build</span>{BUILDS.join(" · ")}</p>
-                  <p><span>You care about</span>{CARES.join(" · ")}</p>
+                  <p><strong>You</strong><span>On your phone</span></p>
+                  <p><strong>A partner</strong><span>Already waiting</span></p>
                 </div>
                 <span className="btn btn-warm">Work with a partner</span>
               </a>
