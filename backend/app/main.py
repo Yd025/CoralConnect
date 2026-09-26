@@ -85,6 +85,15 @@ def challenges() -> dict:
     return {"challenges": public_challenges()}
 
 
+@app.get("/api/collaborate")
+async def open_collaborate():
+    try:
+        session = await game.open_collaborate()
+    except GameError as exc:
+        return _error(exc)
+    return {"session": public_session(session)}
+
+
 @app.post("/api/sessions")
 async def create_session(body: CreateBody):
     try:

@@ -52,6 +52,9 @@ export default function HomePage() {
             <p className="lede">
               CoralConnect is a HackGT booth game. A thin prompt makes the model search the web, and that lookup is the carbon cost. Include the source, and the shared reef shows the difference.
             </p>
+            <p className="hero-links">
+              <a className="btn" href="/collaborate">Find a pair</a>
+            </p>
             <form id="join" className="hero-join" onSubmit={join}>
               <label className="hero-code" htmlFor="game-code">
                 <span>Booth code</span>

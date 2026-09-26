@@ -15,8 +15,11 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
             return {
               id: squad.id,
               name: squad.creature || squad.name || squad.memberNames.join(" · "),
-              detail: members.map((player) => personLine(player.builds, player.cares)).join("  ×  "),
-              why: [squad.shared, squad.distinct].filter(Boolean).join(" "),
+              detail: members.map((player) => `${player.name} · ${personLine(player.builds, player.cares)}`).join("  ×  "),
+              why: [
+                squad.creature ? "This pair plays on their own." : "Waiting for a second person.",
+                squad.shared,
+              ].filter(Boolean).join(" "),
               score: squad.score,
               grade: squad.lastGrade,
             };
@@ -49,8 +52,8 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
         <h2>{connecting ? "Who's connecting" : "Carbon efficiency"}</h2>
         <p>
           {connecting
-            ? "Same animal, same pair. Find that person in the room."
-            : "Higher means the model did less extra work."}
+            ? "Same animal, same pair. Each pair starts when they find each other."
+            : "One round, up to 10. Higher means the model did less extra work."}
         </p>
       </header>
       {rows.length === 0 ? (

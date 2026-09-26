@@ -7,7 +7,7 @@ import { apiBase, createSession, endSession, getChallenges, getHealth, setChalle
 import { playUrl, stageUrl, useBoothOrigin } from "@/lib/booth";
 import { personLine } from "@/lib/connection";
 import { reefLabel } from "@/lib/reef";
-import type { Challenge, Health, Mode } from "@/lib/types";
+import type { Challenge, Health } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
 
 const ADMIN_KEY = "coral-admin";
@@ -18,7 +18,6 @@ export default function AdminPage() {
   const { origin, host, updateHost } = useBoothOrigin();
   const [health, setHealth] = useState<Health | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [mode, setMode] = useState<Mode>("collaborate");
   const [challengeId, setChallengeId] = useState("invoice-bug");
   const [saved, setSaved] = useState<SavedAdmin | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,7 +45,7 @@ export default function AdminPage() {
     setBusy(true);
     setError(null);
     try {
-      const created = await createSession(mode, challengeId);
+      const created = await createSession("compete", challengeId);
       const next = { code: created.session.code, adminToken: created.adminToken };
       window.localStorage.setItem(ADMIN_KEY, JSON.stringify(next));
       setSaved(next);
@@ -80,8 +79,7 @@ export default function AdminPage() {
   const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
   const playerMin = session?.playerMin ?? (session?.mode === "collaborate" ? 2 : 1);
   const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 8 : 10);
-  const evenPairs = session?.mode !== "collaborate" || roster.length % 2 === 0;
-  const canStart = session?.status !== "playing" && evenPairs && roster.length >= playerMin && roster.length <= playerMax;
+  const canStart = session?.mode === "compete" && session.status === "lobby" && roster.length >= playerMin && roster.length <= playerMax;
 
   return (
     <main className="shell">
@@ -90,7 +88,7 @@ export default function AdminPage() {
         <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
       </div>
       <p className="eyebrow">Booth console</p>
-      <h1>Set the game, then point people at the reef.</h1>
+      <h1>Open a compete room.</h1>
       {error ? <p className="error">{error}</p> : null}
       <p className="muted">
         Engine: {apiBase()}
@@ -105,16 +103,10 @@ export default function AdminPage() {
 
       <div className="admin-grid">
         <form className="panel stack" onSubmit={onCreate}>
-          <div className="mode-grid">
-            <button type="button" className={mode === "collaborate" ? "mode is-on" : "mode"} onClick={() => setMode("collaborate")}>
-              <strong>Collaborate</strong>
-              <small>Pairs of 2. You get an animal, find that person in the room, then share one prompt.</small>
-            </button>
-            <button type="button" className={mode === "compete" ? "mode is-on" : "mode"} onClick={() => setMode("compete")}>
-              <strong>Compete</strong>
-              <small>Up to 10 players. Everyone writes alone. Less extra model work ranks higher. The reef is still shared.</small>
-            </button>
-          </div>
+          <p className="muted">
+            One round for this room, up to 10 people, started together from here.
+            Pair finding is separate. People open Find a pair on their own phones and wait for someone else.
+          </p>
           <label>
             Challenge
             <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
@@ -138,7 +130,9 @@ export default function AdminPage() {
             <>
               <div className="code-block">
                 <div>
-                  <p className="eyebrow">{session.mode} · {session.status}</p>
+                  <p className="eyebrow">
+                    Compete · {session.status === "lobby" ? "waiting to start one round" : session.status}
+                  </p>
                   <strong>{session.code}</strong>
                 </div>
                 {play ? (
@@ -176,15 +170,12 @@ export default function AdminPage() {
                   End game
                 </button>
               </div>
+              <p className="muted">One round for everyone here, up to 10. Start when the room should go at once.</p>
               <h2>Players · {roster.length} / {playerMax}</h2>
               {session.status === "lobby" && roster.length < playerMin ? (
-                <p className="muted">
-                  {session.mode === "collaborate"
-                    ? "Collaborate starts with pairs of 2. An odd person is still looking for their match."
-                    : "Compete starts once someone joins, up to 10."}
-                </p>
+                <p className="muted">Compete starts once someone joins, up to 10.</p>
               ) : null}
-              {roster.length >= playerMax ? <p className="muted">This table is full.</p> : null}
+              {roster.length >= playerMax ? <p className="muted">This room is full.</p> : null}
               {roster.length === 0 ? (
                 <p className="muted">Nobody has scanned in yet.</p>
               ) : (
@@ -227,7 +218,7 @@ export default function AdminPage() {
         <summary>60 second pitch</summary>
         <p>
           A thin prompt that leaves out the source makes the model look the fact up. That extra work is the waste.
-          In collaborate, two people get the same animal and have to find each other in the room. They share one prompt, then talk about the environment.
+          Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
           Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
         </p>
         {health ? (

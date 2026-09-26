@@ -53,6 +53,7 @@ export default function PlayPage() {
     : [];
   const partner = squadMates.find((player) => player.id !== identity?.playerId);
   const paired = session?.mode !== "collaborate" || squadMates.length >= 2;
+  const canPlay = session?.mode === "collaborate" ? paired && session.status !== "ended" : session?.status === "playing";
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
   const beat = session?.challenge?.beats?.[thread?.step ?? 0];
@@ -211,7 +212,7 @@ export default function PlayPage() {
           {identity && session.status === "lobby" && session.mode !== "collaborate" ? (
             <section className="panel stack">
               <h2>You're in, {identity.name}.</h2>
-              <p>Look at the big screen. The round starts when the table says go.</p>
+              <p>This is one round for the room, up to 10 people. It starts when the table says go.</p>
               <p className="muted">{roster.length} of {playerMax} here.</p>
               <button
                 className="btn-ghost"
@@ -233,7 +234,7 @@ export default function PlayPage() {
                 <>
                   <p className="eyebrow">Find your pair</p>
                   <strong>{squad.creature}</strong>
-                  <p>Ask who else has {squad.creature} on their phone. The two {squad.creature}s work together.</p>
+                  <p>Ask who else has {squad.creature} on their phone. Your pair can start now. The rest of the room does not wait.</p>
                   {partner ? (
                     <p className="muted">They build {partner.builds} and care about {partner.cares}.</p>
                   ) : null}
@@ -243,7 +244,7 @@ export default function PlayPage() {
                 <>
                   <p className="eyebrow">Find your pair</p>
                   <strong>Looking</strong>
-                  <p>Hold your phone up. When the next person joins, you will both get the same animal.</p>
+                  <p>Hold your phone up. The next person in shares your animal. Other pairs can already be playing.</p>
                 </>
               )}
               {squad?.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
@@ -276,7 +277,7 @@ export default function PlayPage() {
             <p className="panel">This thread is closed. Both turns are on the reef.</p>
           ) : null}
 
-          {identity && session.status === "playing" && !thread?.done && paired ? (
+          {identity && canPlay && !thread?.done ? (
             <form className="stack" onSubmit={onSubmit}>
               {beat ? (
                 <section className="panel stack">

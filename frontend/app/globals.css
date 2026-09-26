@@ -314,6 +314,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   max-width: 32rem;
   margin: 12px 0 0;
 }
+.hero-links { margin: 16px 0 0; }
 .hero-join {
   display: flex;
   flex-wrap: wrap;

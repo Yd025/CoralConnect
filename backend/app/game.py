@@ -246,6 +246,41 @@ async def create_session(mode: str, challenge_id: str) -> tuple[Session, str]:
     return session, session.admin_token
 
 
+async def open_collaborate() -> Session:
+    """The standing pair room. People join it from their own phones, with no admin start."""
+    async with store.lock:
+        _, maximum = player_bounds("collaborate")
+        open_rooms = [
+            session
+            for session in store.sessions.values()
+            if session.mode == "collaborate"
+            and session.status != "ended"
+            and len(_roster(session)) < maximum
+        ]
+        if open_rooms:
+            return min(open_rooms, key=lambda session: session.created_at)
+        challenge = get_challenge("invoice-bug")
+        if challenge is None:
+            raise GameError(500, "The pair room has no challenge to run.")
+        session = Session(
+            code=_code(),
+            admin_token=secrets.token_urlsafe(18),
+            mode="collaborate",
+            status="lobby",
+            challenge_id=challenge.id,
+            reef_health=100,
+            players=[],
+            squads=[],
+            submissions=[],
+            events=[],
+            created_at=time.time(),
+        )
+        store.sessions[session.code] = session
+        _persist(session)
+    await _broadcast(session)
+    return session
+
+
 async def join(
     code: str,
     name: str,
@@ -351,8 +386,7 @@ async def start(code: str, admin_token: str) -> Session:
         connected = [p for p in _roster(session) if p.connected]
         minimum, maximum = player_bounds(session.mode)
         if session.mode == "collaborate":
-            if len(connected) < minimum or len(connected) > maximum or len(connected) % 2:
-                raise GameError(409, "Pairs are two people. Someone is still looking for their match.")
+            raise GameError(409, "Pairs start when both phones show the same animal. This room does not share one start.")
         elif len(connected) < minimum or len(connected) > maximum:
             raise GameError(409, "Compete needs 1 to 10 players before the round starts.")
         session.status = "playing"
@@ -439,14 +473,14 @@ async def update_draft(code: str, player_id: str, player_token: str, text: str) 
     cleaned = text[:8000]
     async with store.lock:
         session = store.get(code)
-        if session is None or session.mode != "collaborate" or session.status != "playing":
+        if session is None or session.mode != "collaborate" or session.status == "ended":
             return
         try:
             player = _player(session, player_id, player_token)
         except GameError:
             return
         squad = _squad_for(session, player)
-        if squad is None or squad.prompt == cleaned:
+        if squad is None or len(squad.player_ids) < 2 or squad.prompt == cleaned:
             return
         squad.prompt = cleaned
         squad.prompt_author_id = player.id
@@ -472,8 +506,14 @@ async def submit(
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
-        if session.status != "playing":
-            raise GameError(409, "Wait for the host to start the round.")
+        if session.status == "ended":
+            raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        if session.mode == "collaborate":
+            squad_now = _squad_for(session, player)
+            if squad_now is None or len(squad_now.player_ids) < 2:
+                raise GameError(409, "Find the other person with your animal before you send a prompt.")
+        elif session.status != "playing":
+            raise GameError(409, "Wait for the host to start the round. Compete is one round for the room.")
         challenge = get_challenge(session.challenge_id)
         if challenge is None:
             raise GameError(500, "This game's challenge is missing.")
@@ -545,8 +585,10 @@ async def submit(
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
-        if session.challenge_id != challenge_id or session.status != "playing":
+        if session.challenge_id != challenge_id or session.status == "ended":
             raise GameError(409, "The host moved on. Take a look at the new challenge.")
+        if session.mode != "collaborate" and session.status != "playing":
+            raise GameError(409, "Wait for the host to start the round. Compete is one round for the room.")
         squad = _squad_for(session, player)
         if session.mode == "collaborate" and squad:
             owner_id = squad.id

@@ -51,6 +51,10 @@ export function getChallenges(): Promise<{ challenges: GameSession["challenge"][
   return request("/api/challenges");
 }
 
+export function openCollaborate() {
+  return request<{ session: GameSession }>("/api/collaborate");
+}
+
 export function createSession(mode: Mode, challengeId: string) {
   return request<{ adminToken: string; session: GameSession }>("/api/sessions", {
     method: "POST",
