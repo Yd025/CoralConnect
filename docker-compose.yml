@@ -1,0 +1,33 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - backend/.env
+    environment:
+      DATA_PATH: /data/sessions.json
+    volumes:
+      - ./backend/app:/app/app
+      - coral-data:/data
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload", "--reload-dir", "app"]
+
+  web:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      ALLOWED_DEV_ORIGINS: ${ALLOWED_DEV_ORIGINS:-}
+    volumes:
+      - ./frontend/app:/app/app
+      - ./frontend/components:/app/components
+      - ./frontend/lib:/app/lib
+      - ./frontend/public:/app/public
+    command: ["npm", "run", "dev"]
+    depends_on:
+      - api
+
+volumes:
+  coral-data:
