@@ -18,7 +18,7 @@ export default function AdminPage() {
   const { origin, host, updateHost } = useBoothOrigin();
   const [health, setHealth] = useState<Health | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [challengeId, setChallengeId] = useState("invoice-bug");
+  const [challengeId, setChallengeId] = useState("farm-water");
   const [saved, setSaved] = useState<SavedAdmin | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +96,7 @@ export default function AdminPage() {
           ? ` · ${
               health.grokConfigured
                 ? `Grok live (${health.chatModel}): it answers the player, then a second call grades the prompt`
-                : "Grok key not set — grades still run from whether the source is in the message, and answers are simulated"
+                : "Grok key not set. Grades still run from the rubric (the facts in the message, plus its length), and answers are stand-ins"
             }`
           : ""}
       </p>
@@ -110,7 +110,7 @@ export default function AdminPage() {
           <label>
             Challenge
             <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
-              {(challenges.length ? challenges : [{ id: "invoice-bug", title: "Invoice bug", brief: "", hint: "", turnCount: 2, targetTokens: 200, beats: [] }]).map((item) => (
+              {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, beats: [] }]).map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.title} · {item.turnCount || item.beats.length || 2} turns
                 </option>
@@ -193,12 +193,18 @@ export default function AdminPage() {
               )}
               <details>
                 <summary>Booth rehearsal</summary>
-                <p className="muted">Drops a fake prompt into this game so you can check the reef before anyone arrives. It adds a Rehearsal player.</p>
+                <p className="muted">
+                  Drops a sample prompt into this game as a Rehearsal player, for its current turn, so you can check the reef before anyone arrives.
+                  Adequate should grade A+, Whole file lower than that, Vague F.
+                </p>
                 <div className="btn-row">
                   <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "efficient"))}>
                     Adequate prompt
                   </button>
                   <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "bloated"))}>
+                    Whole file pasted
+                  </button>
+                  <button className="btn-ghost" type="button" disabled={busy} onClick={() => run(() => simulate(saved.code, saved.adminToken, "vague"))}>
                     Vague prompt
                   </button>
                 </div>
@@ -217,14 +223,15 @@ export default function AdminPage() {
       <details className="panel" style={{ marginTop: 18 }}>
         <summary>60 second pitch</summary>
         <p>
-          A thin prompt that leaves out the source makes the model look the fact up. That extra work is the waste.
+          A thin prompt that leaves out the source makes the model look the fact up. Pasting the whole file makes it read what it does not need. Both are waste.
           Compete is one round for up to 10 people in this room. Collaborate is separate: people open Find a pair on their own phones and wait for someone else.
           Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
         </p>
         {health ? (
           <p className="muted">
             Carbon model: {health.formula.energyKwhPer1kTokens} kWh per 1,000 lookup tokens × {health.formula.carbonGramsPerKwh} g CO2/kWh.
-            A missing source is charged as {health.formula.webLookupTokens} lookup tokens.
+            Each missing fact is charged as a {health.formula.webLookupTokens}-token web lookup, the message's own tokens count too,
+            and the total is graded against a {health.formula.budgetTokens ?? 200}-token budget.
             Waste is also shown as if a million developers sent that thin prompt. {health.formula.note}
           </p>
         ) : null}

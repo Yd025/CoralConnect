@@ -785,3 +785,46 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   .ambient-track:not(.is-reverse) .drifter-fish { transform: scaleX(-1); }
   .cast-art.cast-flip { transform: scaleX(-1); }
 }
+
+/* Turn receipt (components/Receipt.tsx) */
+.small { font-size: 0.86rem; }
+.token-meter { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.token-meter.is-over { color: var(--warn); }
+.receipt { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; background: rgba(0, 0, 0, 0.18); }
+.receipt ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.receipt__line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 0.92rem; line-height: 1.35; }
+.receipt__line span { min-width: 0; overflow-wrap: anywhere; }
+.receipt__line b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.receipt__line.is-info { color: var(--muted); }
+.receipt__line.is-good span::before { content: "\2713  "; color: var(--good); }
+.receipt__line.is-cost b { color: var(--warn); }
+.receipt__line.is-bad { color: var(--bad); font-weight: 600; }
+.receipt__total { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding-top: 8px; border-top: 1px solid var(--line); font-weight: 600; }
+.receipt__total small { color: var(--muted); font-weight: 400; }
+
+/* Live verdict while typing (components/LiveVerdict.tsx) */
+.live-verdict { display: grid; gap: 4px; margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.18); font-size: 0.92rem; line-height: 1.35; transition: opacity 0.15s ease; }
+.live-verdict p { margin: 0; }
+.live-verdict.is-empty { color: var(--muted); }
+.live-verdict.is-checking { opacity: 0.75; }
+.live-verdict__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.live-verdict__tokens { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.live-verdict.is-efficient { border-color: rgba(142, 232, 154, 0.45); }
+.live-verdict.is-okay { border-color: rgba(255, 209, 102, 0.45); }
+.live-verdict.is-wasteful, .live-verdict.is-horrible { border-color: rgba(255, 93, 93, 0.45); }
+.live-verdict__bad { color: var(--bad); font-weight: 600; }
+
+/* After a turn: the saving and the checked better prompt */
+.saved-line { margin: 0; color: var(--good); font-weight: 600; }
+.better-prompt { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(142, 232, 154, 0.35); background: rgba(142, 232, 154, 0.06); }
+.better-prompt p { margin: 0; overflow-wrap: anywhere; }
+
+/* Stage: the latest turn's numbers */
+.reef__footnote { display: grid; gap: 8px; justify-items: end; max-width: 46rem; }
+.reef__turn { display: grid; gap: 4px; padding: 10px 14px; border-radius: 14px; background: rgba(3, 22, 28, 0.72); border: 1px solid var(--line); backdrop-filter: blur(6px); font-size: 1rem; }
+.reef__turn p { margin: 0; font-variant-numeric: tabular-nums; }
+.reef__turn-head { display: flex; align-items: center; gap: 10px; }
+.reef__turn-verdict { color: var(--muted); text-transform: capitalize; }
+@media (max-width: 760px) {
+  .reef__footnote { justify-items: start; }
+}

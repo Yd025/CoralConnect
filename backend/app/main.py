@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import logging
 
+import secrets
+from typing import Literal
+
 from fastapi import FastAPI, Header, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import game
+from . import game, grok, judge
 from .carbon import FORMULA
-from .challenges import public_challenges
+from .challenges import get_challenge, public_challenges
 from .config import settings
 from .game import GameError
+from .grading import beat_for
 from .hub import hub
 from .serialize import public_session, public_submission
 from .store import store
@@ -57,6 +61,26 @@ class SimulateBody(BaseModel):
     kind: str
 
 
+class HistoryItem(BaseModel):
+    role: Literal["user", "assistant"] = "user"
+    content: str = Field(default="", max_length=8000)
+
+
+class JudgeContext(BaseModel):
+    # With a challengeId, the judge uses that round's answer key (game mode).
+    challengeId: str | None = None
+    turn: int = Field(default=1, ge=1, le=10)
+    history: list[HistoryItem] = Field(default_factory=list, max_length=20)
+    # Collaborate mode also grades each partner's piece (grading.beat_for).
+    gameMode: Literal["compete", "collaborate"] = "compete"
+
+
+class JudgeBody(BaseModel):
+    prompt: str = Field(min_length=1, max_length=8000)
+    mode: Literal["fast", "full"] = "fast"
+    context: JudgeContext | None = None
+
+
 def _error(exc: GameError) -> JSONResponse:
     return JSONResponse({"error": exc.message}, status_code=exc.status)
 
@@ -77,7 +101,66 @@ def health() -> dict:
         ],
         "lanIp": game.lan_ip(),
         "formula": FORMULA,
+        "judge": {
+            "endpoint": "/api/judge",
+            "fullModeOpen": bool(settings.judge_api_key) and configured,
+            "reviewerModel": settings.grok_judge_model,
+            "fullPerMinute": settings.judge_full_per_minute,
+        },
     }
+
+
+@app.post("/api/judge")
+async def judge_prompt(body: JudgeBody, x_judge_key: str = Header(default="")):
+    """Judge one prompt. The game's phones, the plugin, and a Claude Code hook all call this.
+
+    fast: rules only, free and instant. full: adds the Grok reviewer and real
+    measured runs. Full mode needs the server's JUDGE_API_KEY in X-Judge-Key.
+    Game mode (context.challengeId) never reveals the answer key and stays fast.
+    """
+    context = body.context or JudgeContext()
+    history = [item.model_dump() for item in context.history]
+    beat = None
+    if context.challengeId:
+        challenge = get_challenge(context.challengeId)
+        if challenge is None:
+            return JSONResponse({"error": "Unknown challengeId."}, status_code=400)
+        if context.turn > len(challenge.beats):
+            return JSONResponse({"error": "That challenge has fewer turns."}, status_code=400)
+        beat = beat_for(challenge.beats[context.turn - 1], context.gameMode)
+
+    mode = body.mode
+    note = ""
+    if mode == "full":
+        if beat is not None:
+            mode, note = "fast", "Full judging runs when you send the turn."
+        elif not settings.judge_api_key:
+            mode, note = "fast", "Full mode is off on this server. Set JUDGE_API_KEY to turn it on."
+        elif not secrets.compare_digest(x_judge_key, settings.judge_api_key):
+            return JSONResponse({"error": "X-Judge-Key doesn't match this server's JUDGE_API_KEY."}, status_code=403)
+        elif not grok.live():
+            mode, note = "fast", "No Grok key on this server, so only the rules ran."
+        elif not judge.allow_full():
+            mode, note = "fast", "Full judging is busy right now. The rules ran instead."
+
+    result = await judge.judge(body.prompt, beat=beat, history=history, mode=mode)
+    judge.log_judgment(
+        "api",
+        body.prompt,
+        result,
+        beat=beat,
+        challenge_id=context.challengeId or "",
+        turn=context.turn if beat else 0,
+        mode=mode,
+    )
+    verdict = judge.public_verdict(
+        result,
+        reveal=beat is None,
+        vague_saving=judge.saved_vs_vague(result, beat),
+        note=note,
+    )
+    verdict["modeUsed"] = mode
+    return verdict
 
 
 @app.get("/api/challenges")
@@ -144,6 +227,15 @@ async def leave(code: str, body: PlayerBody):
 async def start(code: str, x_admin_token: str = Header(default="")):
     try:
         session = await game.start(code, x_admin_token)
+    except GameError as exc:
+        return _error(exc)
+    return {"session": public_session(session)}
+
+
+@app.post("/api/sessions/{code}/next-group")
+async def next_group(code: str, x_admin_token: str = Header(default="")):
+    try:
+        session = await game.next_group(code, x_admin_token)
     except GameError as exc:
         return _error(exc)
     return {"session": public_session(session)}
