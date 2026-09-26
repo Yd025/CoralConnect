@@ -137,7 +137,7 @@ export function AnimatedBackground() {
         let dx = cx - point.cx;
         let dy = cy - point.cy;
         let dist = Math.hypot(dx, dy);
-        const clear = Math.min(box.width, box.height) * 0.34 + 120;
+        const clear = Math.min(box.width, box.height) * 0.22 + 72;
         let tx = 0;
         let ty = 0;
         if (point.inside && dist < clear) {
@@ -150,8 +150,8 @@ export function AnimatedBackground() {
           tx = (dx / dist) * push;
           ty = (dy / dist) * push;
         }
-        state.x += (tx - state.x) * 0.62;
-        state.y += (ty - state.y) * 0.62;
+        state.x += (tx - state.x) * 0.07;
+        state.y += (ty - state.y) * 0.07;
         if (Math.hypot(state.x, state.y) > 0.6 || Math.hypot(tx, ty) > 0.6) settling = true;
         dodge.set(el, state);
         el.style.setProperty("--dodge-x", `${state.x.toFixed(1)}px`);
@@ -221,22 +221,22 @@ export function AnimatedBackground() {
         <div className="ambient-parallax ambient-photo" style={{ ["--depth" as string]: 0.06, ["--layer" as string]: 0 }}>
           <img src="/reef/reef-backdrop.png" alt="" />
         </div>
-        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} duration={36} delay={-8}>
+        <Lane className="cast-jelly" top="16%" depth={0.35} layer={3} duration={72} delay={-16}>
           <Cast src="/reef/03-juno-jellyfish.svg" />
         </Lane>
-        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={46} delay={-18}>
+        <Lane className="cast-whale" top="6%" depth={0.5} layer={4} duration={96} delay={-38}>
           <Cast src="/reef/06-winnie-whale.svg" flip />
         </Lane>
-        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={30} delay={-9}>
+        <Lane className="cast-turtle" top="34%" depth={0.7} layer={5} duration={68} delay={-20}>
           <Cast src="/reef/02-moss-turtle.svg" />
         </Lane>
-        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={22} delay={-7}>
+        <Lane className="cast-tang cast-tang-far" top="24%" depth={0.4} layer={3} duration={50} delay={-16}>
           <Cast src="/reef/04-pip-fish.svg" flip />
         </Lane>
-        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={16} delay={-3} reverse>
+        <Lane className="cast-tang" top="48%" depth={0.95} layer={6} duration={40} delay={-8} reverse>
           <Cast src="/reef/04-pip-fish.svg" />
         </Lane>
-        <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={19} delay={-5}>
+        <Lane className="cast-school" top="20%" depth={0.32} layer={3} duration={44} delay={-12}>
           <School
             flip
             size={150}
@@ -249,7 +249,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={15} delay={-8} reverse>
+        <Lane className="cast-school" top="40%" depth={0.62} layer={5} duration={38} delay={-20} reverse>
           <School
             size={130}
             spots={[
@@ -260,7 +260,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={26} delay={-12}>
+        <Lane className="cast-school" top="56%" depth={0.8} layer={6} duration={56} delay={-26}>
           <School
             flip
             size={118}
@@ -274,7 +274,7 @@ export function AnimatedBackground() {
             ]}
           />
         </Lane>
-        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={40} delay={-16} reverse>
+        <Lane className="cast-octopus" top="60%" depth={0.45} layer={5} duration={84} delay={-34} reverse>
           <Cast src="/reef/05-otto-octopus.svg" />
         </Lane>
         <Anchor className="cast-crab" depth={0.28} layer={7} drift={24} delay={-9}>

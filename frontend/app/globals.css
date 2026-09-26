@@ -415,13 +415,24 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   display: block;
   overflow: visible;
   height: auto;
+  transform-origin: 50% 58%;
   filter: drop-shadow(0 12px 14px rgba(2, 12, 24, 0.28));
   animation-name: fish-bob;
-  animation-duration: 5.2s;
+  animation-duration: 4.8s;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
 }
 .cast-art.cast-flip { animation-name: fish-bob-flip; }
+.cast-whale .cast-art { animation-duration: 9s; }
+.cast-turtle .cast-art { animation-duration: 7.2s; }
+.cast-jelly .cast-art { animation-duration: 6.4s; }
+.cast-octopus .cast-art { animation-duration: 7.6s; }
+.school-fish .cast-art { animation-duration: 3.6s; }
+.school-fish:nth-child(2) .cast-art { animation-delay: -0.7s; }
+.school-fish:nth-child(3) .cast-art { animation-delay: -1.5s; }
+.school-fish:nth-child(4) .cast-art { animation-delay: -2.2s; }
+.school-fish:nth-child(5) .cast-art { animation-delay: -0.4s; }
+.school-fish:nth-child(6) .cast-art { animation-delay: -1.9s; }
 .ambient-rays {
   position: absolute;
   inset: 0;
@@ -459,13 +470,13 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
   animation-iteration-count: infinite;
 }
 @keyframes fish-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-16px) rotate(5deg); }
 }
 .ambient-track:not(.is-reverse) .drifter-fish { animation-name: fish-bob-flip; }
 @keyframes fish-bob-flip {
-  0%, 100% { transform: translateY(0) scaleX(-1); }
-  50% { transform: translateY(-3px) scaleX(-1); }
+  0%, 100% { transform: translateY(0) rotate(4deg) scaleX(-1); }
+  50% { transform: translateY(-16px) rotate(-5deg) scaleX(-1); }
 }
 .ambient-parallax {
   position: absolute;
@@ -490,8 +501,15 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 }
 .ambient-track.is-reverse { animation-direction: reverse; }
 @keyframes ambient-drift {
-  from { transform: translate3d(-18vw, 0, 0); }
-  to { transform: translate3d(108vw, 0, 0); }
+  0% { transform: translate3d(-22vw, 0, 0); }
+  12.5% { transform: translate3d(-6vw, -14px, 0); }
+  25% { transform: translate3d(12vw, -22px, 0); }
+  37.5% { transform: translate3d(30vw, -14px, 0); }
+  50% { transform: translate3d(48vw, 0, 0); }
+  62.5% { transform: translate3d(66vw, 14px, 0); }
+  75% { transform: translate3d(84vw, 22px, 0); }
+  87.5% { transform: translate3d(100vw, 14px, 0); }
+  100% { transform: translate3d(116vw, 0, 0); }
 }
 .ambient-ripples {
   position: fixed;
