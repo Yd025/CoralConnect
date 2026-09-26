@@ -51,7 +51,7 @@ export function ReefStage({
 
       <header className="reef__hud">
         <div>
-          <p className="eyebrow">CoralConnect · {session.mode === "collaborate" ? "Reef squads" : "Solo heat"}</p>
+          <p className="eyebrow">CoralConnect · {session.mode === "collaborate" ? "Who's connecting" : "Solo heat"}</p>
           <h1>{session.challenge?.title}</h1>
         </div>
         <div className="health">

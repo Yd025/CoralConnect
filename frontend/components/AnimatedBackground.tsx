@@ -193,7 +193,7 @@ export function AnimatedBackground() {
       swimmers.forEach((swimmer) => {
         if (swimmer.el.querySelector(".school")) return;
         let nearest: { vx: number; vy: number } | null = null;
-        swimmer.el.querySelectorAll("img").forEach((img) => {
+        for (const img of swimmer.el.querySelectorAll("img")) {
           const box = img.getBoundingClientRect();
           const hit = shove(
             box.left + box.width / 2,
@@ -203,7 +203,7 @@ export function AnimatedBackground() {
             Math.min(box.width, box.height) * 0.22 + 78,
           );
           if (hit && (!nearest || Math.hypot(hit.vx, hit.vy) > Math.hypot(nearest.vx, nearest.vy))) nearest = hit;
-        });
+        }
         if (!nearest) return;
         swimmer.vy += nearest.vy;
         const shoved = swimmer.vx + nearest.vx * 0.4;

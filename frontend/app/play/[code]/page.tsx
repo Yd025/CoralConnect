@@ -5,11 +5,10 @@ import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
+import { connectionCue, kindLabel, personLine } from "@/lib/connection";
 import { estimateTokens } from "@/lib/reef";
 import type { Identity, Submission, Thread } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
-
-const LANGUAGES = ["Python", "JavaScript", "TypeScript", "Java", "C++", "Go", "Rust", "Other"];
 
 export default function PlayPage() {
   const params = useParams<{ code: string }>();
@@ -17,7 +16,8 @@ export default function PlayPage() {
   const { session, connected, error, sendDraft, ingest } = useSession(code);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [name, setName] = useState("");
-  const [language, setLanguage] = useState("Python");
+  const [lane, setLane] = useState<"climate" | "general">("climate");
+  const [focus, setFocus] = useState("");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -48,6 +48,9 @@ export default function PlayPage() {
   const tableFull = roster.length >= playerMax;
   const me = session?.players.find((player) => player.id === identity?.playerId);
   const squad = session?.squads.find((item) => item.id === me?.squadId);
+  const squadMates = squad
+    ? session?.players.filter((player) => squad.playerIds.includes(player.id)) ?? []
+    : [];
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
   const beat = session?.challenge?.beats?.[thread?.step ?? 0];
@@ -81,7 +84,7 @@ export default function PlayPage() {
     setBusy(true);
     setLocalError(null);
     try {
-      const joined = await joinSession(code, name, language);
+      const joined = await joinSession(code, name, lane, focus);
       const next = { playerId: joined.player.id, playerToken: joined.playerToken, name: joined.player.name };
       window.localStorage.setItem(storageKey(code), JSON.stringify(next));
       setIdentity(next);
@@ -167,15 +170,35 @@ export default function PlayPage() {
                 Your name
                 <input value={name} onChange={(event) => setName(event.target.value)} maxLength={20} required />
               </label>
+              <div className="lane-grid" role="group" aria-label="Who you are">
+                <button
+                  type="button"
+                  className={lane === "climate" ? "mode is-on" : "mode"}
+                  onClick={() => setLane("climate")}
+                >
+                  <strong>Climate engineer</strong>
+                  <small>You build with the environment in mind.</small>
+                </button>
+                <button
+                  type="button"
+                  className={lane === "general" ? "mode is-on" : "mode"}
+                  onClick={() => setLane("general")}
+                >
+                  <strong>Software engineer</strong>
+                  <small>You build software. Climate is not your focus.</small>
+                </button>
+              </div>
               <label>
-                Language you actually like
-                <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-                  {LANGUAGES.map((item) => (
-                    <option key={item}>{item}</option>
-                  ))}
-                </select>
+                What you work on
+                <input
+                  value={focus}
+                  onChange={(event) => setFocus(event.target.value)}
+                  maxLength={80}
+                  required
+                  placeholder="Reef sensors, payment APIs, campus energy…"
+                />
               </label>
-              <button className="btn" disabled={busy}>Join the reef</button>
+              <button className="btn" disabled={busy || focus.trim().length < 2}>Join the reef</button>
             </form>
           ) : null}
 
@@ -183,7 +206,12 @@ export default function PlayPage() {
             <section className="panel stack">
               <h2>You're in, {identity.name}.</h2>
               <p>Look at the big screen. The round starts when the table says go.</p>
-              <p className="muted">{roster.length} of {playerMax} here · you picked {me?.language}</p>
+              <p className="muted">{roster.length} of {playerMax} here. The match happens when the round starts.</p>
+              <ul className="connection-people">
+                {roster.map((player) => (
+                  <li key={player.id}>{player.name} · {personLine(player.lane, player.focus)}</li>
+                ))}
+              </ul>
               <button
                 className="btn-ghost"
                 type="button"
@@ -200,8 +228,13 @@ export default function PlayPage() {
 
           {identity && session.status !== "lobby" && session.mode === "collaborate" && squad ? (
             <section className="panel callout">
-              <p className="eyebrow">{squad.name}</p>
+              <p className="eyebrow">{kindLabel(squad.kind)} · {squad.name}</p>
               <strong>{squad.memberNames.join(" and ")}</strong>
+              <ul className="connection-people">
+                {squadMates.map((player) => (
+                  <li key={player.id}>{personLine(player.lane, player.focus)}</li>
+                ))}
+              </ul>
               <p>{squad.icebreaker}</p>
               {squad.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
                 <p className="muted">Your partner just changed the prompt.</p>
@@ -229,7 +262,11 @@ export default function PlayPage() {
                 {session.mode === "collaborate" ? "Shared message" : "Your message"}
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
-              <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
+              <p className="muted">
+                {session.mode === "collaborate" && squad
+                  ? connectionCue(squad.kind, squadMates.map((player) => player.lane))
+                  : `About ${tokens} tokens in this message. Length is not the grade. A missing source is.`}
+              </p>
               <div className="sticky-submit">
                 <button className="btn" disabled={busy || !prompt.trim()} type="submit">
                   {busy ? "Asking Grok…" : turnNumber > 1 ? "Send follow-up" : "Send message"}

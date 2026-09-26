@@ -85,6 +85,10 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .mode strong { display: block; margin-bottom: 4px; }
 .mode small { color: var(--muted); display: block; line-height: 1.4; }
 .mode.is-on { border-color: var(--teal); background: rgba(61, 222, 200, 0.1); }
+.lane-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lane-grid .mode { padding: 10px; }
+.connection-people { margin: 8px 0; padding-left: 18px; color: var(--muted); }
+.connection-why { margin-top: 4px; line-height: 1.35; }
 
 .admin-grid, .play-grid { display: grid; grid-template-columns: 1fr 0.9fr; gap: 18px; align-items: start; }
 .code-block { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
@@ -713,7 +717,7 @@ body:has(.landing) { height: 100dvh; overflow: hidden; }
 .health { min-width: 160px; text-align: right; }
 .health span { display: block; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem; color: var(--sand); }
 .health strong { font-family: var(--font-display), Georgia, serif; font-size: 2.4rem; }
-.reef__side { top: 120px; right: 18px; width: min(320px, 34vw); }
+.reef__side { top: 120px; right: 18px; width: min(360px, 38vw); max-height: calc(100dvh - 220px); overflow: auto; }
 .reef__foot {
   left: 18px;
   right: 18px;

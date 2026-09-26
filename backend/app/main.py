@@ -36,6 +36,8 @@ class CreateBody(BaseModel):
 class JoinBody(BaseModel):
     name: str
     language: str = "Python"
+    lane: str = "general"
+    focus: str = ""
 
 
 class PlayerBody(BaseModel):
@@ -68,7 +70,11 @@ def health() -> dict:
         "chatModel": settings.grok_model,
         "imageModel": settings.grok_image_model,
         "imagesEnabled": configured and settings.grok_images,
-        "grokRoles": ["answer the player's prompt", "judge that prompt from the solver API call"],
+        "grokRoles": [
+            "answer the player's prompt",
+            "judge that prompt from the solver API call",
+            "name why two people were matched",
+        ],
         "lanIp": game.lan_ip(),
         "formula": FORMULA,
     }
@@ -99,7 +105,7 @@ def read_session(code: str):
 @app.post("/api/sessions/{code}/join")
 async def join(code: str, body: JoinBody):
     try:
-        session, player = await game.join(code, body.name, body.language)
+        session, player = await game.join(code, body.name, body.language, body.lane, body.focus)
     except GameError as exc:
         return _error(exc)
     return {
@@ -108,6 +114,8 @@ async def join(code: str, body: JoinBody):
             "id": player.id,
             "name": player.name,
             "language": player.language,
+            "lane": player.lane,
+            "focus": player.focus,
             "squadId": player.squad_id,
         },
         "session": public_session(session),

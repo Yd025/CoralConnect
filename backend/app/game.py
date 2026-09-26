@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import secrets
 import time
-from collections import defaultdict
 
 from .carbon import (
     carbon_grams,
@@ -103,32 +102,62 @@ def _normalize_language(language: str) -> str:
     return cleaned
 
 
+def _normalize_lane(lane: str) -> str:
+    if lane.strip().lower() == "climate":
+        return "climate"
+    return "general"
+
+
+def _normalize_focus(focus: str) -> str:
+    return " ".join(focus.strip().split())[:80]
+
+
+def _connection_kind(members: list[Player]) -> str:
+    if len(members) < 2:
+        return "open"
+    lanes = {member.lane for member in members}
+    if "climate" in lanes and "general" in lanes:
+        return "bridge"
+    return "same_mission"
+
+
+def _person_line(member: Player) -> str:
+    label = "climate engineer" if member.lane == "climate" else "software engineer"
+    if member.focus:
+        return f"{member.name}, a {label} who works on {member.focus}"
+    return f"{member.name}, a {label}"
+
+
 def _icebreaker(members: list[Player]) -> str:
-    names = " and ".join(member.name for member in members)
-    languages = sorted({member.language for member in members})
     if len(members) == 1:
-        return f"{names} is waiting for a partner, and can still play solo if the table is quiet."
-    if len(languages) == 1:
-        return (
-            f"{names} both write {languages[0]}. "
-            "Put the fact in the message so the model does not have to look it up."
-        )
-    joined = " and ".join(languages)
-    return f"{names} write {joined}. Keep the words you both trust, and cut everything else."
+        who = _person_line(members[0])
+        return f"{who} is waiting for someone to connect with."
+    joined = " and ".join(_person_line(member) for member in members)
+    kind = _connection_kind(members)
+    if kind == "bridge":
+        return f"Bridge. {joined}. A climate engineer and a software engineer were matched so they have to talk."
+    if all(member.lane == "climate" for member in members):
+        return f"Same mission. {joined}. Two climate engineers found each other."
+    return f"Same mission. {joined}. Two software engineers found each other."
+
+
+def _squad_title(members: list[Player]) -> str:
+    if len(members) == 1:
+        return f"{members[0].name}'s seat"
+    if _connection_kind(members) == "bridge":
+        return "Climate × Software"
+    if all(member.lane == "climate" for member in members):
+        return "Climate Pair"
+    return "Software Pair"
 
 
 def _pair(players: list[Player]) -> list[list[Player]]:
-    groups: dict[str, list[Player]] = defaultdict(list)
-    for player in players:
-        if player.connected:
-            groups[player.language].append(player)
+    climate = [player for player in players if player.connected and player.lane == "climate"]
+    general = [player for player in players if player.connected and player.lane != "climate"]
     squads: list[list[Player]] = []
-    leftovers: list[Player] = []
-    for members in groups.values():
-        pool = list(members)
-        while len(pool) >= 2:
-            squads.append([pool.pop(), pool.pop()])
-        leftovers.extend(pool)
+    while climate and general:
+        squads.append([climate.pop(), general.pop()])
+    leftovers = climate + general
     while len(leftovers) >= 2:
         squads.append([leftovers.pop(), leftovers.pop()])
     if leftovers:
@@ -174,11 +203,19 @@ async def create_session(mode: str, challenge_id: str) -> tuple[Session, str]:
     return session, session.admin_token
 
 
-async def join(code: str, name: str, language: str) -> tuple[Session, Player]:
+async def join(
+    code: str,
+    name: str,
+    language: str = "Python",
+    lane: str = "general",
+    focus: str = "",
+) -> tuple[Session, Player]:
     cleaned = " ".join(name.strip().split())
     if len(cleaned) < 1 or len(cleaned) > 20:
         raise GameError(400, "Use a name between 1 and 20 characters.")
     chosen = _normalize_language(language)
+    chosen_lane = _normalize_lane(lane)
+    chosen_focus = _normalize_focus(focus)
     async with store.lock:
         session = _must(code)
         if session.status == "ended":
@@ -193,6 +230,8 @@ async def join(code: str, name: str, language: str) -> tuple[Session, Player]:
             token=secrets.token_urlsafe(18),
             name=cleaned,
             language=chosen,
+            lane=chosen_lane,
+            focus=chosen_focus,
             connected=True,
             joined_at=time.time(),
         )
@@ -210,14 +249,17 @@ def _seat_latecomer(session: Session, player: Player) -> None:
         open_squad.player_ids.append(player.id)
         player.squad_id = open_squad.id
         mate = next(p for p in session.players if p.id == open_squad.player_ids[0])
-        open_squad.icebreaker = _icebreaker([mate, player])
-        open_squad.name = f"{mate.language} Pair"
+        seated = [mate, player]
+        open_squad.icebreaker = _icebreaker(seated)
+        open_squad.name = _squad_title(seated)
+        open_squad.kind = _connection_kind(seated)
         return
     squad = Squad(
         id=_id("s"),
-        name=f"{player.name}'s Reef",
+        name=f"{player.name}'s seat",
         player_ids=[player.id],
         icebreaker=_icebreaker([player]),
+        kind="open",
     )
     player.squad_id = squad.id
     session.squads.append(squad)
@@ -260,17 +302,13 @@ async def start(code: str, admin_token: str) -> Session:
 
 def _form_squads(session: Session, connected: list[Player]) -> None:
     session.squads = []
-    for index, members in enumerate(_pair(connected), start=1):
-        languages = sorted({member.language for member in members})
-        if len(languages) == 1:
-            name = f"{languages[0]} Pair" if len(members) > 1 else f"{members[0].name}'s Reef"
-        else:
-            name = f"Reef Squad {index}"
+    for members in _pair(connected):
         squad = Squad(
             id=_id("s"),
-            name=name,
+            name=_squad_title(members),
             player_ids=[member.id for member in members],
             icebreaker=_icebreaker(members),
+            kind=_connection_kind(members),
         )
         session.squads.append(squad)
         member_ids = set(squad.player_ids)
@@ -288,9 +326,8 @@ async def _rename_squad(code: str, squad_id: str) -> None:
         if squad is None:
             return
         members = [p for p in session.players if p.id in squad.player_ids]
-        names = [p.name for p in members]
-        languages = [p.language for p in members]
-    named = await icebreaker(names, languages)
+        profiles = [{"name": p.name, "lane": p.lane, "focus": p.focus} for p in members]
+    named = await icebreaker(profiles)
     if not named:
         return
     async with store.lock:
@@ -572,6 +609,8 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
                 token=secrets.token_urlsafe(18),
                 name="Rehearsal",
                 language="Python",
+                lane="general",
+                focus="booth check",
                 connected=True,
                 joined_at=time.time(),
             )
@@ -582,6 +621,7 @@ async def simulate(code: str, admin_token: str, kind: str) -> tuple[Session, Sub
                     name="Rehearsal Reef",
                     player_ids=[player.id],
                     icebreaker="This squad exists so you can test the reef without a phone.",
+                    kind="open",
                 )
                 player.squad_id = squad.id
                 session.squads.append(squad)

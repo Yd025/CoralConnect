@@ -14,6 +14,10 @@ export function apiBase(): string {
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   if (typeof window === "undefined") return "http://localhost:8080";
   const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+  const port = window.location.port;
+  if (port === "" || port === "80" || port === "443") {
+    return `${protocol}//${window.location.host}`;
+  }
   return `${protocol}//${window.location.hostname}:8080`;
 }
 
@@ -58,10 +62,10 @@ export function getSession(code: string): Promise<GameSession> {
   return request<{ session: GameSession }>(`/api/sessions/${code}`).then((data) => data.session);
 }
 
-export function joinSession(code: string, name: string, language: string) {
+export function joinSession(code: string, name: string, lane: string, focus: string) {
   return request<{ playerToken: string; player: { id: string; name: string }; session: GameSession }>(
     `/api/sessions/${code}/join`,
-    { method: "POST", body: JSON.stringify({ name, language }) },
+    { method: "POST", body: JSON.stringify({ name, lane, focus }) },
   );
 }
 

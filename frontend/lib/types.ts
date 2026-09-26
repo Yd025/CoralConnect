@@ -37,6 +37,8 @@ export type Player = {
   id: string;
   name: string;
   language: string;
+  lane: string;
+  focus: string;
   squadId: string | null;
   score: number;
   lastGrade: Grade | null;
@@ -49,6 +51,7 @@ export type Squad = {
   name: string;
   playerIds: string[];
   memberNames: string[];
+  kind: string;
   icebreaker: string;
   prompt: string;
   promptAuthorId: string | null;

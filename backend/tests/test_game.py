@@ -37,17 +37,27 @@ def test_grade_bands_and_reef_thresholds():
     assert reef_band(24) == "dead"
 
 
-def test_pairing_groups_by_language_then_mixes_leftovers():
+def test_pairing_bridges_climate_with_software_before_same_mission():
     players = [
-        Player(id="a", token="t", name="A", language="Python"),
-        Player(id="b", token="t", name="B", language="Python"),
-        Player(id="c", token="t", name="C", language="Python"),
-        Player(id="d", token="t", name="D", language="Go"),
+        Player(id="a", token="t", name="A", language="Python", lane="climate", focus="reef sensors"),
+        Player(id="b", token="t", name="B", language="Python", lane="climate", focus="carbon logs"),
+        Player(id="c", token="t", name="C", language="Go", lane="general", focus="payment APIs"),
+        Player(id="d", token="t", name="D", language="Rust", lane="general", focus="compilers"),
     ]
     squads = _pair(players)
     assert len(squads) == 2
-    sizes = sorted(len(group) for group in squads)
-    assert sizes == [2, 2]
+    for group in squads:
+        assert {player.lane for player in group} == {"climate", "general"}
+
+
+def test_pairing_same_mission_when_the_table_shares_a_lane():
+    players = [
+        Player(id="a", token="t", name="A", language="Python", lane="climate", focus="reef sensors"),
+        Player(id="b", token="t", name="B", language="Python", lane="climate", focus="grid models"),
+    ]
+    squads = _pair(players)
+    assert len(squads) == 1
+    assert [player.lane for player in squads[0]] == ["climate", "climate"]
 
 
 def test_compete_caps_at_ten_players():
@@ -203,6 +213,7 @@ def test_collaborate_pairs_on_start_and_shares_a_score():
     session = started.json()["session"]
     assert len(session["squads"]) == 1
     assert set(session["squads"][0]["playerIds"]) == {ada["player"]["id"], grace["player"]["id"]}
+    assert session["squads"][0]["kind"] == "same_mission"
 
     submitted = client.post(
         f"/api/sessions/{code}/submit",
@@ -217,6 +228,32 @@ def test_collaborate_pairs_on_start_and_shares_a_score():
     scores = {player["name"]: player["score"] for player in after["players"]}
     assert scores["Ada"] == scores["Grace"]
     assert scores["Ada"] > 0
+
+
+def test_collaborate_labels_a_bridge_between_lanes():
+    client = TestClient(app)
+    created = client.post(
+        "/api/sessions",
+        json={"mode": "collaborate", "challengeId": "null-profile"},
+    ).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Maya", "lane": "climate", "focus": "reef sensors"},
+    )
+    client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Jordan", "lane": "general", "focus": "payment APIs"},
+    )
+    started = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    squad = started.json()["session"]["squads"][0]
+    assert squad["kind"] == "bridge"
+    assert squad["name"] == "Climate × Software"
+    assert "Maya" in squad["icebreaker"]
+    assert "Jordan" in squad["icebreaker"]
+    assert "reef sensors" in squad["icebreaker"]
+    assert "payment APIs" in squad["icebreaker"]
 
 
 def test_follow_up_keeps_the_bloated_history_on_the_bill():

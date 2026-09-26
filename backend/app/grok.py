@@ -214,14 +214,22 @@ def _int_or_none(value: object) -> int | None:
     return value
 
 
-async def icebreaker(names: list[str], languages: list[str]) -> dict | None:
-    if not settings.xai_api_key:
+async def icebreaker(people: list[dict]) -> dict | None:
+    if not settings.xai_api_key or not people:
         return None
+    lines = []
+    for person in people:
+        focus = str(person.get("focus") or "").strip() or "unspecified"
+        lines.append(f"- {person.get('name')}, lane: {person.get('lane')}, works on: {focus}")
     prompt = (
-        "Write a reef-squad name of at most 4 words and a one-sentence icebreaker. "
-        "These strangers must collaborate on a prompt that includes the source, so the model does not search the web. "
-        f"Names: {', '.join(names)}. Languages: {', '.join(languages)}. "
-        'Return only JSON: {"name": "...", "icebreaker": "..."}'
+        "These strangers were just paired. "
+        "If one lane is climate and another is general, this is a bridge between a climate engineer and a software engineer. "
+        "If every lane matches, this is two people on the same mission finding each other. "
+        "Write a squad name of at most 4 words and one sentence that says why these specific people should talk, using what they work on. "
+        "Do not mention reefs, carbon, tokens, or prompts. "
+        "People:\n"
+        + "\n".join(lines)
+        + '\nReturn only JSON: {"name": "...", "icebreaker": "..."}'
     )
     try:
         async with httpx.AsyncClient(timeout=12) as client:

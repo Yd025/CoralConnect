@@ -27,6 +27,8 @@ class Player:
     last_grade: str | None = None
     connected: bool = True
     joined_at: float = 0
+    lane: str = "general"
+    focus: str = ""
 
 
 @dataclass
@@ -40,6 +42,7 @@ class Squad:
     prompt_updated_at: float = 0
     score: int = 0
     last_grade: str | None = None
+    kind: str = "same_mission"
 
 
 @dataclass

@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Leaderboard } from "@/components/Leaderboard";
 import { apiBase, createSession, endSession, getChallenges, getHealth, setChallenge, simulate, startSession } from "@/lib/api";
 import { playUrl, stageUrl, useBoothOrigin } from "@/lib/booth";
+import { personLine } from "@/lib/connection";
 import { reefLabel } from "@/lib/reef";
 import type { Challenge, Health, Mode } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
@@ -106,7 +107,7 @@ export default function AdminPage() {
           <div className="mode-grid">
             <button type="button" className={mode === "collaborate" ? "mode is-on" : "mode"} onClick={() => setMode("collaborate")}>
               <strong>Collaborate</strong>
-              <small>2 to 4 players. Pair by language, then share one prompt and one score.</small>
+              <small>2 to 4 players. Match a climate engineer with a software engineer, or two people on the same mission. They share one prompt.</small>
             </button>
             <button type="button" className={mode === "compete" ? "mode is-on" : "mode"} onClick={() => setMode("compete")}>
               <strong>Compete</strong>
@@ -191,7 +192,7 @@ export default function AdminPage() {
                     <li key={player.id}>
                       <span>
                         <strong>{player.name}</strong>
-                        <small>{player.language}{player.connected ? "" : " · left"}</small>
+                        <small>{personLine(player.lane, player.focus)}{player.connected ? "" : " · left"}</small>
                       </span>
                       <b>{player.score}</b>
                     </li>
@@ -225,7 +226,7 @@ export default function AdminPage() {
         <summary>60 second pitch</summary>
         <p>
           A thin prompt that leaves out the source makes the model look the fact up. That extra work is the waste.
-          People at the table get paired into reef squads, or they compete, and each round takes two messages so one prompt is not enough.
+          In collaborate, a climate engineer is matched with a software engineer, or two people on the same mission find each other. They have to agree on one prompt.
           Include the source and the reef holds. Leave it out and the lookup drops sludge in the water.
         </p>
         {health ? (
