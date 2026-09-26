@@ -2,8 +2,8 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { Leaderboard } from "@/components/Leaderboard";
-import { AmbientLife, BandArt, SceneProps, SludgeBarrel } from "@/components/reef/FallbackReef";
-import { reefLabel, slot } from "@/lib/reef";
+import { AmbientLife, BandArt, SludgeBarrel } from "@/components/reef/FallbackReef";
+import { reefLabel } from "@/lib/reef";
 import type { GameSession, ReefEvent } from "@/lib/types";
 
 export function ReefStage({
@@ -17,29 +17,16 @@ export function ReefStage({
 }) {
   const health = session.reefHealth;
   const band = session.reefBand;
-  const residents = session.events
-    .filter((event) => event.type === "turtle" || event.type === "bloom" || event.type === "fish")
-    .slice(0, 8);
   const shock = liveEvent?.type === "sludge" || liveEvent?.type === "murk";
   const latest = session.submissions[0] ?? null;
 
   return (
     <section className={`reef reef--${band}`} style={{ ["--health" as string]: health }}>
       <BandArt band={band} />
-      <SceneProps />
-      <AmbientLife band={band} />
+      <AmbientLife band={band} health={health} />
       <div className="reef__murk" />
       {shock && liveEvent ? <div key={liveEvent.id} className="reef__flash" /> : null}
       {liveEvent?.type === "sludge" ? <SludgeBarrel key={liveEvent.id} seed={liveEvent.id} /> : null}
-
-      <div className="reef__residents" aria-hidden>
-        {residents.map((event) => (
-          <figure key={event.id} className="resident" style={{ left: `${slot(event.id)}%`, bottom: `${12 + (slot(event.id) % 18)}%` }}>
-            <Reward event={event} />
-            <figcaption>{event.actor}</figcaption>
-          </figure>
-        ))}
-      </div>
 
       {liveEvent && (liveEvent.type === "turtle" || liveEvent.type === "bloom") ? (
         <div key={liveEvent.id} className="reef__toast">

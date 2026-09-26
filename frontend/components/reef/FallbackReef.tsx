@@ -82,60 +82,72 @@ export function FallbackReef({ band }: { band: ReefBand }) {
   );
 }
 
-export function SceneProps() {
-  return (
-    <div className="reef__props" aria-hidden>
-      <img className="prop prop-wave" src="/reef/12-little-wave.svg" alt="" />
-      <img className="prop prop-light" src="/reef/13-harbor-lighthouse.svg" alt="" />
-      <img className="prop prop-boat" src="/reef/14-buddy-boat.svg" alt="" />
-      <img className="prop prop-stall" src="/reef/15-challenge-stall.svg" alt="" />
-    </div>
-  );
+const BAND_HEALTH: Record<ReefBand, number> = {
+  thriving: 100,
+  stressed: 62,
+  bleaching: 37,
+  dead: 8,
+};
+
+/** Animals leave as health falls. A new reef is 100: both fish, and no trash. */
+export function reefPresence(health: number) {
+  const level = Math.max(0, Math.min(100, Math.round(health)));
+  return {
+    school: level >= 82,
+    fish: level >= 58,
+    jelly: level >= 42,
+    whale: level >= 70,
+    octopus: level >= 16,
+    bag: level < 72,
+    bottle: level < 46,
+    bones: level < 24,
+  };
 }
 
-export function AmbientLife({ band = "thriving" }: { band?: ReefBand }) {
-  const hurt = band === "bleaching" || band === "dead";
-  const stressed = hurt || band === "stressed";
+export function AmbientLife({ band = "thriving", health }: { band?: ReefBand; health?: number }) {
+  const life = reefPresence(health ?? BAND_HEALTH[band]);
   return (
     <div className="reef__life" aria-hidden>
-      <span className="swimmer s1 is-flip">
-        <img src="/reef/04-pip-fish.svg" alt="" />
-      </span>
-      <span className="swimmer s2">
-        <img src="/reef/04-pip-fish.svg" alt="" />
-      </span>
-      <span className="swimmer s3">
-        <img src="/reef/03-juno-jellyfish.svg" alt="" />
-      </span>
-      {stressed ? null : (
+      {life.fish ? (
+        <span className="swimmer s1 is-flip">
+          <img src="/reef/04-pip-fish.svg" alt="" />
+        </span>
+      ) : null}
+      {life.school ? (
+        <span className="swimmer s2">
+          <img src="/reef/04-pip-fish.svg" alt="" />
+        </span>
+      ) : null}
+      {life.jelly ? (
+        <span className="swimmer s3">
+          <img src="/reef/03-juno-jellyfish.svg" alt="" />
+        </span>
+      ) : null}
+      {life.whale ? (
         <span className="swimmer s-whale is-flip">
           <img src="/reef/06-winnie-whale.svg" alt="" />
         </span>
-      )}
-      {hurt ? null : (
-        <span className="swimmer s-turtle">
-          <img src="/reef/02-moss-turtle.svg" alt="" />
+      ) : null}
+      {life.octopus ? (
+        <span className="swimmer s-octo">
+          <img src="/reef/05-otto-octopus.svg" alt="" />
         </span>
-      )}
-      {stressed ? (
+      ) : null}
+      {life.bag ? (
         <span className="swimmer s-trash">
           <img src="/reef/plastic-bag.svg" alt="" />
         </span>
       ) : null}
-      {hurt ? (
-        <>
-          <span className="swimmer s-trash t2">
-            <img src="/reef/crushed-bottle.svg" alt="" />
-          </span>
-          <span className="swimmer s-trash t3">
-            <img src="/reef/fishbones-small.svg" alt="" />
-          </span>
-        </>
-      ) : (
-        <span className="swimmer s-octo">
-          <img src="/reef/05-otto-octopus.svg" alt="" />
+      {life.bottle ? (
+        <span className="swimmer s-trash t2">
+          <img src="/reef/crushed-bottle.svg" alt="" />
         </span>
-      )}
+      ) : null}
+      {life.bones ? (
+        <span className="swimmer s-trash t3">
+          <img src="/reef/fishbones-small.svg" alt="" />
+        </span>
+      ) : null}
       <i className="bubble b1" />
       <i className="bubble b2" />
       <i className="bubble b3" />

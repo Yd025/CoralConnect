@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
+import { reefPresence } from "@/components/reef/FallbackReef";
 import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
 import { estimateTokens } from "@/lib/reef";
@@ -140,7 +141,7 @@ export default function PlayPage() {
 
   return (
     <main className={compete ? "phone compete-play" : "phone"}>
-      {compete && session ? <CompeteScene band={session.reefBand} /> : null}
+      {compete && session ? <CompeteScene band={session.reefBand} health={session.reefHealth} /> : null}
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
         <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
@@ -152,14 +153,7 @@ export default function PlayPage() {
       {session ? (
         <>
           <section className="panel stack">
-            {compete ? (
-              <div className="play-head">
-                <img className="play-mark" src="/reef/15-challenge-stall.svg" alt="" />
-                <h1>{session.challenge?.title}</h1>
-              </div>
-            ) : (
-              <h1>{session.challenge?.title}</h1>
-            )}
+            <h1>{session.challenge?.title}</h1>
             <p>{session.challenge?.brief}</p>
             <p className="muted">
               Turn {turnNumber} of {turnCount}. {session.challenge?.hint}
@@ -344,7 +338,6 @@ export default function PlayPage() {
           {shown ? (
             <section className="panel result">
               <div className="code-block">
-                {compete ? <img className="play-mark" src="/reef/09-pearl-points.svg" alt="" /> : null}
                 <GradeBadge grade={shown.grade} />
                 <strong>{shown.score}</strong>
               </div>
@@ -371,28 +364,18 @@ export default function PlayPage() {
   );
 }
 
-function CompeteScene({ band }: { band: ReefBand }) {
-  const hurt = band === "bleaching" || band === "dead";
-  const stressed = hurt || band === "stressed";
+function CompeteScene({ band, health }: { band: ReefBand; health: number }) {
+  const life = reefPresence(health);
   return (
     <div className="compete-scene" aria-hidden="true">
       <img className="compete-scene__band" src={`/reef/${band}.svg`} alt="" />
-      <img className="prop prop-wave" src="/reef/12-little-wave.svg" alt="" />
-      <img className="prop prop-light" src="/reef/13-harbor-lighthouse.svg" alt="" />
-      <img className="prop prop-boat" src="/reef/14-buddy-boat.svg" alt="" />
-      <span className="swimmer s1 is-flip"><img src="/reef/04-pip-fish.svg" alt="" /></span>
-      <span className="swimmer s2"><img src="/reef/04-pip-fish.svg" alt="" /></span>
-      <span className="swimmer s-turtle"><img src="/reef/02-moss-turtle.svg" alt="" /></span>
-      {stressed ? (
-        <span className="swimmer s-trash"><img src="/reef/plastic-bag.svg" alt="" /></span>
-      ) : (
-        <span className="swimmer s3"><img src="/reef/03-juno-jellyfish.svg" alt="" /></span>
-      )}
-      {hurt ? (
-        <span className="swimmer s-trash t2"><img src="/reef/crushed-bottle.svg" alt="" /></span>
-      ) : (
-        <span className="swimmer s-whale is-flip"><img src="/reef/06-winnie-whale.svg" alt="" /></span>
-      )}
+      {life.fish ? <span className="swimmer s1 is-flip"><img src="/reef/04-pip-fish.svg" alt="" /></span> : null}
+      {life.school ? <span className="swimmer s2"><img src="/reef/04-pip-fish.svg" alt="" /></span> : null}
+      {life.jelly ? <span className="swimmer s3"><img src="/reef/03-juno-jellyfish.svg" alt="" /></span> : null}
+      {life.whale ? <span className="swimmer s-whale is-flip"><img src="/reef/06-winnie-whale.svg" alt="" /></span> : null}
+      {life.bag ? <span className="swimmer s-trash"><img src="/reef/plastic-bag.svg" alt="" /></span> : null}
+      {life.bottle ? <span className="swimmer s-trash t2"><img src="/reef/crushed-bottle.svg" alt="" /></span> : null}
+      {life.bones ? <span className="swimmer s-trash t3"><img src="/reef/fishbones-small.svg" alt="" /></span> : null}
     </div>
   );
 }
