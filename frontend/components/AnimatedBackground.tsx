@@ -137,40 +137,76 @@ export function AnimatedBackground() {
       };
     });
 
+    const members = [...node.querySelectorAll<HTMLElement>(".school-fish")].map((el) => {
+      const homeX = parseFloat(el.style.left) || 0;
+      const homeY = parseFloat(el.style.top) || 0;
+      return {
+        el,
+        homeX,
+        homeY,
+        x: homeX + (Math.random() - 0.5) * 70,
+        y: homeY + (Math.random() - 0.5) * 48,
+        vx: (Math.random() - 0.5) * 16,
+        vy: (Math.random() - 0.5) * 12,
+        aimX: (Math.random() - 0.5) * 18,
+        aimY: (Math.random() - 0.5) * 14,
+        retarget: performance.now() + Math.random() * 2800,
+      };
+    });
+
+    const placeMembers = () => {
+      members.forEach((member) => {
+        member.el.style.transform = `translate3d(${(member.x - member.homeX).toFixed(1)}px, ${(member.y - member.homeY).toFixed(1)}px, 0)`;
+      });
+    };
+
     const place = () => {
       swimmers.forEach((swimmer) => {
         swimmer.el.style.transform = `translate3d(${swimmer.x.toFixed(1)}px, ${swimmer.y.toFixed(1)}px, 0)`;
       });
     };
 
+    const shove = (cx: number, cy: number, px: number, py: number, zone: number) => {
+      let dx = cx - px;
+      let dy = cy - py;
+      let dist = Math.hypot(dx, dy);
+      if (dist >= zone) return null;
+      if (dist < 1) {
+        dx = 0;
+        dy = -1;
+        dist = 1;
+      }
+      const impulse = (zone - dist) * 1.7;
+      return { vx: (dx / dist) * impulse, vy: (dy / dist) * impulse };
+    };
+
     const nudge = (px: number, py: number) => {
+      members.forEach((member) => {
+        const box = member.el.getBoundingClientRect();
+        const hit = shove(box.left + box.width / 2, box.top + box.height / 2, px, py, Math.min(box.width, box.height) * 0.22 + 78);
+        if (!hit) return;
+        member.vx += hit.vx;
+        member.vy += hit.vy;
+      });
       swimmers.forEach((swimmer) => {
-        let nearest = Infinity;
-        let dx = 0;
-        let dy = -1;
-        let reach = 0;
+        if (swimmer.el.querySelector(".school")) return;
+        let nearest: { vx: number; vy: number } | null = null;
         swimmer.el.querySelectorAll("img").forEach((img) => {
           const box = img.getBoundingClientRect();
-          const cx = box.left + box.width / 2;
-          const cy = box.top + box.height / 2;
-          const ddx = cx - px;
-          const ddy = cy - py;
-          const dist = Math.hypot(ddx, ddy);
-          const zone = Math.min(box.width, box.height) * 0.22 + 78;
-          if (dist < zone && dist < nearest) {
-            nearest = dist;
-            dx = ddx;
-            dy = ddy;
-            reach = zone;
-          }
+          const hit = shove(
+            box.left + box.width / 2,
+            box.top + box.height / 2,
+            px,
+            py,
+            Math.min(box.width, box.height) * 0.22 + 78,
+          );
+          if (hit && (!nearest || Math.hypot(hit.vx, hit.vy) > Math.hypot(nearest.vx, nearest.vy))) nearest = hit;
         });
-        if (!Number.isFinite(nearest) || nearest === Infinity) return;
-        const dist = Math.max(1, nearest);
-        const impulse = (reach - nearest) * 1.7;
-        swimmer.vy += (dy / dist) * impulse;
-        const shoved = swimmer.vx + (dx / dist) * impulse * 0.4;
+        if (!nearest) return;
+        swimmer.vy += nearest.vy;
+        const shoved = swimmer.vx + nearest.vx * 0.4;
         if (shoved * swimmer.dir < swimmer.cruise * 0.18) {
-          swimmer.vy += Math.sign(dy || -1) * Math.abs((dx / dist) * impulse) * 0.65;
+          swimmer.vy += Math.sign(nearest.vy || -1) * Math.abs(nearest.vx) * 0.65;
           swimmer.vx = swimmer.dir * swimmer.cruise * 0.18;
         } else {
           swimmer.vx = shoved;
@@ -244,10 +280,58 @@ export function AnimatedBackground() {
           b.swimmer.want = b.swimmer.dir * Math.min(b.swimmer.cruise * 1.35, Math.abs(b.swimmer.want) + push * 0.35);
         }
       }
+
+      members.forEach((member) => {
+        if (now > member.retarget) {
+          member.aimX = (Math.random() - 0.5) * 20;
+          member.aimY = (Math.random() - 0.5) * 16;
+          member.retarget = now + 2000 + Math.random() * 4800;
+        }
+        const ox = member.homeX - member.x;
+        const oy = member.homeY - member.y;
+        const off = Math.hypot(ox, oy);
+        const gain = 0.1 + Math.min(0.42, off / 260);
+        const pullX = ox * gain + member.aimX;
+        const pullY = oy * gain + member.aimY;
+        member.vx += (pullX - member.vx) * Math.min(1, dt * 0.45);
+        member.vy += (pullY - member.vy) * Math.min(1, dt * 0.45);
+        member.x += member.vx * dt;
+        member.y += member.vy * dt;
+      });
+      const bySchool = new Map<HTMLElement, typeof members>();
+      members.forEach((member) => {
+        const school = member.el.parentElement;
+        if (!school) return;
+        const list = bySchool.get(school) ?? [];
+        list.push(member);
+        bySchool.set(school, list);
+      });
+      bySchool.forEach((list) => {
+        for (let i = 0; i < list.length; i += 1) {
+          for (let j = i + 1; j < list.length; j += 1) {
+            const a = list[i];
+            const b = list[j];
+            let dx = a.x - b.x;
+            let dy = a.y - b.y;
+            const dist = Math.hypot(dx, dy);
+            const gap = 108;
+            if (dist >= gap || dist < 1) continue;
+            dx /= dist;
+            dy /= dist;
+            const push = (gap - dist) * 6 * dt;
+            a.vx += dx * push;
+            a.vy += dy * push;
+            b.vx -= dx * push;
+            b.vy -= dy * push;
+          }
+        }
+      });
       place();
+      placeMembers();
     };
 
     place();
+    placeMembers();
     const loop = (now: number) => {
       frame = requestAnimationFrame(loop);
       step(now);
