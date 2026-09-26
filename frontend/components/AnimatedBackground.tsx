@@ -105,7 +105,8 @@ export function AnimatedBackground() {
     const node = rootRef.current;
     if (!node) return;
 
-    const point = { x: 0, y: 0, cx: 0, cy: 0, inside: false };
+    const point = { x: 0, y: 0 };
+    const scares: { x: number; y: number; until: number }[] = [];
     const dodge = new WeakMap<HTMLElement, { x: number; y: number }>();
     let frame = 0;
     let lastRipple = 0;
@@ -113,6 +114,10 @@ export function AnimatedBackground() {
 
     const tick = () => {
       frame = 0;
+      const now = performance.now();
+      for (let i = scares.length - 1; i >= 0; i -= 1) {
+        if (scares[i].until <= now) scares.splice(i, 1);
+      }
       node.style.setProperty("--px", point.x.toFixed(4));
       node.style.setProperty("--py", point.y.toFixed(4));
 
@@ -124,22 +129,26 @@ export function AnimatedBackground() {
         const top = box.top - state.y;
         const cx = left + box.width / 2;
         const cy = top + box.height / 2;
-        let dx = cx - point.cx;
-        let dy = cy - point.cy;
-        let dist = Math.hypot(dx, dy);
         const clear = Math.min(box.width, box.height) * 0.22 + 72;
         let tx = 0;
         let ty = 0;
-        if (point.inside && dist < clear) {
+        let best = 0;
+        scares.forEach((scare) => {
+          let dx = cx - scare.x;
+          let dy = cy - scare.y;
+          let dist = Math.hypot(dx, dy);
+          if (dist >= clear) return;
           if (dist < 1) {
             dx = 0;
             dy = -1;
             dist = 1;
           }
           const push = clear - dist;
+          if (push <= best) return;
+          best = push;
           tx = (dx / dist) * push;
           ty = (dy / dist) * push;
-        }
+        });
         state.x += (tx - state.x) * 0.07;
         state.y += (ty - state.y) * 0.07;
         if (Math.hypot(state.x, state.y) > 0.6 || Math.hypot(tx, ty) > 0.6) settling = true;
@@ -148,20 +157,12 @@ export function AnimatedBackground() {
         el.style.setProperty("--dodge-y", `${state.y.toFixed(1)}px`);
       });
 
-      if (settling) frame = requestAnimationFrame(tick);
+      if (settling || scares.length > 0) frame = requestAnimationFrame(tick);
     };
 
     const onMove = (event: PointerEvent) => {
       point.x = (event.clientX / window.innerWidth - 0.5) * 2;
       point.y = (event.clientY / window.innerHeight - 0.5) * 2;
-      point.cx = event.clientX;
-      point.cy = event.clientY;
-      point.inside = true;
-      if (frame === 0) frame = requestAnimationFrame(tick);
-    };
-
-    const onLeave = () => {
-      point.inside = false;
       if (frame === 0) frame = requestAnimationFrame(tick);
     };
 
@@ -174,6 +175,7 @@ export function AnimatedBackground() {
       lastRipple = now;
       const id = ++ids.current;
       const ripple = { id, x: pointer.clientX, y: pointer.clientY };
+      scares.push({ x: pointer.clientX, y: pointer.clientY, until: now + 2200 });
       setRipples((items) => {
         const next = [...items, ripple];
         return next.length > 10 ? next.slice(next.length - 10) : next;
@@ -183,15 +185,14 @@ export function AnimatedBackground() {
         setRipples((items) => items.filter((item) => item.id !== id));
       }, 2200);
       timers.add(timer);
+      if (frame === 0) frame = requestAnimationFrame(tick);
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerleave", onLeave);
     window.addEventListener("pointerdown", spawn, true);
     window.addEventListener("click", spawn, true);
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerleave", onLeave);
       window.removeEventListener("pointerdown", spawn, true);
       window.removeEventListener("click", spawn, true);
       if (frame) cancelAnimationFrame(frame);
