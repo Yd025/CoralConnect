@@ -76,13 +76,10 @@ function Cast({ src, flip, still }: { src: string; flip?: boolean; still?: boole
 }
 
 function School({ flip, size, spots }: { flip?: boolean; size: number; spots: { x: number; y: number }[] }) {
-  const top = Math.min(...spots.map((spot) => spot.y));
-  const width = Math.max(...spots.map((spot) => spot.x)) + size;
-  const height = Math.max(...spots.map((spot) => spot.y)) - top + size;
   return (
-    <span className="school" style={{ width, height }}>
+    <span className="school">
       {spots.map((spot, index) => (
-        <span key={index} className="avoid school-fish" style={{ left: spot.x, top: spot.y - top, width: size }}>
+        <span key={index} className="avoid school-fish" style={{ left: spot.x, top: spot.y, width: size }}>
           <img className={flip ? "cast-art cast-flip" : "cast-art"} src="/reef/04-pip-fish.svg" alt="" />
         </span>
       ))}
@@ -144,10 +141,10 @@ export function AnimatedBackground() {
         el,
         homeX,
         homeY,
-        x: homeX + (Math.random() - 0.5) * 70,
-        y: homeY + (Math.random() - 0.5) * 48,
-        vx: (Math.random() - 0.5) * 16,
-        vy: (Math.random() - 0.5) * 12,
+        x: homeX + (Math.random() - 0.5) * 24,
+        y: homeY + (Math.random() - 0.5) * 16,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.5) * 6,
         aimX: (Math.random() - 0.5) * 18,
         aimY: (Math.random() - 0.5) * 14,
         retarget: performance.now() + Math.random() * 2800,
@@ -288,48 +285,20 @@ export function AnimatedBackground() {
 
       members.forEach((member) => {
         if (now > member.retarget) {
-          member.aimX = (Math.random() - 0.5) * 26;
-          member.aimY = (Math.random() - 0.5) * 18;
+          member.aimX = (Math.random() - 0.5) * 12;
+          member.aimY = (Math.random() - 0.5) * 10;
           member.retarget = now + 2000 + Math.random() * 4800;
         }
         const ox = member.homeX - member.x;
         const oy = member.homeY - member.y;
         const off = Math.hypot(ox, oy);
-        const gain = 0.16 + Math.min(0.5, off / 180);
+        const gain = 0.28 + Math.min(0.55, off / 150);
         const pullX = ox * gain + member.aimX;
         const pullY = oy * gain + member.aimY;
-        member.vx += (pullX - member.vx) * Math.min(1, dt * 1.35);
-        member.vy += (pullY - member.vy) * Math.min(1, dt * 1.35);
+        member.vx += (pullX - member.vx) * Math.min(1, dt * 1.6);
+        member.vy += (pullY - member.vy) * Math.min(1, dt * 1.6);
         member.x += member.vx * dt;
         member.y += member.vy * dt;
-      });
-      const bySchool = new Map<HTMLElement, typeof members>();
-      members.forEach((member) => {
-        const school = member.el.parentElement;
-        if (!school) return;
-        const list = bySchool.get(school) ?? [];
-        list.push(member);
-        bySchool.set(school, list);
-      });
-      bySchool.forEach((list) => {
-        for (let i = 0; i < list.length; i += 1) {
-          for (let j = i + 1; j < list.length; j += 1) {
-            const a = list[i];
-            const b = list[j];
-            let dx = a.x - b.x;
-            let dy = a.y - b.y;
-            const dist = Math.hypot(dx, dy);
-            const gap = 108;
-            if (dist >= gap || dist < 1) continue;
-            dx /= dist;
-            dy /= dist;
-            const push = (gap - dist) * 6 * dt;
-            a.vx += dx * push;
-            a.vy += dy * push;
-            b.vx -= dx * push;
-            b.vy -= dy * push;
-          }
-        }
       });
       place();
       placeMembers();
@@ -411,37 +380,38 @@ export function AnimatedBackground() {
         <Lane className="cast-school" top="20%" depth={0.32} layer={3} pace={34} wave={90}>
           <School
             flip
-            size={120}
+            size={150}
             spots={[
-              { x: 0, y: 28 },
-              { x: 168, y: 0 },
-              { x: 336, y: 52 },
-              { x: 504, y: 12 },
-              { x: 672, y: 40 },
+              { x: 0, y: 18 },
+              { x: 78, y: -8 },
+              { x: 86, y: 42 },
+              { x: 156, y: 8 },
+              { x: 168, y: 48 },
             ]}
           />
         </Lane>
         <Lane className="cast-school" top="40%" depth={0.62} layer={5} pace={40} wave={70} direction={-1}>
           <School
-            size={112}
+            size={130}
             spots={[
-              { x: 0, y: 24 },
-              { x: 176, y: 0 },
-              { x: 352, y: 48 },
-              { x: 528, y: 16 },
+              { x: 0, y: 12 },
+              { x: 70, y: -16 },
+              { x: 74, y: 40 },
+              { x: 140, y: 6 },
             ]}
           />
         </Lane>
         <Lane className="cast-school" top="56%" depth={0.8} layer={6} pace={30} wave={120}>
           <School
             flip
-            size={104}
+            size={118}
             spots={[
-              { x: 0, y: 20 },
-              { x: 160, y: 48 },
-              { x: 320, y: 0 },
-              { x: 480, y: 36 },
-              { x: 640, y: 10 },
+              { x: 0, y: 16 },
+              { x: 64, y: -6 },
+              { x: 60, y: 38 },
+              { x: 124, y: 10 },
+              { x: 132, y: 42 },
+              { x: 186, y: 4 },
             ]}
           />
         </Lane>
