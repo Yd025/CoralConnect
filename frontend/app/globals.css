@@ -266,6 +266,8 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 }
 
 body:has(.landing) { height: 100dvh; overflow: hidden; }
+body:has(.film-stage) { height: 100dvh; overflow: hidden; cursor: none; }
+.film-stage { position: fixed; inset: 0; background: #062844; }
 body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 .landing { height: 100dvh; overflow: hidden; }
 .admin-page.landing { height: 100dvh; overflow: hidden; }
