@@ -76,6 +76,8 @@ class Challenge:
     files: tuple[tuple[str, str], ...] = ()
     solutions: tuple[tuple[str, str], ...] = ()
     check: str = ""
+    # Offline edits only: a file is solved when the prompt names it and one of these words.
+    gates: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
     @property
     def target_tokens(self) -> int:

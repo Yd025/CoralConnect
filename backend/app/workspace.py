@@ -8,22 +8,30 @@ import tempfile
 from pathlib import Path
 
 
-def apply_named(files: dict[str, str], prompt: str, solutions: dict[str, str], jobs: dict[str, str]) -> tuple[dict[str, str], str]:
-    """Write a solved file when the prompt names that file or its function.
+def apply_named(
+    files: dict[str, str],
+    prompt: str,
+    solutions: dict[str, str],
+    jobs: dict[str, str],
+    gates: dict[str, tuple[str, ...]] | None = None,
+) -> tuple[dict[str, str], str]:
+    """Write a solved file when the prompt names that file and its rule.
 
+    Naming the function, or pasting the NotImplementedError line, is not enough.
     Used when Grok is offline, and as the stand-in edit for rehearsal.
     """
     lowered = prompt.lower()
     updated = dict(files)
     changed: list[str] = []
+    needed = gates or {}
     for filename, content in solutions.items():
-        function = jobs.get(filename, "")
-        named = filename.lower() in lowered or (function and function.lower() in lowered)
+        words = needed.get(filename, ())
+        named = filename.lower() in lowered and any(word.lower() in lowered for word in words)
         if named and filename in updated:
             updated[filename] = content
             changed.append(filename)
     if not changed:
-        return updated, "Name the file and the function so that file can be edited."
+        return updated, "Name the file and the rule for that file. Pasting the error is not enough."
     return updated, "Updated " + ", ".join(changed) + "."
 
 

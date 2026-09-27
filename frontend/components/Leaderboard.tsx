@@ -58,7 +58,7 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
         <h2>{connecting ? "Teams" : "Carbon efficiency"}</h2>
         <p>
           {connecting
-            ? "The score is the team's prompting total, and it shows up when the round ends."
+            ? "Out of 100. A strong pair lands in the 80s. The number shows up when the round ends."
             : "One round, up to 10. Higher means the model did less extra work."}
         </p>
       </header>

@@ -6,6 +6,7 @@ import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LiveVerdict } from "@/components/LiveVerdict";
 import { Receipt } from "@/components/Receipt";
+import { RoundTimer, useRoundRemaining } from "@/components/RoundTimer";
 import { reefPresence } from "@/components/reef/FallbackReef";
 import { getSession, leaveSession, joinSession, submitPrompt, tapStart } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
@@ -17,8 +18,9 @@ export default function PlayPage() {
   const router = useRouter();
   const params = useParams<{ code: string }>();
   const code = String(params.code || "").toUpperCase();
-  const { session, connected, error, sendDraft, ingest } = useSession(code);
+  const { session, connected, error, identify, ingest } = useSession(code);
   const [identity, setIdentity] = useState<Identity | null>(null);
+  const [identityReady, setIdentityReady] = useState(false);
   const [name, setName] = useState("");
   const [builds, setBuilds] = useState("");
   const [cares, setCares] = useState("");
@@ -27,28 +29,33 @@ export default function PlayPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [latest, setLatest] = useState<Submission | null>(null);
   const [openFile, setOpenFile] = useState("");
-  const [now, setNow] = useState(() => Date.now());
-  const draftTimer = useRef<number | null>(null);
-  const sawPrompt = useRef(false);
+  const joining = useRef(false);
   const logRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(storageKey(code));
-    if (!raw) return;
-    try {
-      setIdentity(JSON.parse(raw) as Identity);
-    } catch {
-      window.localStorage.removeItem(storageKey(code));
+    if (raw) {
+      try {
+        setIdentity(JSON.parse(raw) as Identity);
+      } catch {
+        window.localStorage.removeItem(storageKey(code));
+      }
     }
+    setIdentityReady(true);
   }, [code]);
 
   useEffect(() => {
-    if (!session || !identity) return;
+    if (!identityReady || !session || !identity) return;
     if (!session.players.some((player) => player.id === identity.playerId)) {
       window.localStorage.removeItem(storageKey(code));
       setIdentity(null);
     }
-  }, [session, identity, code]);
+  }, [identityReady, session, identity, code]);
+
+  useEffect(() => {
+    if (!identity) return;
+    identify(identity.playerId, identity.playerToken);
+  }, [identity, connected, identify]);
 
   const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
   const playerMax = session?.playerMax ?? (session?.mode === "collaborate" ? 8 : 10);
@@ -66,8 +73,6 @@ export default function PlayPage() {
   const readyIds = squad?.readyIds ?? [];
   const iAmReady = Boolean(identity && readyIds.includes(identity.playerId));
   const waitingOn = squadMates.find((player) => !readyIds.includes(player.id));
-  const deadline = squad?.startedAt ? squad.startedAt * 1000 + 120_000 : 0;
-  const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
   const projectFiles = thread?.files?.length ? thread.files : session?.challenge?.files ?? [];
@@ -76,32 +81,20 @@ export default function PlayPage() {
   const beat = beats[Math.min(thread?.step ?? 0, Math.max(beats.length - 1, 0))];
   const turnCount = thread?.turnLimit || session?.turnsAllowed || session?.challenge?.turnCount || beats.length || 1;
   const turnNumber = Math.min((thread?.step ?? 0) + 1, turnCount);
+  const roundSeconds = session?.mode === "compete" ? session.roundSeconds || 90 : 120;
+  const clockStart = session?.mode === "compete" ? session.startedAt || 0 : buildRound ? squad?.startedAt || 0 : 0;
+  const clockActive = session?.mode === "compete"
+    ? session.status === "playing"
+    : Boolean(buildRound && started && !thread?.done && session?.status !== "ended");
+  const remaining = useRoundRemaining(clockStart, clockActive, roundSeconds);
 
   useEffect(() => {
-    if (!deadline || thread?.done) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, [deadline, thread?.done]);
-
-  useEffect(() => {
-    if (!deadline || thread?.done || remaining > 0) return;
+    if (!clockStart || !clockActive || remaining == null || remaining > 0) return;
     const timer = window.setTimeout(() => {
       void getSession(code).then(ingest).catch(() => undefined);
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [deadline, thread?.done, remaining, code, ingest]);
-
-  useEffect(() => {
-    if (!squad || !identity) return;
-    if (!sawPrompt.current) {
-      setPrompt(squad.prompt);
-      sawPrompt.current = true;
-      return;
-    }
-    if (squad.promptAuthorId && squad.promptAuthorId !== identity.playerId) {
-      setPrompt(squad.prompt);
-    }
-  }, [squad, identity]);
+  }, [clockStart, clockActive, remaining, code, ingest]);
 
   const remembered = useMemo(() => {
     if (!session || !identity) return null;
@@ -118,6 +111,8 @@ export default function PlayPage() {
 
   async function onJoin(event: FormEvent) {
     event.preventDefault();
+    if (joining.current || identity) return;
+    joining.current = true;
     setBusy(true);
     setLocalError(null);
     try {
@@ -129,6 +124,7 @@ export default function PlayPage() {
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Could not join.");
     } finally {
+      joining.current = false;
       setBusy(false);
     }
   }
@@ -179,12 +175,6 @@ export default function PlayPage() {
 
   function onPrompt(value: string) {
     setPrompt(value);
-    if (session?.mode !== "collaborate" || !identity) return;
-    if (draftTimer.current) window.clearTimeout(draftTimer.current);
-    const current = identity;
-    draftTimer.current = window.setTimeout(() => {
-      sendDraft(current.playerId, current.playerToken, value);
-    }, 90);
   }
 
   useEffect(() => {
@@ -210,6 +200,7 @@ export default function PlayPage() {
     const ask = beat?.ask;
     return (
       <main className="compete-play">
+        <RoundTimer startedAt={session.startedAt} active={session.status === "playing"} seconds={roundSeconds} />
         <CompeteScene band={session.reefBand} health={session.reefHealth} />
         <section className="chat" aria-label="Chat">
           <header className="chat-head">
@@ -251,14 +242,14 @@ export default function PlayPage() {
               <SourceNote title={sourceTitle} ask={ask} body={sourceBody} onInclude={identity ? includeSource : undefined} />
             ) : null}
 
-            {!identity && tableFull ? (
+            {identityReady && !identity && tableFull ? (
               <div className="chat-msg is-grok">
                 <span className="chat-msg__who">Model</span>
                 <p>This table is full. Compete holds up to 10 players.</p>
               </div>
             ) : null}
 
-            {!identity && !tableFull ? (
+            {identityReady && !identity && !tableFull ? (
               <form className="chat-join stack" onSubmit={onJoin}>
                 <label>
                   Your name
@@ -371,6 +362,7 @@ export default function PlayPage() {
 
   return (
     <main className="phone">
+      <RoundTimer startedAt={clockStart} active={clockActive} seconds={roundSeconds} />
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
         <div className="topbar-end">
@@ -400,7 +392,7 @@ export default function PlayPage() {
             </div>
           </section>
 
-          {!identity && tableFull ? (
+          {identityReady && !identity && tableFull ? (
             <section className="panel stack">
               <h2>This table is full.</h2>
               <p className="muted">
@@ -411,7 +403,9 @@ export default function PlayPage() {
             </section>
           ) : null}
 
-          {!identity && !tableFull ? (
+          {!identityReady ? <p className="panel">Checking this phone…</p> : null}
+
+          {identityReady && !identity && !tableFull ? (
             <form className="panel stack" onSubmit={onJoin}>
               <label>
                 Your name
@@ -452,7 +446,7 @@ export default function PlayPage() {
           {identity && session.status === "lobby" && session.mode !== "collaborate" ? (
             <section className="panel stack">
               <h2>You're in, {identity.name}.</h2>
-              <p>This is one round for the room, up to 10 people. It starts when the table says go.</p>
+              <p>This is one round for the room, up to 10 people. It starts when the table says go, and you have 1 minute 30 seconds.</p>
               <p className="muted">{roster.length} of {playerMax} here.</p>
             </section>
           ) : null}
@@ -466,7 +460,7 @@ export default function PlayPage() {
                   {buildRound && !started ? (
                     <p>Find {partner?.name ?? "your partner"} in the room. When you are together, both of you tap Start.</p>
                   ) : buildRound && started && !thread?.done ? (
-                    <p>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")} left. Name the file and the function. The model edits that file.</p>
+                    <p>Name the file, the function, and the rule. The model edits that file.</p>
                   ) : buildRound && thread?.done ? (
                     <p>The round is over.</p>
                   ) : (
@@ -493,9 +487,6 @@ export default function PlayPage() {
                   <p>Hold your phone up. The next person in shares your animal. Other pairs can already be playing.</p>
                 </>
               )}
-              {squad?.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
-                <p className="muted">Your pair just changed the prompt.</p>
-              ) : null}
             </section>
           ) : null}
 
@@ -556,7 +547,7 @@ export default function PlayPage() {
                   ) : null}
                   <p className="muted small">
                     {buildRound
-                      ? "Both of you can read every file. Your prompt should name your file and your function."
+                      ? "Your prompt stays on this phone. Name your file, your function, and the rule. Pasting the error is not enough."
                       : piece
                         ? "Your pair can't see this piece. Put in the part the model needs. Pasting all of it costs tokens too."
                         : "Quote the lines the model needs. Long-press to copy from the file. Pasting all of it costs tokens too."}
@@ -565,12 +556,12 @@ export default function PlayPage() {
               ) : null}
               <label>
                 <span className="play-label">
-                  {buildRound ? "Your prompt" : session.mode === "collaborate" ? "Shared message" : "Your message"}
+                  {buildRound ? "Your prompt" : "Your message"}
                 </span>
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
               {buildRound && squad ? (
-                <p className="muted">Your partner has a different function. The app works when both files are edited.</p>
+                <p className="muted">Your partner types on their own phone. Tell them what you find. The app works when both files are edited.</p>
               ) : session.mode === "collaborate" && squad ? (
                 <p className="muted">Your partner has a different piece. The shared message needs both.</p>
               ) : null}

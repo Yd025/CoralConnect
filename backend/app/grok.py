@@ -258,13 +258,14 @@ async def edit_project(
     instruction: str,
     solutions: dict[str, str],
     jobs: dict[str, str],
+    gates: dict[str, tuple[str, ...]] | None = None,
 ) -> tuple[dict[str, str], str, bool, dict]:
     """Edit the pair's temporary files. Returns (files, note, simulated, trace).
 
-    No web search. When Grok is offline, a prompt that names a file or its
-    function writes that file's solution.
+    No web search. When Grok is offline, a prompt that names a file and its rule
+    writes that file's solution. A pasted error does not.
     """
-    fallback_files, fallback_note = apply_named(files, instruction, solutions, jobs)
+    fallback_files, fallback_note = apply_named(files, instruction, solutions, jobs, gates)
     if not settings.xai_api_key:
         return fallback_files, fallback_note, True, empty_trace()
     listing = _project_listing(files)

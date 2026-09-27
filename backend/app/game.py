@@ -8,7 +8,7 @@ from . import grok, judge
 from .carbon import clamp_health, count_tokens, event_type, reef_delta
 from .challenges import BUILD_IDS, get_challenge
 from .config import settings
-from .grading import beat_for, grade_prompt, redact, summary as turn_summary
+from .grading import beat_for, build_prompt_score, grade_prompt, redact, summary as turn_summary
 from .grok import describe_pair, imagine
 from .hub import hub
 from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
@@ -19,6 +19,7 @@ from .workspace import apply_named, project_passes
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CREATURES = ("Seagull", "Turtle", "Dolphin", "Octopus", "Whale", "Crab", "Ray", "Heron")
 ROUND_SECONDS = 120
+COMPETE_SECONDS = 90
 LANGUAGES = (
     "Python",
     "JavaScript",
@@ -101,6 +102,7 @@ def _clear_round(session: Session, *, keep_players: bool) -> None:
     session.events = []
     session.squads = []
     session.reef_health = 100
+    session.started_at = 0
     if not keep_players:
         session.players = []
         return
@@ -422,7 +424,7 @@ def _publish_pair(session: Session, squad: Squad, grade: str | None) -> None:
     if thread.done and squad.scored:
         return
     thread.done = True
-    squad.score = thread.score_sum
+    squad.score = round(thread.score_sum / thread.turns_graded) if thread.turns_graded else 0
     squad.scored = True
     if grade:
         squad.last_grade = grade
@@ -458,6 +460,14 @@ async def sweep_pair_clocks(code: str) -> Session:
         for squad in session.squads:
             if _expire_squad(session, squad, challenge):
                 changed = True
+        if (
+            session.mode == "compete"
+            and session.status == "playing"
+            and session.started_at
+            and time.time() >= session.started_at + COMPETE_SECONDS
+        ):
+            session.status = "ended"
+            changed = True
         if changed:
             _persist(session)
     if changed:
@@ -559,6 +569,7 @@ async def start(code: str, admin_token: str) -> Session:
         elif len(connected) < minimum or len(connected) > maximum:
             raise GameError(409, "Compete needs 1 to 10 players before the round starts.")
         session.status = "playing"
+        session.started_at = time.time()
         _persist(session)
     await _broadcast(session)
     return session
@@ -656,24 +667,55 @@ async def set_challenge(code: str, admin_token: str, challenge_id: str) -> Sessi
     return session
 
 
-async def update_draft(code: str, player_id: str, player_token: str, text: str) -> None:
-    cleaned = text[:8000]
+async def note_presence(code: str, player_id: str, player_token: str) -> bool:
+    """A phone that already joined says it is still here. This does not create a player."""
     async with store.lock:
         session = store.get(code)
-        if session is None or session.mode != "collaborate" or session.status == "ended":
+        if session is None:
+            return False
+        player = next((item for item in session.players if item.id == player_id), None)
+        if player is None or not secrets.compare_digest(player.token, player_token):
+            return False
+        if not player.connected:
+            player.connected = True
+            _persist(session)
+        else:
+            session = None
+    if session is not None:
+        await _broadcast(session)
+    return True
+
+
+async def release_if_absent(code: str, player_id: str) -> None:
+    """Drop a waiting person whose phone has been gone. A started pair stays on the board."""
+    if hub.online(code, player_id):
+        return
+    async with store.lock:
+        session = store.get(code)
+        if session is None or session.mode != "collaborate":
             return
-        try:
-            player = _player(session, player_id, player_token)
-        except GameError:
+        player = next((item for item in session.players if item.id == player_id), None)
+        if player is None:
             return
-        squad = _squad_for(session, player)
-        if squad is None or len(squad.player_ids) < 2 or squad.prompt == cleaned:
-            return
-        squad.prompt = cleaned
-        squad.prompt_author_id = player.id
-        squad.prompt_updated_at = time.time()
+        squad = next((item for item in session.squads if player_id in item.player_ids), None)
+        if squad is not None and squad.started_at:
+            player.connected = False
+        else:
+            session.players = [item for item in session.players if item.id != player.id]
+            _release_partner(session, player.id)
         _persist(session)
     await _broadcast(session)
+
+
+async def drop_absent_later(code: str, player_id: str) -> None:
+    """A refresh closes the socket for a moment. Wait before treating the phone as gone."""
+    await asyncio.sleep(15)
+    await release_if_absent(code, player_id)
+
+
+async def update_draft(code: str, player_id: str, player_token: str, text: str) -> None:
+    """Drafts stay on the phone that typed them. Partners talk, they do not share a box."""
+    return
 
 
 async def submit(
@@ -691,16 +733,26 @@ async def submit(
         raise GameError(400, "That prompt is past the 8,000 character limit.")
 
     clock_closed = False
+    compete_closed = False
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
         if session.status == "ended":
             raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        if (
+            session.mode == "compete"
+            and player.id != REHEARSAL_PLAYER_ID
+            and session.started_at
+            and time.time() >= session.started_at + COMPETE_SECONDS
+        ):
+            session.status = "ended"
+            _persist(session)
+            compete_closed = True
         if session.mode == "collaborate" and player.id != REHEARSAL_PLAYER_ID:
             squad_now = _squad_for(session, player)
             if squad_now is None or len(squad_now.player_ids) < 2:
                 raise GameError(409, "Find the other person with your animal before you send a prompt.")
-        elif session.status != "playing":
+        elif session.status != "playing" and not compete_closed:
             raise GameError(409, "Wait for the host to start the round. Compete is one round for the room.")
         challenge = get_challenge(session.challenge_id)
         if challenge is None:
@@ -738,11 +790,12 @@ async def submit(
         workspace = dict(thread.files) if thread and thread.files else dict(challenge.files)
         solutions = dict(challenge.solutions)
         jobs = _job_map(challenge)
+        gates = {name: words for name, words in challenge.gates}
         check = challenge.check
 
-    if clock_closed:
+    if clock_closed or compete_closed:
         await _broadcast(session)
-        raise GameError(409, "The 2 minutes are up.")
+        raise GameError(409, "Time is up.")
 
     # Collaborate mode also grades each partner's piece (grading.beat_for).
     beat = beat_for(beat, mode)
@@ -759,9 +812,11 @@ async def submit(
     if editing:
         # Build rounds edit the pair's files. One coding call, no web search, no second grader.
         if use_model:
-            workspace, answer, simulated, _trace = await grok.edit_project(workspace, model_text, solutions, jobs)
+            workspace, answer, simulated, _trace = await grok.edit_project(
+            workspace, model_text, solutions, jobs, gates
+        )
         else:
-            workspace, answer = apply_named(workspace, model_text, solutions, jobs)
+            workspace, answer = apply_named(workspace, model_text, solutions, jobs, gates)
             simulated = True
         worked = project_passes(workspace, check)
     elif use_model:
@@ -789,7 +844,7 @@ async def submit(
     )
 
     grade = graded.grade
-    score = graded.score
+    score = build_prompt_score(graded, text) if pair_round else graded.score
     looked_up = graded.lookup_tokens
     grams = graded.grams
     excess_kg = graded.excess_kg
@@ -824,7 +879,7 @@ async def submit(
         if finishing and worked:
             answer = answer.rstrip() + " Both functions are in. The team score is on the board."
         elif finishing:
-            answer = answer.rstrip() + " The 2 minutes are up. The team score is on the board."
+            answer = answer.rstrip() + " Time is up. The team score is on the board."
         thread.messages.append(ChatMessage(role="user", content=model_text))
         thread.messages.append(ChatMessage(role="assistant", content=answer))
         thread.step += 1

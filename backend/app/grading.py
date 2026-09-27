@@ -446,6 +446,27 @@ def check_rewrite(
     return True
 
 
+def build_prompt_score(result: TurnGrade, prompt: str) -> int:
+    """Pair rounds stay on a 0–100 scale where a strong prompt lands in the 80s.
+
+    100 is only a very short prompt that still carries every required detail
+    and is not a paste of the source. Copying the on-screen job, or the error,
+    does not reach it.
+    """
+    if result.leaked:
+        return 0
+    if result.missing or result.ask_missing:
+        return min(result.score, 64)
+    flat = " ".join(prompt.lower().split())
+    pasted = "notimplemented" in flat or "def " in flat or "```" in prompt
+    if pasted or result.flags or result.prompt_tokens > 22:
+        if result.effective_tokens <= result.target_tokens:
+            room = 1 - (result.prompt_tokens / max(result.target_tokens, 1))
+            return 80 + round(8 * max(0.0, min(1.0, room)))
+        return min(result.score, 79)
+    return 100
+
+
 def summary(result: TurnGrade, *, turn: int, turn_count: int) -> str:
     """One or two sentences for the phone, the stage, and the event feed."""
     lead = f"Turn {turn} of {turn_count}. {result.grade}."

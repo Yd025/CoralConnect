@@ -147,6 +147,8 @@ def public_session(session: Session) -> dict:
         "events": [public_event(e) for e in session.events],
         "threads": [public_thread(thread) for thread in session.threads],
         "createdAt": session.created_at,
+        "startedAt": session.started_at,
+        "roundSeconds": 90 if session.mode == "compete" else 120,
         "revision": session.revision,
         "turnsAllowed": turns_for_table(len([player for player in session.players if player.id != "p_rehearsal"])),
     }

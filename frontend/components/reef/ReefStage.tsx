@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
+import { RoundTimer } from "@/components/RoundTimer";
 import { AmbientLife, BandArt, SludgeBarrel } from "@/components/reef/FallbackReef";
 import { reefLabel } from "@/lib/reef";
 import type { GameSession, ReefEvent, Submission } from "@/lib/types";
@@ -21,6 +22,7 @@ export function ReefStage({
   const band = session.reefBand;
   const shock = liveEvent?.type === "sludge" || liveEvent?.type === "murk";
   const latest = session.submissions[0] ?? null;
+  const showClock = session.mode === "compete" && session.status === "playing" && session.startedAt > 0;
   const [open, setOpen] = useState(false);
   useEffect(() => {
     setOpen(false);
@@ -73,7 +75,8 @@ export function ReefStage({
         </div>
       </aside>
 
-      <header className="reef__hud">
+      {showClock ? <RoundTimer startedAt={session.startedAt} active seconds={session.roundSeconds || 90} /> : null}
+      <header className={showClock ? "reef__hud has-clock" : "reef__hud"}>
         <div>
           <p className="eyebrow">CoralConnect · {session.mode === "collaborate" ? "Pairs start on their own" : "One round · up to 10"}</p>
           <h1>{session.challenge?.title}</h1>

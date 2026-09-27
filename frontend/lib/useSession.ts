@@ -13,6 +13,7 @@ export function useSession(code: string | null) {
   const hydrated = useRef(false);
   const revision = useRef(0);
   const socketRef = useRef<WebSocket | null>(null);
+  const who = useRef<{ playerId: string; playerToken: string } | null>(null);
 
   const ingest = useCallback((next: GameSession) => {
     if (next.revision < revision.current) return;
@@ -54,6 +55,8 @@ export function useSession(code: string | null) {
       socketRef.current = socket;
       socket.onopen = () => {
         if (!stop) setConnected(true);
+        const mine = who.current;
+        if (mine) socket.send(JSON.stringify({ type: "hello", playerId: mine.playerId, playerToken: mine.playerToken }));
       };
       socket.onclose = () => {
         if (stop) return;
@@ -89,11 +92,12 @@ export function useSession(code: string | null) {
     };
   }, [code, ingest]);
 
-  const sendDraft = useCallback((playerId: string, playerToken: string, text: string) => {
+  const identify = useCallback((playerId: string, playerToken: string) => {
+    who.current = { playerId, playerToken };
     const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    socket.send(JSON.stringify({ type: "draft", playerId, playerToken, text }));
+    socket.send(JSON.stringify({ type: "hello", playerId, playerToken }));
   }, []);
 
-  return { session, connected, error, liveEvent, sendDraft, ingest };
+  return { session, connected, error, liveEvent, identify, ingest };
 }

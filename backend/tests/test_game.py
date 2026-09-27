@@ -9,7 +9,9 @@ from fastapi.testclient import TestClient
 
 from app.carbon import grade_for, reef_band
 from app.models import turns_for_table
+from app.challenges import get_challenge
 from app.game import _pair, _pick_waiter
+import app.game as game
 from app.challenges import CHALLENGES
 from app.grading import add_live_call, grade_prompt
 from app.grok import call_trace, parse_review
@@ -665,7 +667,7 @@ def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
         json={
             "playerId": ada["player"]["id"],
             "playerToken": ada["playerToken"],
-            "prompt": "In messages.py, add send_message(room, user, text). Save the message and return it.",
+            "prompt": "In messages.py, add send_message(room, user, text). Save a real message and return it. A blank message is not saved.",
         },
     )
     assert early.status_code == 409
@@ -690,7 +692,7 @@ def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
         json={
             "playerId": ada["player"]["id"],
             "playerToken": ada["playerToken"],
-            "prompt": "In messages.py, add send_message(room, user, text). Save the message and return it.",
+            "prompt": "In messages.py, add send_message(room, user, text). Save a real message and return it. A blank message is not saved.",
         },
     )
     assert edited.status_code == 200
@@ -707,7 +709,7 @@ def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
         json={
             "playerId": yidan["player"]["id"],
             "playerToken": yidan["playerToken"],
-            "prompt": "In presence.py, add who_is_here(room). Return the people in that room.",
+            "prompt": "In presence.py, add who_is_here(room). Return the people in that room, sorted.",
         },
     )
     assert finished.status_code == 200
@@ -720,6 +722,79 @@ def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
     card = client.get("/api/cards/" + done["threads"][0]["cardId"]).json()["card"]
     assert card["team"] == "Team Seagull"
     assert set(card["names"]) == {"Adelin", "Yidan"}
+
+
+def test_compete_round_lasts_two_minutes():
+    client = TestClient(app)
+    created = client.post("/api/sessions", json={"mode": "compete", "challengeId": "farm-water"}).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    ada = client.post("/api/sessions/" + code + "/join", json={"name": "Ada", "builds": "Apps", "cares": "Planet"}).json()
+    started = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin}).json()["session"]
+    assert started["startedAt"] > 0
+    assert started["roundSeconds"] == 90
+    assert started["status"] == "playing"
+
+    session = store.get(code)
+    session.started_at = 1
+    store.save()
+    late = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "Water the dry plots.",
+        },
+    )
+    assert late.status_code == 409
+    assert "Time is up" in late.json()["error"]
+    closed = client.get(f"/api/sessions/{code}").json()["session"]
+    assert closed["status"] == "ended"
+
+
+def test_pasting_the_error_does_not_finish_the_file():
+    client = TestClient(app)
+    code, ada, yidan = _pair_on(client)
+    client.post(f"/api/sessions/{code}/ready", json={"playerId": ada["player"]["id"], "playerToken": ada["playerToken"]})
+    client.post(f"/api/sessions/{code}/ready", json={"playerId": yidan["player"]["id"], "playerToken": yidan["playerToken"]})
+    pasted = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "def send_message(room, user, text):\n    raise NotImplementedError",
+        },
+    )
+    assert pasted.status_code == 200
+    body = pasted.json()
+    files = {item["name"]: item["body"] for item in body["session"]["threads"][0]["files"]}
+    assert "NotImplementedError" in files["messages.py"]
+    assert body["submission"]["score"] < 80
+    assert body["session"]["threads"][0]["done"] is False
+
+
+def test_a_strong_pair_prompt_lands_in_the_eighties():
+    from app.grading import build_prompt_score
+
+    beat = get_challenge("team-chat").beats[0]
+    graded = grade_prompt(beat.samples.adequate, beat)
+    assert 80 <= build_prompt_score(graded, beat.samples.adequate) <= 89
+    tiny = "In messages.py, send_message must ignore blank text."
+    sharp = grade_prompt(tiny, beat)
+    assert build_prompt_score(sharp, tiny) == 100
+
+
+def test_a_refresh_does_not_leave_a_waiting_ghost():
+    import asyncio
+
+    client = TestClient(app)
+    created = client.post("/api/sessions", json={"mode": "collaborate", "challengeId": "team-chat"}).json()
+    code = created["session"]["code"]
+    ada = client.post(f"/api/sessions/{code}/join", json={"name": "Ada", "builds": "Apps", "cares": "Planet"}).json()
+    asyncio.run(game.release_if_absent(code, ada["player"]["id"]))
+    left = client.get(f"/api/sessions/{code}").json()["session"]
+    assert left["players"] == []
+    assert left["squads"] == []
 
 
 def test_build_round_closes_when_two_minutes_pass():
