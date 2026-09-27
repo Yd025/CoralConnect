@@ -647,3 +647,96 @@ def test_a_finished_pair_lands_on_the_board_and_the_share_card():
     assert card.json()["card"]["names"] == ["Maya", "Jordan"] or set(card.json()["card"]["names"]) == {"Maya", "Jordan"}
     board = client.get("/api/pairs").json()["pairs"]
     assert board[0]["id"] == thread["cardId"]
+
+
+def _pair_on(client, challenge_id="team-chat"):
+    created = client.post("/api/sessions", json={"mode": "collaborate", "challengeId": challenge_id}).json()
+    code = created["session"]["code"]
+    ada = client.post(f"/api/sessions/{code}/join", json={"name": "Adelin", "builds": "Apps", "cares": "Planet"}).json()
+    yidan = client.post(f"/api/sessions/{code}/join", json={"name": "Yidan", "builds": "Apps", "cares": "Planet"}).json()
+    return code, ada, yidan
+
+
+def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
+    client = TestClient(app)
+    code, ada, yidan = _pair_on(client)
+    early = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "In messages.py, add send_message(room, user, text). Save the message and return it.",
+        },
+    )
+    assert early.status_code == 409
+
+    first = client.post(
+        f"/api/sessions/{code}/ready",
+        json={"playerId": ada["player"]["id"], "playerToken": ada["playerToken"]},
+    ).json()["session"]
+    squad = first["squads"][0]
+    assert squad["startedAt"] == 0
+    assert squad["readyIds"] == [ada["player"]["id"]]
+
+    second = client.post(
+        f"/api/sessions/{code}/ready",
+        json={"playerId": yidan["player"]["id"], "playerToken": yidan["playerToken"]},
+    ).json()["session"]
+    assert second["squads"][0]["startedAt"] > 0
+    assert second["players"][0]["score"] == 0
+
+    edited = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "In messages.py, add send_message(room, user, text). Save the message and return it.",
+        },
+    )
+    assert edited.status_code == 200
+    body = edited.json()
+    files = {item["name"]: item["body"] for item in body["session"]["threads"][0]["files"]}
+    assert "NotImplementedError" not in files["messages.py"]
+    assert "NotImplementedError" in files["presence.py"]
+    assert body["session"]["threads"][0]["done"] is False
+    assert body["session"]["squads"][0]["scored"] is False
+    assert body["session"]["squads"][0]["score"] == 0
+
+    finished = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": yidan["player"]["id"],
+            "playerToken": yidan["playerToken"],
+            "prompt": "In presence.py, add who_is_here(room). Return the people in that room.",
+        },
+    )
+    assert finished.status_code == 200
+    done = finished.json()["session"]
+    assert done["threads"][0]["done"] is True
+    assert done["squads"][0]["scored"] is True
+    assert done["squads"][0]["score"] > 0
+    scores = {player["name"]: player["score"] for player in done["players"]}
+    assert scores["Adelin"] == scores["Yidan"] == done["squads"][0]["score"]
+    card = client.get("/api/cards/" + done["threads"][0]["cardId"]).json()["card"]
+    assert card["team"] == "Team Seagull"
+    assert set(card["names"]) == {"Adelin", "Yidan"}
+
+
+def test_build_round_closes_when_two_minutes_pass():
+    client = TestClient(app)
+    code, ada, yidan = _pair_on(client)
+    client.post(
+        f"/api/sessions/{code}/ready",
+        json={"playerId": ada["player"]["id"], "playerToken": ada["playerToken"]},
+    )
+    client.post(
+        f"/api/sessions/{code}/ready",
+        json={"playerId": yidan["player"]["id"], "playerToken": yidan["playerToken"]},
+    )
+    session = store.get(code)
+    session.squads[0].started_at = 1
+    store.save()
+    closed = client.get(f"/api/sessions/{code}").json()["session"]
+    assert closed["threads"][0]["done"] is True
+    assert closed["squads"][0]["scored"] is True
+    assert closed["squads"][0]["score"] == 0

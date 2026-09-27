@@ -56,6 +56,9 @@ class Squad:
     distinct: str = ""
     creature: str = ""
     closing: str = ""
+    ready_ids: list[str] = field(default_factory=list)
+    started_at: float = 0
+    scored: bool = False
 
 
 @dataclass
@@ -74,6 +77,7 @@ class Thread:
     turns_graded: int = 0
     turn_limit: int = 0
     card_id: str = ""
+    files: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

@@ -70,6 +70,9 @@ def test_samples_land_in_their_bands(cid, index, beat, tokenizer):
 @pytest.mark.parametrize("cid,index,beat", BEATS, ids=IDS)
 def test_pasting_everything_costs_more_than_quoting_but_less_than_nothing(cid, index, beat, tokenizer):
     challenge = next(c for c in CHALLENGES if c.id == cid)
+    if challenge.files:
+        # Build rounds show the files beside the prompt. Pasting them is not the task.
+        return
     whole = grading.grade_prompt(challenge.example_whole_file(index), beat)
     vague = grading.grade_prompt(beat.samples.vague, beat)
     assert not whole.missing

@@ -50,6 +50,9 @@ def public_squad(squad: Squad, players: list[Player]) -> dict:
         "distinct": squad.distinct,
         "creature": squad.creature,
         "closing": squad.closing,
+        "readyIds": list(squad.ready_ids),
+        "startedAt": squad.started_at,
+        "scored": squad.scored,
         "icebreaker": squad.icebreaker,
         "prompt": squad.prompt,
         "promptAuthorId": squad.prompt_author_id,
@@ -109,6 +112,7 @@ def public_thread(thread: Thread) -> dict:
         "done": thread.done,
         "turnLimit": thread.turn_limit,
         "cardId": thread.card_id,
+        "files": [{"name": name, "body": body} for name, body in thread.files.items()],
         "messages": [{"role": message.role, "content": message.content} for message in thread.messages],
     }
 

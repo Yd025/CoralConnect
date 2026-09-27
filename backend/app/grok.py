@@ -7,6 +7,7 @@ import re
 import httpx
 
 from .config import settings
+from .workspace import apply_edits, apply_named
 
 logger = logging.getLogger("coralconnect.grok")
 
@@ -18,6 +19,34 @@ SYSTEM = (
     "If the latest message already contains the code or error you need, answer from it and do not search the web. "
     "Search only when that source is missing."
 )
+
+CODER_SYSTEM = (
+    "You are a coding assistant editing a small Python project in place. "
+    "Change only the files the latest message names. "
+    "Return JSON with a one-sentence note and the full new contents of each file you change. "
+    "Do not explain outside the JSON. Do not search the web."
+)
+
+EDIT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "note": {"type": "string"},
+        "edits": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"},
+                },
+                "required": ["path", "content"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["note", "edits"],
+    "additionalProperties": False,
+}
 
 # Layer 3 of the prompt judge (docs/PROMPT-JUDGE.md, Appendix A).
 REVIEW_SYSTEM = """You judge how efficiently a prompt asks an AI assistant to get a task done.
@@ -215,6 +244,61 @@ async def complete(messages: list[dict], fallback: str) -> tuple[str, bool, dict
         logger.warning("Grok text response had no output_text")
         return fallback, True, request, empty_trace()
     return text, False, request, call_trace(payload)
+
+
+def _project_listing(files: dict[str, str]) -> str:
+    chunks = []
+    for name, body in files.items():
+        chunks.append(f"----- {name} -----\n{body.rstrip()}")
+    return "\n\n".join(chunks)
+
+
+async def edit_project(
+    files: dict[str, str],
+    instruction: str,
+    solutions: dict[str, str],
+    jobs: dict[str, str],
+) -> tuple[dict[str, str], str, bool, dict]:
+    """Edit the pair's temporary files. Returns (files, note, simulated, trace).
+
+    No web search. When Grok is offline, a prompt that names a file or its
+    function writes that file's solution.
+    """
+    fallback_files, fallback_note = apply_named(files, instruction, solutions, jobs)
+    if not settings.xai_api_key:
+        return fallback_files, fallback_note, True, empty_trace()
+    listing = _project_listing(files)
+    body = {
+        "model": settings.grok_model,
+        "input": [
+            {"role": "system", "content": CODER_SYSTEM},
+            {
+                "role": "user",
+                "content": f"Project files:\n\n{listing}\n\nRequest:\n{instruction}",
+            },
+        ],
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "file_edits",
+                "schema": EDIT_SCHEMA,
+                "strict": True,
+            }
+        },
+    }
+    payload = await _post_responses(body, timeout=25)
+    if payload is None:
+        return fallback_files, fallback_note, True, empty_trace()
+    parsed = _json_object(_output_text(payload)) or {}
+    edits = parsed.get("edits") if isinstance(parsed.get("edits"), list) else []
+    updated = apply_edits(files, edits)
+    note = " ".join(str(parsed.get("note") or "").split())[:400]
+    if updated == files:
+        return fallback_files, fallback_note, True, call_trace(payload)
+    if not note:
+        changed = [name for name, body in updated.items() if files.get(name) != body]
+        note = "Updated " + ", ".join(changed) + "." if changed else fallback_note
+    return updated, note, False, call_trace(payload)
 
 
 _review_cache: dict[str, dict] = {}

@@ -158,6 +158,31 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .board__head p { margin: 4px 0 10px; color: var(--muted); }
 .board ol { list-style: none; margin: 0; padding: 0; }
 .board__rank { width: 1.4rem; color: var(--sand); }
+.board__who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.board__team { font-family: var(--font-display), Georgia, serif; font-size: 1.15rem; font-weight: 560; }
+.board__members { font-style: italic; color: var(--sand) !important; }
+.team-mark { display: inline-flex; align-items: center; flex: none; }
+.team-mark__circle {
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--teal);
+  color: #10221b;
+  font-weight: 700;
+  border: 2px solid var(--bg);
+}
+.team-mark__circle.is-second { background: var(--sand); margin-left: -0.72rem; }
+.file-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.file-tab {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: var(--muted);
+}
+.file-tab.is-on { color: var(--ink); border-color: var(--teal); }
 .board-compact { background: rgba(3, 18, 24, 0.72); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; }
 
 .grade {
