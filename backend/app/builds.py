@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .round_types import Beat, Challenge, Fact, Part, Samples
 
 
@@ -45,7 +47,7 @@ def _round(
                     Fact(
                         "file",
                         f"Which file: {file_a} or {file_b}",
-                        ((rf"{file_a.replace('.', r'\.')}", rf"{file_b.replace('.', r'\.')}"),),
+                        ((re.escape(file_a), re.escape(file_b)),),
                     ),
                     Fact(
                         "function",

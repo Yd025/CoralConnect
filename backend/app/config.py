@@ -37,6 +37,14 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+def _float(name: str, default: float) -> float:
+    raw = os.environ.get(name, "").strip()
+    try:
+        return max(0.0, float(raw)) if raw else default
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class Settings:
     xai_api_key: str
@@ -58,6 +66,22 @@ class Settings:
     # for labeling real prompts into the test set. Off unless JUDGE_LOG=true.
     judge_log: bool = False
     tech_domain: str = ""
+    # Seconds to wait for Grok's answer before trying once more (the retry gets
+    # the same reply cap, without web search). A booth turn should stay under ~25 s.
+    grok_timeout: float = 15.0
+    # Grok calls allowed in flight at once, across every phone.
+    grok_concurrency: int = 8
+    # Spending cap: Grok calls per minute across the whole server. Past it, turns
+    # are still graded by the rules and the reply is the round's written answer.
+    # 0 turns the cap off.
+    grok_calls_per_minute: int = 120
+    # Grok Imagine rewards per hour across the server. 0 turns the cap off.
+    grok_images_per_hour: int = 40
+    # Games anyone can create from one address in 10 minutes. 0 turns the cap off.
+    sessions_per_ip: int = 30
+    # Games with no activity for this many hours are dropped from the save file.
+    # Their result cards and the pair board stay. 0 keeps every game forever.
+    idle_session_hours: float = 6.0
 
 
 def get_settings() -> Settings:
@@ -79,6 +103,12 @@ def get_settings() -> Settings:
         judge_full_per_minute=_int("JUDGE_FULL_PER_MINUTE", 20),
         judge_log=_flag("JUDGE_LOG", False),
         tech_domain=os.environ.get("TECH_DOMAIN", "").strip().removeprefix("https://").removeprefix("http://").strip("/"),
+        grok_timeout=_float("GROK_TIMEOUT", 15.0) or 15.0,
+        grok_concurrency=_int("GROK_CONCURRENCY", 8) or 8,
+        grok_calls_per_minute=_int("GROK_CALLS_PER_MINUTE", 120),
+        grok_images_per_hour=_int("GROK_IMAGES_PER_HOUR", 40),
+        sessions_per_ip=_int("SESSIONS_PER_IP", 30),
+        idle_session_hours=_float("IDLE_SESSION_HOURS", 6.0),
     )
 
 

@@ -39,6 +39,8 @@ class Player:
     joined_at: float = 0
     builds: str = ""
     cares: str = ""
+    # When the player's last open phone socket closed. 0 while connected.
+    left_at: float = 0
 
 
 @dataclass
@@ -157,6 +159,8 @@ class Session:
     created_at: float
     threads: list[Thread] = field(default_factory=list)
     revision: int = 0
+    # Last change to the game. Idle games are dropped from the save file.
+    updated_at: float = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

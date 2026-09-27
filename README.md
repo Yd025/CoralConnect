@@ -140,6 +140,8 @@ Every round's sample prompts are tested, from the precise one to the vague one, 
 
 ## Run the booth
 
+The public site (HTTPS on coralconnectgt.tech) runs from `docker-compose.prod.yml`. The steps, firewall ports, and spending caps are in [deploy/README.md](deploy/README.md).
+
 Docker, from this folder:
 
 ```bash
@@ -169,7 +171,7 @@ Keys come from [console.x.ai](https://console.x.ai). `TECH_DOMAIN` is the host p
 
 Games survive a restart in the `coral-data` volume. Edits under `backend/app`, `frontend/app`, `frontend/components`, `frontend/lib`, and `frontend/public` show up without a rebuild.
 
-Without Docker:
+Without Docker (Python 3.10 or newer):
 
 ```bash
 cd backend

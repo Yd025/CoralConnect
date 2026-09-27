@@ -1,0 +1,57 @@
+# Production for https://coralconnectgt.tech
+#
+#   cp -n backend/.env.example backend/.env   # then fill in XAI_API_KEY
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Caddy gets and renews the HTTPS certificate on its own. Ports 80 and 443
+# must be open on the server firewall and the cloud provider's firewall.
+# deploy/README.md has the full checklist.
+#
+# The backend service is named workgate because deploy/Caddyfile sends
+# /api/* and /ws/* to workgate:8080. The dev file (docker-compose.yml) calls it api.
+
+services:
+  workgate:
+    build: ./backend
+    env_file:
+      - backend/.env
+    environment:
+      DATA_PATH: /data/sessions.json
+    volumes:
+      - coral-data:/data
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    expose:
+      - "3000"
+    depends_on:
+      - workgate
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live here. Without this volume every restart asks
+      # Let's Encrypt again and can hit its rate limit.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - workgate
+      - web
+    restart: unless-stopped
+
+volumes:
+  # Same name as in docker-compose.yml, so games carry over when both run from this folder.
+  coral-data:
+  caddy-data:
+  caddy-config:

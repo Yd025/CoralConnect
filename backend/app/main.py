@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
-
 import secrets
+import time
+from collections import deque
+from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import FastAPI, Header, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Header, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -23,7 +25,16 @@ from .store import store
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("coralconnect")
 
-app = FastAPI(title="CoralConnect", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
+    # Game changes are written a moment after they happen. Write any pending ones on the way out.
+    store.flush_now()
+
+
+app = FastAPI(title="CoralConnect", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -85,6 +96,39 @@ def _error(exc: GameError) -> JSONResponse:
     return JSONResponse({"error": exc.message}, status_code=exc.status)
 
 
+def _client_ip(request: Request) -> str:
+    """The phone's address. Caddy sets X-Forwarded-For to the real client."""
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+_CREATE_WINDOW = 600.0
+_created_by_ip: dict[str, deque[float]] = {}
+
+
+def _allow_create(ip: str) -> bool:
+    """At most SESSIONS_PER_IP new games per address in 10 minutes."""
+    limit = settings.sessions_per_ip
+    if limit <= 0:
+        return True
+    now = time.monotonic()
+    if len(_created_by_ip) > 5000:
+        _created_by_ip.clear()
+    calls = _created_by_ip.setdefault(ip, deque())
+    while calls and now - calls[0] > _CREATE_WINDOW:
+        calls.popleft()
+    if len(calls) >= limit:
+        return False
+    calls.append(now)
+    return True
+
+
+def reset_limits() -> None:
+    _created_by_ip.clear()
+
+
 @app.get("/api/health")
 def health() -> dict:
     configured = bool(settings.xai_api_key)
@@ -109,6 +153,14 @@ def health() -> dict:
             "reviewerModel": settings.grok_judge_model,
             "fullPerMinute": settings.judge_full_per_minute,
         },
+        "limits": {
+            "grokTimeoutSeconds": settings.grok_timeout,
+            "grokConcurrency": settings.grok_concurrency,
+            "grokCallsPerMinute": settings.grok_calls_per_minute,
+            "grokImagesPerHour": settings.grok_images_per_hour,
+            "sessionsPerIpPer10Minutes": settings.sessions_per_ip,
+            "idleSessionHours": settings.idle_session_hours,
+        },
     }
 
 
@@ -127,9 +179,9 @@ async def judge_prompt(body: JudgeBody, x_judge_key: str = Header(default="")):
         challenge = get_challenge(context.challengeId)
         if challenge is None:
             return JSONResponse({"error": "Unknown challengeId."}, status_code=400)
-        if context.turn > len(challenge.beats):
-            return JSONResponse({"error": "That challenge has fewer turns."}, status_code=400)
-        beat = beat_for(challenge.beats[context.turn - 1], context.gameMode)
+        # Turns past the written beats reuse the last beat, the same as the game
+        # does (a pair can keep prompting until the clock runs out).
+        beat = beat_for(challenge.beats[min(context.turn, len(challenge.beats)) - 1], context.gameMode)
 
     mode = body.mode
     note = ""
@@ -195,7 +247,12 @@ async def open_collaborate():
 
 
 @app.post("/api/sessions")
-async def create_session(body: CreateBody):
+async def create_session(body: CreateBody, request: Request):
+    if not _allow_create(_client_ip(request)):
+        return JSONResponse(
+            {"error": "Too many new games from this network. Wait a few minutes, or reuse the game you have."},
+            status_code=429,
+        )
     try:
         session, admin_token = await game.create_session(body.mode, body.challengeId)
     except GameError as exc:
@@ -322,6 +379,12 @@ async def socket(code: str, websocket: WebSocket):
             data = await websocket.receive_json()
             if not isinstance(data, dict):
                 continue
+            if data.get("type") == "hello":
+                # A player's phone. Its presence decides who is still at the table.
+                player_id = str(data.get("playerId") or "")
+                if await game.hello(normalized, player_id, str(data.get("playerToken") or "")):
+                    hub.bind(normalized, websocket, player_id)
+                continue
             if data.get("type") == "draft":
                 await game.update_draft(
                     normalized,
@@ -334,4 +397,6 @@ async def socket(code: str, websocket: WebSocket):
     except Exception:
         logger.debug("socket closed for %s", normalized, exc_info=True)
     finally:
-        hub.remove(normalized, websocket)
+        left = hub.remove(normalized, websocket)
+        if left:
+            await game.gone(normalized, left)

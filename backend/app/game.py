@@ -20,6 +20,9 @@ ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CREATURES = ("Seagull", "Turtle", "Dolphin", "Octopus", "Whale", "Crab", "Ray", "Heron")
 ROUND_SECONDS = 120
 STALE_WAIT_SECONDS = 20 * 60
+# A phone that closed its socket this long ago is treated as gone from the
+# table. Shorter gaps (a locked screen, a quick app switch) don't count.
+AWAY_GRACE_SECONDS = 60
 LANGUAGES = (
     "Python",
     "JavaScript",
@@ -91,6 +94,19 @@ def _roster(session: Session) -> list[Player]:
     return [player for player in session.players if player.id != REHEARSAL_PLAYER_ID]
 
 
+def _away(player: Player, now: float | None = None) -> bool:
+    """True once a player's phone has been gone for AWAY_GRACE_SECONDS."""
+    if player.connected:
+        return False
+    return (now if now is not None else time.time()) - (player.left_at or 0) >= AWAY_GRACE_SECONDS
+
+
+def _present(session: Session) -> list[Player]:
+    """Everyone still at the table: the roster minus phones that walked away."""
+    now = time.time()
+    return [player for player in _roster(session) if not _away(player, now)]
+
+
 def _clear_round(session: Session, *, keep_players: bool) -> None:
     """Wipe the reef and every thread so a new round starts clean, on the same game code.
 
@@ -105,7 +121,7 @@ def _clear_round(session: Session, *, keep_players: bool) -> None:
     if not keep_players:
         session.players = []
         return
-    session.players = [p for p in _roster(session) if p.connected]
+    session.players = _present(session)
     for player in session.players:
         player.squad_id = None
         player.score = 0
@@ -213,7 +229,13 @@ def _next_creature(session: Session) -> str:
 
 def _apply_connection(squad: Squad, members: list[Player], meta: dict | None) -> None:
     local = _local_connection(members)
-    source = meta or {}
+    source = dict(meta or {})
+    # When both people gave the same answer, the plain line is the true one.
+    # Grok is asked for "what each brings" and can invent a difference.
+    if len(members) > 1 and len({member.builds for member in members}) == 1:
+        source.pop("distinct", None)
+    if len(members) > 1 and len({member.cares for member in members}) == 1:
+        source.pop("shared", None)
     squad.shared = str(source.get("shared") or local["shared"])[:240]
     squad.distinct = str(source.get("distinct") or local["distinct"])[:240]
     squad.closing = str(source.get("closing") or squad.closing or _local_closing(members))[:280]
@@ -223,7 +245,8 @@ def _apply_connection(squad: Squad, members: list[Player], meta: dict | None) ->
 
 def _persist(session: Session) -> None:
     session.revision += 1
-    store.save()
+    session.updated_at = time.time()
+    store.request_save()
 
 
 async def _broadcast(session: Session) -> None:
@@ -364,8 +387,14 @@ def _pick_waiter(session: Session, player: Player) -> Squad | None:
     if not waiters:
         return None
 
+    by_id = {person.id: person for person in session.players}
+    # A waiting seat whose phone walked away is not someone to pair with.
+    waiters = [squad for squad in waiters if squad.player_ids[0] in by_id and not _away(by_id[squad.player_ids[0]])]
+    if not waiters:
+        return None
+
     def rank(squad: Squad) -> tuple[int, float]:
-        mate = next(person for person in session.players if person.id == squad.player_ids[0])
+        mate = by_id[squad.player_ids[0]]
         return (-_match_score(player, mate), mate.joined_at)
 
     return min(waiters, key=rank)
@@ -465,13 +494,17 @@ def _expire_squad(session: Session, squad: Squad, challenge) -> bool:
     return True
 
 
-def _maybe_finish_compete(session: Session) -> None:
-    """End the room once every person still at the table has finished the challenge."""
+def _maybe_finish_compete(session: Session) -> bool:
+    """End the room once every person still at the table has finished the challenge.
+
+    A phone that walked away (closed for AWAY_GRACE_SECONDS) doesn't hold the
+    room open. Returns True when this call ended the game.
+    """
     if session.mode != "compete" or session.status != "playing":
-        return
-    roster = _roster(session)
+        return False
+    roster = _present(session)
     if not roster:
-        return
+        return False
 
     def finished(person: Player) -> bool:
         thread = next((item for item in session.threads if item.owner_id == person.id), None)
@@ -479,6 +512,8 @@ def _maybe_finish_compete(session: Session) -> None:
 
     if all(finished(person) for person in roster):
         session.status = "ended"
+        return True
+    return False
 
 
 def _drop_stale_waiters(session: Session) -> bool:
@@ -505,7 +540,11 @@ def _drop_stale_waiters(session: Session) -> bool:
 
 
 async def sweep_pair_clocks(code: str) -> Session:
-    """Close a build round whose 2 minutes have passed, even if nobody prompts again."""
+    """Close a build round whose 2 minutes have passed, even if nobody prompts again.
+
+    Also ends a compete room once everyone still at the table is done, so one
+    phone that walked away doesn't keep the host waiting.
+    """
     changed = False
     async with store.lock:
         session = _must(code)
@@ -515,6 +554,8 @@ async def sweep_pair_clocks(code: str) -> Session:
         for squad in session.squads:
             if _expire_squad(session, squad, challenge):
                 changed = True
+        if _maybe_finish_compete(session):
+            changed = True
         if changed:
             _persist(session)
     if changed:
@@ -611,7 +652,7 @@ async def start(code: str, admin_token: str) -> Session:
         _check_admin(session, admin_token)
         if session.status == "ended":
             raise GameError(409, "This game has ended. Ask the table for a new QR code.")
-        connected = [p for p in _roster(session) if p.connected]
+        connected = _present(session)
         minimum, maximum = player_bounds(session.mode)
         if session.mode == "collaborate":
             raise GameError(409, "Pairs start when both phones show the same animal. This room does not share one start.")
@@ -715,6 +756,40 @@ async def set_challenge(code: str, admin_token: str, challenge_id: str) -> Sessi
     return session
 
 
+async def hello(code: str, player_id: str, player_token: str) -> bool:
+    """A phone's socket says who it is. Marks the player present. False if the token is wrong."""
+    async with store.lock:
+        session = store.get(code)
+        if session is None:
+            return False
+        try:
+            player = _player(session, player_id, player_token)
+        except GameError:
+            return False
+        if player.connected:
+            return True
+        player.connected = True
+        player.left_at = 0
+        _persist(session)
+    await _broadcast(session)
+    return True
+
+
+async def gone(code: str, player_id: str) -> None:
+    """The last socket for this player closed. The id was checked by hello()."""
+    async with store.lock:
+        session = store.get(code)
+        if session is None:
+            return
+        player = next((item for item in session.players if item.id == player_id), None)
+        if player is None or not player.connected:
+            return
+        player.connected = False
+        player.left_at = time.time()
+        _persist(session)
+    await _broadcast(session)
+
+
 async def update_draft(code: str, player_id: str, player_token: str, text: str) -> None:
     cleaned = text[:8000]
     async with store.lock:
@@ -731,7 +806,9 @@ async def update_draft(code: str, player_id: str, player_token: str, text: str) 
         squad.prompt = cleaned
         squad.prompt_author_id = player.id
         squad.prompt_updated_at = time.time()
-        _persist(session)
+        # Drafts change on every keystroke. Phones get them over the socket;
+        # the save file doesn't need them, so this skips the disk write.
+        session.revision += 1
     await _broadcast(session)
 
 
@@ -826,15 +903,23 @@ async def submit(
             simulated = True
         worked = project_passes(workspace, check)
     elif use_model:
-        answer, simulated, _request, trace = await grok.complete(messages, beat.simulated_reply)
+        # Layer 3, the reviewer, reads only the prompt and the rules' findings,
+        # so it runs at the same time as the solver instead of after it.
+        review_task = None
+        if not graded.leaked and grok.live():
+            review_task = asyncio.create_task(grok.review_prompt(judge.review_packet(model_text, beat, graded)))
+        try:
+            answer, simulated, _request, trace = await grok.complete(messages, beat.simulated_reply)
+        except BaseException:
+            if review_task is not None:
+                review_task.cancel()
+            raise
+        review = await review_task if review_task is not None else None
         if not simulated:
             # Layer 4: real usage from the solver call, web searches, asking back.
             history_tokens = count_tokens("\n".join(message.content for message in history))
             judge.apply_measured(graded, answer, trace, history_tokens=history_tokens)
             # Layer 3: the reviewer can only add cost, and its rewrite must pass our rules.
-            review = None
-            if not graded.leaked:
-                review = await grok.review_prompt(judge.review_packet(model_text, beat, graded))
             judge.apply_review(graded, review, beat, earlier_user)
     else:
         answer, simulated = beat.simulated_reply, True
@@ -843,15 +928,8 @@ async def submit(
     else:
         paused = 0
     if not editing and step > 0 and not simulated and graded.searches == 0:
+        # A follow-up the model answered without searching isn't billed for lookups it didn't do.
         waive_unused_lookups(graded)
-        grade = graded.grade
-        score = graded.score
-        looked_up = graded.lookup_tokens
-        grams = graded.grams
-        excess_kg = graded.excess_kg
-        summary = turn_summary(graded, turn=step + 1, turn_count=limit)
-        delta = reef_delta(grade)
-        kind = event_type(grade)
     vague_saving = judge.saved_vs_vague(graded, beat) if graded.reasonable else 0
     judge.log_judgment(
         "game",
