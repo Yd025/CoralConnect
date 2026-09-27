@@ -32,6 +32,19 @@ img { max-width: 100%; }
 
 .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 64px; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 28px; }
+.topbar-end { display: flex; align-items: center; gap: 8px; }
+.leave-btn {
+  flex: none;
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(8, 28, 40, 0.45);
+  color: white;
+  cursor: pointer;
+}
 .brand { font-family: var(--font-display), Georgia, serif; font-size: 1.35rem; color: var(--ink); text-decoration: none; }
 .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.72rem; color: var(--sand); }
 .muted { color: var(--muted); }
@@ -85,15 +98,22 @@ textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
 .mode strong { display: block; margin-bottom: 4px; }
 .mode small { color: var(--muted); display: block; line-height: 1.4; }
 .mode.is-on { border-color: var(--teal); background: rgba(61, 222, 200, 0.1); }
-.beacon { text-align: center; }
+.beacon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.beacon > * { margin: 0; }
 .beacon strong {
   display: block;
-  margin: 4px 0 8px;
   font-family: var(--font-display), Georgia, serif;
   font-size: 3rem;
   letter-spacing: 0.08em;
   line-height: 1;
 }
+.beacon .btn { width: min(100%, 280px); }
 .chips { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .chips legend { width: 100%; padding: 0; margin-bottom: 2px; font-size: 0.92rem; }
 .chips button {
@@ -307,8 +327,8 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
   flex-direction: column;
 }
 .landing-top {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 18px;
 }
@@ -714,6 +734,19 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 }
 
 .phone { width: min(520px, calc(100% - 28px)); margin: 0 auto; padding: 18px 0 28px; display: grid; gap: 14px; }
+.phone .topbar-end { gap: 14px; }
+.phone .chips { gap: 12px; }
+.phone .file-tabs { gap: 12px; }
+.phone .file-tab { padding: 8px 14px; }
+.phone form.stack { gap: 20px; }
+.phone .panel.stack { gap: 16px; }
+.phone .result { gap: 14px; }
+.phone .sticky-submit {
+  position: static;
+  margin-top: 4px;
+  padding-top: 4px;
+  background: none;
+}
 body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 .compete-play {
   position: relative;
@@ -1080,6 +1113,12 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   .landing .choice h2 { font-size: 1.05rem; }
   .landing .choice .muted { font-size: 0.78rem; }
   .choice-grid { margin-top: 10px; gap: 8px; }
+  body:has(.home) { height: auto; min-height: 100dvh; overflow: auto; }
+  .home.landing { height: auto; min-height: 100dvh; overflow: visible; }
+  .home .shell { height: auto; min-height: 100dvh; }
+  .home .landing-stage { flex: none; }
+  .home .hero { overflow: visible; flex: none; justify-content: flex-start; padding: 12px 0 28px; }
+  .home .choice-grid { grid-template-columns: 1fr; }
   .landing .steps { grid-template-columns: repeat(3, 1fr); }
   .landing .steps .panel { padding: 8px 8px; }
   .landing .steps h3 { font-size: 0.78rem; }

@@ -48,17 +48,17 @@ export function ReefStage({
         <img src="/reef/05-otto-octopus.svg" alt="" />
         <div>
           <p className="eyebrow">Prompt</p>
-          <strong>Grok</strong>
+          <strong>Model</strong>
           {latest ? (
             <>
               <p className="reef__ai-prompt">
                 <span>{latest.actor} · {latest.grade}</span>
                 {latest.reasonable
                   ? "The source was in the message."
-                  : "The source was missing, so Grok searched."}
+                  : "The source was missing, so the model searched."}
               </p>
               <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
-                {open ? "Hide the details" : latest.reasonable ? "See Grok's answer" : "See the problems"}
+                {open ? "Hide the details" : latest.reasonable ? "See the answer" : "See the problems"}
               </button>
               {open ? (
                 <div className="reef__ai-details">
@@ -68,7 +68,7 @@ export function ReefStage({
               ) : null}
             </>
           ) : (
-            <p className="reef__ai-reply">Waiting for a message. Prompt Grok from a phone.</p>
+            <p className="reef__ai-reply">Waiting for a message. Prompt from a phone.</p>
           )}
         </div>
       </aside>
@@ -138,7 +138,7 @@ function LastTurn({ submission }: { submission: Submission | undefined }) {
       </p>
       {submission.measuredTokens > 0 ? (
         <p>
-          Real Grok run: {submission.measuredTokens.toLocaleString()} tokens
+          Measured run: {submission.measuredTokens.toLocaleString()} tokens
           {submission.betterMeasuredTokens > 0
             ? ` · better prompt ${submission.betterMeasuredTokens.toLocaleString()} · saved ${submission.measuredSaved.toLocaleString()}`
             : ""}
