@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .carbon import VERDICT_WORDS, reef_band
 from .challenges import get_challenge, public_challenge
-from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
+from .models import Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
 
 
 def _piece(session: Session, player: Player, challenge) -> dict | None:
@@ -152,5 +152,5 @@ def public_session(session: Session) -> dict:
         "threads": [public_thread(thread) for thread in session.threads],
         "createdAt": session.created_at,
         "revision": session.revision,
-        "turnsAllowed": turns_for_table(len([player for player in session.players if player.id != "p_rehearsal"])),
+        "turnsAllowed": len(challenge.beats) if challenge and challenge.beats else 1,
     }

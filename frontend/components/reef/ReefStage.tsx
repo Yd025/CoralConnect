@@ -134,7 +134,7 @@ function LastTurn({ submission }: { submission: Submission | undefined }) {
       </div>
       <p>
         {(submission.effectiveTokens || submission.tokenCount).toLocaleString()} tokens of model work
-        {submission.savedVsVague > 0 ? ` · saved ${submission.savedVsVague.toLocaleString()} vs a vague prompt` : ""}
+        {submission.reasonable && submission.savedVsVague > 0 ? ` · saved ${submission.savedVsVague.toLocaleString()} vs a vague prompt` : ""}
       </p>
       {submission.measuredTokens > 0 ? (
         <p>

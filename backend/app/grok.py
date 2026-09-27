@@ -13,12 +13,15 @@ logger = logging.getLogger("coralconnect.grok")
 
 SYSTEM = (
     "You are a coding assistant in a live debugging thread. "
-    "Answer only the latest user message. Be concise and specific. "
+    "Answer only the latest user message in 2 or 3 short sentences. "
+    "Do not write a long explanation, a list, or a full file. "
     "Do not ask them to resend files from earlier turns. "
     "Do not lecture about tokens or carbon. "
     "If the latest message already contains the code or error you need, answer from it and do not search the web. "
     "Search only when that source is missing."
 )
+
+REPLY_TOKENS = 320
 
 CODER_SYSTEM = (
     "You are a coding assistant editing a small Python project in place. "
@@ -187,6 +190,19 @@ def live() -> bool:
     return bool(settings.xai_api_key)
 
 
+def _clip_reply(text: str, limit: int = 700) -> str:
+    """Keep a live reply to a few sentences so the phone does not fill with an essay."""
+    cleaned = " ".join((text or "").split())
+    if len(cleaned) <= limit:
+        return cleaned
+    cut = cleaned[:limit]
+    for mark in (". ", "! ", "? "):
+        spot = cut.rfind(mark)
+        if spot >= 180:
+            return cut[: spot + 1].strip()
+    return cut.rstrip() + "…"
+
+
 def asks_back(answer: str) -> bool:
     """True when the solver's answer asks for missing information instead of fixing the problem."""
     text = (answer or "").strip()
@@ -229,17 +245,18 @@ async def complete(messages: list[dict], fallback: str) -> tuple[str, bool, dict
         "model": settings.grok_model,
         "input": [{"role": "system", "content": SYSTEM}, *messages],
         "tools": [{"type": "web_search"}],
+        "max_output_tokens": REPLY_TOKENS,
     }
     if not settings.xai_api_key:
         return fallback, True, request, empty_trace()
-    payload = await _post_responses(request, timeout=40)
+    payload = await _post_responses(request, timeout=28)
     if payload is None:
-        plain = {key: value for key, value in request.items() if key != "tools"}
+        plain = {key: value for key, value in request.items() if key not in {"tools", "max_output_tokens"}}
         payload = await _post_responses(plain, timeout=22)
         request = plain
     if payload is None:
         return fallback, True, request, empty_trace()
-    text = _output_text(payload)
+    text = _clip_reply(_output_text(payload))
     if not text:
         logger.warning("Grok text response had no output_text")
         return fallback, True, request, empty_trace()

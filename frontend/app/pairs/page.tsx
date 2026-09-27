@@ -16,7 +16,7 @@ export default function PairsBoardPage() {
       try {
         const data = await getPairs();
         if (!stop) {
-          setPairs(data.pairs);
+          setPairs([...data.pairs].sort((a, b) => b.score - a.score || (a.team || "").localeCompare(b.team || "")));
           setError(null);
         }
       } catch (err) {

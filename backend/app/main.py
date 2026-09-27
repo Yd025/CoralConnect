@@ -181,7 +181,7 @@ def read_card(card_id: str):
 @app.get("/api/pairs")
 def pair_board():
     rows = [card for card in store.cards.values() if card.get("kind") == "collaborate"]
-    rows.sort(key=lambda card: card.get("createdAt") or 0, reverse=True)
+    rows.sort(key=lambda card: (-(card.get("score") or 0), card.get("team") or "", card.get("createdAt") or 0))
     return {"pairs": rows}
 
 

@@ -1,4 +1,4 @@
-:80 {
+coralconnectgt.tech {
 	handle /api/* {
 		reverse_proxy workgate:8080
 	}

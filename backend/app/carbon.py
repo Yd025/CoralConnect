@@ -94,6 +94,21 @@ def grade_for(tokens: int, target: int) -> str:
     return "F"
 
 
+def grade_for_score(score: int) -> str:
+    """The letter that matches a 0–100 score, on the same curve as score_for."""
+    if score >= 100:
+        return "A+"
+    if score >= 59:
+        return "A"
+    if score >= 35:
+        return "B"
+    if score >= 23:
+        return "C"
+    if score >= 17:
+        return "D"
+    return "F"
+
+
 def score_for(tokens: int, target: int) -> int:
     """0 to 100. 100 means the turn stayed inside the budget."""
     if tokens <= 0:

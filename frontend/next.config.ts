@@ -21,6 +21,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   devIndicators: false,
   allowedDevOrigins: lanHosts(),
+  async redirects() {
+    return [
+      { source: "/play", destination: "/", permanent: false },
+      { source: "/admin/results/:code", destination: "/compete/:code", permanent: false },
+      { source: "/r/:id", destination: "/card/:id", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

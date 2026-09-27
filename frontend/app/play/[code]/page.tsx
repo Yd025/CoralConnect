@@ -78,10 +78,10 @@ export default function PlayPage() {
   const turnNumber = Math.min((thread?.step ?? 0) + 1, turnCount);
 
   useEffect(() => {
-    if (!deadline || thread?.done) return;
+    if (!deadline || thread?.done || busy) return;
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
-  }, [deadline, thread?.done]);
+  }, [deadline, thread?.done, busy]);
 
   useEffect(() => {
     if (!deadline || thread?.done || remaining > 0) return;
@@ -313,7 +313,7 @@ export default function PlayPage() {
                 className={message.role === "user" ? "chat-msg is-you" : "chat-msg is-grok"}
               >
                 <span className="chat-msg__who">{message.role === "user" ? "You" : "Model"}</span>
-                <p>{message.content}</p>
+                <MessageBody text={message.content} />
               </div>
             ))}
 
@@ -604,6 +604,30 @@ export default function PlayPage() {
   );
 }
 
+function MessageBody({ text }: { text: string }) {
+  const blocks = text.split("```");
+  return (
+    <>
+      {blocks.map((block, index) => {
+        if (index % 2 === 1) {
+          const body = block.replace(/^[a-zA-Z0-9]+\n/, "");
+          return <pre key={index}><code>{body.replace(/```$/, "")}</code></pre>;
+        }
+        return <p key={index}>{inlineMarkup(block)}</p>;
+      })}
+    </>
+  );
+}
+
+function inlineMarkup(text: string) {
+  const bits = text.split(/(\*\*[^*]+\*\*|`[^`\n]+`)/g);
+  return bits.map((bit, index) => {
+    if (bit.startsWith("**") && bit.endsWith("**") && bit.length > 4) return <strong key={index}>{bit.slice(2, -2)}</strong>;
+    if (bit.startsWith("`") && bit.endsWith("`") && bit.length > 2) return <code key={index}>{bit.slice(1, -1)}</code>;
+    return bit;
+  });
+}
+
 function SourceNote({
   title,
   ask,
@@ -677,7 +701,7 @@ function ResultCard({ shown }: { shown: Submission }) {
       {open ? (
         <div className="result-details stack">
           <p>{shown.verdictReason || shown.summary}</p>
-          {shown.savedVsVague > 0 ? (
+          {shown.reasonable && shown.savedVsVague > 0 ? (
             <p>This prompt saved {shown.savedVsVague.toLocaleString()} tokens compared with a vague one.</p>
           ) : null}
           <Receipt submission={shown} />

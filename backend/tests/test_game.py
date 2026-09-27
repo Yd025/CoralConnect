@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 os.environ["XAI_API_KEY"] = ""
@@ -7,9 +8,9 @@ os.environ["DATA_PATH"] = str(Path("/tmp") / "coralconnect-pytest.json")
 import pytest
 from fastapi.testclient import TestClient
 
-from app.carbon import grade_for, reef_band
+from app.carbon import grade_for, grade_for_score, reef_band
 from app.models import turns_for_table
-from app.game import _pair, _pick_waiter
+from app.game import _local_connection, _pair, _pick_waiter
 from app.challenges import CHALLENGES
 from app.grading import add_live_call, grade_prompt
 from app.grok import call_trace, parse_review
@@ -27,6 +28,32 @@ def clean_store():
     yield
     store.sessions.clear()
     store.cards.clear()
+
+
+def test_an_average_of_59_is_an_a_not_the_last_turns_letter():
+    assert grade_for_score(100) == "A+"
+    assert grade_for_score(59) == "A"
+    assert grade_for_score(14) == "F"
+
+
+def test_two_people_who_build_the_same_thing_share_that_line():
+    players = [
+        Player(id="a", token="t", name="Claude A", language="Python", builds="Apps", cares="Planet"),
+        Player(id="b", token="t", name="Claude B", language="Python", builds="Apps", cares="Planet"),
+    ]
+    connection = _local_connection(players)
+    assert connection["distinct"] == "Claude A and Claude B both build Apps."
+    assert connection["shared"] == "Claude A and Claude B both want the work to care about Planet."
+    assert "Only" not in connection["distinct"]
+
+
+def test_confirm_keeps_credit_for_facts_already_in_the_thread():
+    beat = next(item for item in CHALLENGES if item.id == "farm-water").beats[0]
+    earlier = "Zone 3 valve V3 stays open 9 hours instead of 90 minutes. Close it after 90 minutes."
+    graded = grade_prompt("Confirm in one line: Z3 waters 90 min tonight.", beat, [earlier])
+    assert graded.ask_missing is False
+    assert graded.missing == []
+    assert graded.grade in {"A+", "A", "B"}
 
 
 def test_smaller_tables_get_more_turns():
@@ -384,18 +411,18 @@ def test_follow_up_keeps_the_bloated_history_on_the_bill():
         json={**body, "prompt": "tax() ignores tax_exempt. If tax_exempt, return the amount unchanged."},
     ).json()
     assert second["submission"]["turnIndex"] == 1
-    assert second["submission"]["followUp"] is True
-    assert second["session"]["threads"][0]["turnLimit"] == 4
+    assert second["submission"]["followUp"] is False
+    assert second["session"]["threads"][0]["turnLimit"] == 2
     assert first["lookupTokens"] > 0
     assert second["submission"]["lookupTokens"] == 0
     assert second["submission"]["grade"] in {"A+", "A"}
-    assert second["session"]["threads"][0]["done"] is False
+    assert second["session"]["threads"][0]["done"] is True
+    assert second["session"]["status"] == "ended"
     third = client.post(
         f"/api/sessions/{code}/submit",
         json={**body, "prompt": "Still on tax_exempt. Leave the amount unchanged."},
     )
-    assert third.status_code == 200
-    assert third.json()["submission"]["turnIndex"] == 2
+    assert third.status_code == 409
 
 
 def test_a_fuller_table_still_closes_after_two_turns():
@@ -614,6 +641,41 @@ def test_a_newcomer_pairs_with_the_similar_waiter():
     chosen = _pick_waiter(session, newcomer)
     assert chosen is not None
     assert chosen.player_ids == ["fit"]
+
+
+def test_compete_ends_when_its_challenge_turns_are_finished():
+    client = TestClient(app)
+    created = client.post("/api/sessions", json={"mode": "compete", "challengeId": "farm-water"}).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    ada = client.post("/api/sessions/" + code + "/join", json={"name": "Ada", "builds": "Apps", "cares": "Planet"}).json()
+    client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    body = {"playerId": ada["player"]["id"], "playerToken": ada["playerToken"]}
+    assert client.get(f"/api/sessions/{code}").json()["session"]["turnsAllowed"] == 2
+    first = client.post(f"/api/sessions/{code}/submit", json={**body, "prompt": "Please fix the water."})
+    assert first.status_code == 200
+    assert first.json()["session"]["status"] == "playing"
+    second = client.post(f"/api/sessions/{code}/submit", json={**body, "prompt": "Confirm zone 3 is the leak."})
+    assert second.status_code == 200
+    done = second.json()["session"]
+    assert done["threads"][0]["turnLimit"] == 2
+    assert done["threads"][0]["done"] is True
+    assert done["status"] == "ended"
+    assert done["players"][0]["lastGrade"] == grade_for_score(done["players"][0]["score"])
+    extra = client.post(f"/api/sessions/{code}/submit", json={**body, "prompt": "One more turn."})
+    assert extra.status_code == 409
+
+
+def test_an_old_waiting_pair_is_cleared_from_the_room():
+    client = TestClient(app)
+    code, _ada, _yidan = _pair_on(client)
+    session = store.get(code)
+    for player in session.players:
+        player.joined_at = time.time() - 21 * 60
+    store.save()
+    fresh = client.get(f"/api/sessions/{code}").json()["session"]
+    assert fresh["players"] == []
+    assert fresh["squads"] == []
 
 
 def test_a_player_can_leave_while_the_round_is_running():

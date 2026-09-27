@@ -5,13 +5,13 @@ import secrets
 import time
 
 from . import grok, judge
-from .carbon import clamp_health, count_tokens, event_type, reef_delta
+from .carbon import clamp_health, count_tokens, event_type, grade_for_score, reef_delta
 from .challenges import BUILD_IDS, get_challenge
 from .config import settings
-from .grading import beat_for, grade_prompt, redact, summary as turn_summary
+from .grading import beat_for, grade_prompt, redact, summary as turn_summary, waive_unused_lookups
 from .grok import describe_pair, imagine
 from .hub import hub
-from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds, turns_for_table
+from .models import ChatMessage, Player, ReefEvent, Session, Squad, Submission, Thread, player_bounds
 from .serialize import public_session
 from .store import store
 from .workspace import apply_named, project_passes
@@ -19,6 +19,7 @@ from .workspace import apply_named, project_passes
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CREATURES = ("Seagull", "Turtle", "Dolphin", "Octopus", "Whale", "Crab", "Ray", "Heron")
 ROUND_SECONDS = 120
+STALE_WAIT_SECONDS = 20 * 60
 LANGUAGES = (
     "Python",
     "JavaScript",
@@ -147,14 +148,17 @@ def _local_connection(members: list[Player]) -> dict[str, str]:
             "distinct": f"{person.name} builds {person.builds or 'something they have not named yet'}.",
         }
     names = " and ".join(member.name for member in members)
-    shared = " ".join(
-        f"{member.name} wants the work to care about {member.cares or 'something they have not named yet'}."
-        for member in members
-    )
-    distinct = " ".join(
-        f"Only {member.name} builds {member.builds or 'something they have not named yet'}."
-        for member in members
-    )
+    cares = [member.cares or "something they have not named yet" for member in members]
+    builds = [member.builds or "something they have not named yet" for member in members]
+    who = " and ".join(member.name for member in members)
+    if len(set(cares)) == 1:
+        shared = f"{who} both want the work to care about {cares[0]}."
+    else:
+        shared = " ".join(f"{member.name} wants the work to care about {cares[index]}." for index, member in enumerate(members))
+    if len(set(builds)) == 1:
+        distinct = f"{who} both build {builds[0]}."
+    else:
+        distinct = " ".join(f"Only {member.name} builds {builds[index]}." for index, member in enumerate(members))
     return {"name": names, "shared": shared, "distinct": distinct}
 
 
@@ -265,7 +269,10 @@ async def open_collaborate() -> Session:
             and len(_roster(session)) < maximum
         ]
         if open_rooms:
-            return min(open_rooms, key=lambda session: session.created_at)
+            session = min(open_rooms, key=lambda session: session.created_at)
+            if _drop_stale_waiters(session):
+                _persist(session)
+            return session
         challenge = get_challenge("team-chat")
         if challenge is None:
             raise GameError(500, "The pair room has no challenge to run.")
@@ -428,10 +435,12 @@ def _publish_pair(session: Session, squad: Squad, grade: str | None) -> None:
     if thread.done and squad.scored:
         return
     thread.done = True
-    squad.score = thread.score_sum
+    squad.score = round(thread.score_sum / thread.turns_graded) if thread.turns_graded else 0
     squad.scored = True
     squad.member_names = [person.name for person in session.players if person.id in squad.player_ids]
-    if grade:
+    if thread.turns_graded:
+        squad.last_grade = grade_for_score(squad.score)
+    elif grade:
         squad.last_grade = grade
     else:
         latest = next((item for item in session.submissions if item.squad_id == squad.id), None)
@@ -456,11 +465,52 @@ def _expire_squad(session: Session, squad: Squad, challenge) -> bool:
     return True
 
 
+def _maybe_finish_compete(session: Session) -> None:
+    """End the room once every person still at the table has finished the challenge."""
+    if session.mode != "compete" or session.status != "playing":
+        return
+    roster = _roster(session)
+    if not roster:
+        return
+
+    def finished(person: Player) -> bool:
+        thread = next((item for item in session.threads if item.owner_id == person.id), None)
+        return thread is not None and thread.done
+
+    if all(finished(person) for person in roster):
+        session.status = "ended"
+
+
+def _drop_stale_waiters(session: Session) -> bool:
+    """Unfinished waiting seats should not sit in the pair room for hours."""
+    if session.mode != "collaborate":
+        return False
+    now = time.time()
+    stale: list[str] = []
+    for squad in session.squads:
+        if squad.scored or squad.started_at:
+            continue
+        members = [person for person in session.players if person.id in squad.player_ids]
+        if not members:
+            continue
+        newest = max(person.joined_at or session.created_at for person in members)
+        if now - newest >= STALE_WAIT_SECONDS:
+            stale.extend(person.id for person in members)
+    if not stale:
+        return False
+    for player_id in stale:
+        _release_partner(session, player_id)
+    session.players = [person for person in session.players if person.id not in stale]
+    return True
+
+
 async def sweep_pair_clocks(code: str) -> Session:
     """Close a build round whose 2 minutes have passed, even if nobody prompts again."""
     changed = False
     async with store.lock:
         session = _must(code)
+        if _drop_stale_waiters(session):
+            changed = True
         challenge = get_challenge(session.challenge_id)
         for squad in session.squads:
             if _expire_squad(session, squad, challenge):
@@ -727,7 +777,7 @@ async def submit(
         if thread and thread.done:
             raise GameError(409, "This thread is closed. Ask the host for the next challenge.")
         step = thread.step if thread else 0
-        limit = thread.turn_limit if thread and thread.turn_limit else turns_for_table(len(_roster(session)))
+        limit = thread.turn_limit if thread and thread.turn_limit else max(1, len(challenge.beats))
         # Pieces are dealt only to a real pair. The rehearsal squad has one seat.
         mode = "collaborate" if session.mode == "collaborate" and squad and len(squad.player_ids) >= 2 else "compete"
         editing = bool(challenge.files)
@@ -752,6 +802,8 @@ async def submit(
     if clock_closed:
         await _broadcast(session)
         raise GameError(409, "The 2 minutes are up.")
+
+    work_started = time.monotonic()
 
     # Collaborate mode also grades each partner's piece (grading.beat_for).
     beat = beat_for(beat, mode)
@@ -786,7 +838,21 @@ async def submit(
             judge.apply_review(graded, review, beat, earlier_user)
     else:
         answer, simulated = beat.simulated_reply, True
-    vague_saving = judge.saved_vs_vague(graded, beat)
+    if pair_round:
+        paused = time.monotonic() - work_started
+    else:
+        paused = 0
+    if not editing and step > 0 and not simulated and graded.searches == 0:
+        waive_unused_lookups(graded)
+        grade = graded.grade
+        score = graded.score
+        looked_up = graded.lookup_tokens
+        grams = graded.grams
+        excess_kg = graded.excess_kg
+        summary = turn_summary(graded, turn=step + 1, turn_count=limit)
+        delta = reef_delta(grade)
+        kind = event_type(grade)
+    vague_saving = judge.saved_vs_vague(graded, beat) if graded.reasonable else 0
     judge.log_judgment(
         "game",
         text,
@@ -829,6 +895,8 @@ async def submit(
             raise GameError(409, "The host moved on. Take a look at the new challenge.")
         if editing:
             thread.files = dict(workspace)
+        if pair_round and squad and squad.started_at and paused > 0:
+            squad.started_at += paused
         finishing = bool(pair_round and squad and (worked or _clock_up(squad)))
         if finishing and worked:
             answer = answer.rstrip() + " Both functions are in. The team score is on the board."
@@ -852,14 +920,14 @@ async def submit(
         elif session.mode == "collaborate" and squad:
             thread.done = thread.step >= thread.turn_limit
             squad.score = averaged
-            squad.last_grade = grade
+            squad.last_grade = grade_for_score(averaged)
             squad.prompt = ""
             squad.prompt_author_id = player.id
             squad.prompt_updated_at = time.time()
             for member in session.players:
                 if member.id in squad.player_ids:
                     member.score = averaged
-                    member.last_grade = grade
+                    member.last_grade = grade_for_score(averaged)
             actor = squad.name
             squad_id = squad.id
             if thread.done:
@@ -869,11 +937,12 @@ async def submit(
         else:
             thread.done = thread.step >= thread.turn_limit
             player.score = averaged
-            player.last_grade = grade
+            player.last_grade = grade_for_score(averaged)
             actor = player.name
             squad_id = None
             if thread.done:
                 _mint_card(session, thread, None, player)
+                _maybe_finish_compete(session)
 
         submission = Submission(
             id=_id("sub"),

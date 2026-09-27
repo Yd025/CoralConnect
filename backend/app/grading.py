@@ -52,6 +52,7 @@ ASK_WORDS = (
     "keep", "handle", "check", "rename", "rewrite", "use", "set", "discount", "apply",
     "create", "wrap", "call", "compute", "show", "hide", "mask", "delete", "clear",
     "convert", "turn", "treat", "leave", "allow", "let", "give", "send", "filter",
+    "confirm", "verify", "ensure", "double-check",
     "catch", "raise", "throw", "help", "can\\s+you", "could\\s+you",
 )
 _ASK = re.compile(r"\?|\b(?:" + "|".join(ASK_WORDS) + r")\b", re.IGNORECASE)
@@ -410,6 +411,17 @@ def add_live_call(result: TurnGrade, *, searches: int, verdict: dict | None) -> 
         )
     elif result.reviewer_reason:
         result.lines.append(Line("info", f"Grok's reviewer: {result.reviewer_reason}"))
+    return result
+
+
+def waive_unused_lookups(result: TurnGrade) -> TurnGrade:
+    """A follow-up the model answered without searching is not billed for lookups it did not do."""
+    if result.searches or result.leaked or result.lookup_tokens <= 0:
+        return result
+    result.lookup_tokens = 0
+    result.lines = [line for line in result.lines if not (line.tone == "cost" and "look" in line.text.lower())]
+    if result.missing:
+        result.lines.append(Line("info", "This message left some details out, and the model still answered without searching."))
     return result
 
 

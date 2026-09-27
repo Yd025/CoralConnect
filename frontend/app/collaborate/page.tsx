@@ -49,7 +49,10 @@ export default function CollaboratePage() {
     };
   }, [router]);
 
-  const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
+  const roster = (session?.players.filter((player) => player.id !== "p_rehearsal") ?? []).filter((player) => {
+    const squad = session?.squads.find((item) => item.playerIds.includes(player.id));
+    return !squad?.scored;
+  });
   const openSquads = session?.squads.filter((squad) => !squad.scored) ?? [];
   const waiting = openSquads.filter((squad) => squad.playerIds.length < 2).length;
   const paired = openSquads.filter((squad) => squad.creature).length;
