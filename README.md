@@ -14,9 +14,11 @@ Play it at **[coralconnectgt.tech](https://coralconnectgt.tech)**.
 
 Open the pair room on your phone. No host. No code to shout across the table. Two taps:
 
-| What you build | What you care about |
-| --- | --- |
+
+| What you build                        | What you care about                |
+| ------------------------------------- | ---------------------------------- |
 | Apps, Data, Systems, Hardware, Design | People, Planet, Trust, Speed, Cost |
+
 
 The room pairs you with someone already waiting. Shared work comes first, then shared care. Both phones show the same animal, a Seagull, Turtle, Dolphin, Octopus, Whale, Crab, Ray, or Heron. You find them in the crowd.
 
@@ -30,14 +32,16 @@ Each phone holds a different function in the same small app. Team chat. A snack 
 
 The laptop is the ocean.
 
-| Grade | What the prompt did | What the reef does |
-| --- | --- | --- |
-| A+ | The facts, and a clear ask, inside a 200-token budget | A turtle arrives |
-| A | The facts, said plainly | A coral bloom |
-| B | The facts, buried in a large paste | The water holds |
-| C | One fact left for the model to look up | Murk |
-| D | The whole file, dumped in | Heavier murk |
-| F | "Fix it." Or a pasted secret. | Sludge |
+
+| Grade | What the prompt did                                   | What the reef does |
+| ----- | ----------------------------------------------------- | ------------------ |
+| A+    | The facts, and a clear ask, inside a 200-token budget | A turtle arrives   |
+| A     | The facts, said plainly                               | A coral bloom      |
+| B     | The facts, buried in a large paste                    | The water holds    |
+| C     | One fact left for the model to look up                | Murk               |
+| D     | The whole file, dumped in                             | Heavier murk       |
+| F     | "Fix it." Or a pasted secret.                         | Sludge             |
+
 
 Every missing fact is one web lookup, about **1,200 tokens**. The message's own tokens count, so pasting everything is not a free pass. After the turn, the phone prints a receipt: included, looked up, tokens, and carbon.
 
@@ -110,14 +114,16 @@ That name is the front door. The join QR hands a phone the public host, the stag
 
 ## Under the hood
 
-| | |
-| --- | --- |
-| Stage and phones | Next.js, TypeScript |
-| Carbon engine | FastAPI, Python |
-| The model | Grok for the edit, the answer, the review, and the introduction |
-| The picture | Grok Imagine, after an A or A+ |
-| The room | WebSockets, a standing pair room, a compete table, a public pair board |
-| The home | `coralconnectgt.tech` |
+
+|                  |                                                                        |
+| ---------------- | ---------------------------------------------------------------------- |
+| Stage and phones | Next.js, TypeScript                                                    |
+| Carbon engine    | FastAPI, Python                                                        |
+| The model        | Grok for the edit, the answer, the review, and the introduction        |
+| The picture      | Grok Imagine, after an A or A+                                         |
+| The room         | WebSockets, a standing pair room, a compete table, a public pair board |
+| The home         | `coralconnectgt.tech`                                                  |
+
 
 The grade, in one line:
 
@@ -183,3 +189,4 @@ npm run dev
 ```bash
 cd backend && source .venv/bin/activate && python -m pytest -q
 ```
+
