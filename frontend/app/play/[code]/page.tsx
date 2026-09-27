@@ -202,20 +202,25 @@ export default function PlayPage() {
       <main className="compete-play">
         <RoundTimer startedAt={session.startedAt} active={session.status === "playing"} seconds={roundSeconds} />
         <CompeteScene band={session.reefBand} health={session.reefHealth} />
-        <section className="chat" aria-label="Chat with Grok">
+        <section className="chat" aria-label="Chat">
           <header className="chat-head">
             <a className="chat-face" href="/" aria-label="CoralConnect home">
               <img src="/reef/05-otto-octopus.svg" alt="" />
             </a>
             <div className="chat-id">
-              <strong>Grok</strong>
-              <span>Turn {turnNumber} of {turnCount} · {code}</span>
+              <strong>Turn {turnNumber} of {turnCount}</strong>
+              <span>{code}</span>
             </div>
             <div className="chat-health health-inline">
               <span>Reef {session.reefHealth}</span>
               <i><b style={{ width: `${session.reefHealth}%` }} /></i>
             </div>
             <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
+            {identity ? (
+              <button className="leave-btn" type="button" onClick={() => void leaveRoom("/")}>
+                Leave
+              </button>
+            ) : null}
           </header>
 
           <details className="chat-board">
@@ -227,7 +232,7 @@ export default function PlayPage() {
             {error || localError ? <p className="error">{localError || error}</p> : null}
 
             <div className="chat-msg is-grok">
-              <span className="chat-msg__who">Grok</span>
+              <span className="chat-msg__who">Model</span>
               {session.challenge?.title ? <p className="chat-msg__title">{session.challenge.title}</p> : null}
               {session.challenge?.brief ? <p>{session.challenge.brief}</p> : null}
               {session.challenge?.hint ? <p className="muted">{session.challenge.hint}</p> : null}
@@ -239,7 +244,7 @@ export default function PlayPage() {
 
             {identityReady && !identity && tableFull ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Grok</span>
+                <span className="chat-msg__who">Model</span>
                 <p>This table is full. Compete holds up to 10 players.</p>
               </div>
             ) : null}
@@ -284,11 +289,8 @@ export default function PlayPage() {
 
             {identity && session.status === "lobby" ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Grok</span>
+                <span className="chat-msg__who">Model</span>
                 <p>You're in, {identity.name}. This round starts when the table says go. {roster.length} of {playerMax} here.</p>
-                <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
-                  Leave
-                </button>
               </div>
             ) : null}
 
@@ -297,30 +299,29 @@ export default function PlayPage() {
                 key={`${message.role}-${index}`}
                 className={message.role === "user" ? "chat-msg is-you" : "chat-msg is-grok"}
               >
-                <span className="chat-msg__who">{message.role === "user" ? "You" : "Grok"}</span>
+                <span className="chat-msg__who">{message.role === "user" ? "You" : "Model"}</span>
                 <p>{message.content}</p>
               </div>
             ))}
 
             {shown ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Grok</span>
+                <span className="chat-msg__who">Model</span>
                 <ResultCard shown={shown} />
               </div>
             ) : null}
 
             {identity && session.status === "playing" && thread?.done ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Grok</span>
+                <span className="chat-msg__who">Model</span>
                 <p>This round is finished. Save the card, or leave the room.</p>
                 {thread.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
-                <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>Leave</button>
               </div>
             ) : null}
 
             {session.status === "ended" ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Grok</span>
+                <span className="chat-msg__who">Model</span>
                 <p>This round is over. Check the big screen for the reef you left behind.</p>
               </div>
             ) : null}
@@ -331,8 +332,8 @@ export default function PlayPage() {
               <textarea
                 value={prompt}
                 onChange={(event) => onPrompt(event.target.value)}
-                placeholder="Message Grok"
-                aria-label="Message to Grok"
+                placeholder="Message"
+                aria-label="Your message"
                 rows={2}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -344,7 +345,6 @@ export default function PlayPage() {
               <button className="btn" disabled={busy || !prompt.trim()} type="submit">
                 {busy ? "Sending" : "Send"}
               </button>
-              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>Leave</button>
               <p className="muted">About {tokens} tokens in this message. Length is not the grade. A missing source is.</p>
               <LiveVerdict
                 prompt={prompt}
@@ -365,7 +365,14 @@ export default function PlayPage() {
       <RoundTimer startedAt={clockStart} active={clockActive} seconds={roundSeconds} />
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
-        <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
+        <div className="topbar-end">
+          <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
+          {identity ? (
+            <button className="leave-btn" type="button" onClick={() => void leaveRoom("/")}>
+              Leave
+            </button>
+          ) : null}
+        </div>
       </div>
       <p className="eyebrow">Game {code}</p>
       {error || localError ? <p className="error">{localError || error}</p> : null}
@@ -441,9 +448,6 @@ export default function PlayPage() {
               <h2>You're in, {identity.name}.</h2>
               <p>This is one round for the room, up to 10 people. It starts when the table says go, and you have 1 minute 30 seconds.</p>
               <p className="muted">{roster.length} of {playerMax} here.</p>
-              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
-                Leave
-              </button>
             </section>
           ) : null}
 
@@ -456,7 +460,7 @@ export default function PlayPage() {
                   {buildRound && !started ? (
                     <p>Find {partner?.name ?? "your partner"} in the room. When you are together, both of you tap Start.</p>
                   ) : buildRound && started && !thread?.done ? (
-                    <p>Name the file and the function. Grok edits that file.</p>
+                    <p>Name the file, the function, and the rule. The model edits that file.</p>
                   ) : buildRound && thread?.done ? (
                     <p>The round is over.</p>
                   ) : (
@@ -483,9 +487,6 @@ export default function PlayPage() {
                   <p>Hold your phone up. The next person in shares your animal. Other pairs can already be playing.</p>
                 </>
               )}
-              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
-                Leave
-              </button>
             </section>
           ) : null}
 
@@ -509,7 +510,6 @@ export default function PlayPage() {
             <section className="panel stack">
               <p>This round is finished. Save the card, or leave the room.</p>
               {thread.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
-              <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>Leave</button>
             </section>
           ) : null}
 
@@ -556,7 +556,7 @@ export default function PlayPage() {
               ) : null}
               <label>
                 <span className="play-label">
-                  {buildRound ? "Your prompt" : session.mode === "collaborate" ? "Your message" : "Your message"}
+                  {buildRound ? "Your prompt" : "Your message"}
                 </span>
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
@@ -574,7 +574,7 @@ export default function PlayPage() {
               />
               <div className="sticky-submit">
                 <button className="btn" disabled={busy || !prompt.trim()} type="submit">
-                  {busy ? "Asking Grok…" : turnNumber > 1 ? "Send follow-up" : "Send message"}
+                  {busy ? "Asking…" : turnNumber > 1 ? "Send follow-up" : "Send message"}
                 </button>
               </div>
             </form>
@@ -606,7 +606,7 @@ function SourceNote({
   const [open, setOpen] = useState(false);
   return (
     <div className="chat-msg is-grok">
-      <span className="chat-msg__who">Grok</span>
+      <span className="chat-msg__who">Model</span>
       <p>{ask}</p>
       <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
         {open ? "Hide the source" : "See the source"}
@@ -656,11 +656,11 @@ function ResultCard({ shown }: { shown: Submission }) {
       </p>
       <p>
         {shown.reasonable
-          ? "The source was in the message, so Grok did no extra search."
-          : "The source was missing, so Grok searched and the reef paid for it."}
+          ? "The source was in the message, so the model did no extra search."
+          : "The source was missing, so the model searched and the reef paid for it."}
       </p>
       <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
-        {open ? "Hide the details" : problems ? "See the problems" : "See Grok's answer"}
+        {open ? "Hide the details" : problems ? "See the problems" : "See the answer"}
       </button>
       {open ? (
         <div className="result-details stack">
@@ -675,13 +675,13 @@ function ResultCard({ shown }: { shown: Submission }) {
               <p>{shown.betterPrompt}</p>
               <p className="muted">
                 {shown.measuredSaved > 0
-                  ? `Measured with Grok: ${shown.measuredTokens.toLocaleString()} real tokens for yours, ${shown.betterMeasuredTokens.toLocaleString()} for this one. Saves ${shown.measuredSaved.toLocaleString()}.`
+                  ? `Measured: ${shown.measuredTokens.toLocaleString()} real tokens for yours, ${shown.betterMeasuredTokens.toLocaleString()} for this one. Saves ${shown.measuredSaved.toLocaleString()}.`
                   : `Saves about ${shown.betterSaves.toLocaleString()} tokens by the judge's count.`}
               </p>
             </div>
           ) : null}
           {shown.judgedByModel ? (
-            <p className="muted">A second Grok call reviewed this prompt. It can add cost, never remove it.</p>
+            <p className="muted">A second pass reviewed this prompt. It can add cost, never remove it.</p>
           ) : null}
           {shown.serverSideTools > 0 ? (
             <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
@@ -706,7 +706,7 @@ function ThreadLog({ thread }: { thread: Thread }) {
       {open
         ? thread.messages.map((message, index) => (
             <p key={`${message.role}-${index}`}>
-              <strong>{message.role === "user" ? "You" : "Grok"}</strong>
+              <strong>{message.role === "user" ? "You" : "Model"}</strong>
               {message.content}
             </p>
           ))

@@ -22,7 +22,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="landing">
+    <main className="landing home">
       <AnimatedBackground />
       <div className="shell landing-ui">
         <div className="landing-stage">
@@ -36,13 +36,9 @@ export default function HomePage() {
               </svg>
               CoralConnect
             </a>
-            <nav className="landing-nav" aria-label="Site">
-              <a href="#explain">The reef</a>
-              <a href="#join">Join</a>
-            </nav>
             <div className="landing-tools">
               <span>HackGT booth</span>
-              <a className="btn-ghost" href="/admin">Admin</a>
+              <a className="btn-ghost" href="/admin">Host</a>
             </div>
           </header>
 
@@ -85,27 +81,6 @@ export default function HomePage() {
             </div>
           </section>
         </div>
-
-        <section className="explain" id="explain" aria-labelledby="explain-title">
-          <h2 id="explain-title">How the booth works</h2>
-          <ol className="steps">
-            <li className="panel">
-              <p className="eyebrow">01</p>
-              <h3>Join the reef</h3>
-              <p className="muted">Use the code on the laptop. Your phone is the controller. The laptop keeps the shared reef.</p>
-            </li>
-            <li className="panel">
-              <p className="eyebrow">02</p>
-              <h3>Put the source in the prompt</h3>
-              <p className="muted">The challenge already has the file. Include it so the model does no extra web search.</p>
-            </li>
-            <li className="panel">
-              <p className="eyebrow">03</p>
-              <h3>Watch the cost on the reef</h3>
-              <p className="muted">A thin prompt makes the model look the answer up. That lookup clouds the water. An adequate prompt leaves the reef alive.</p>
-            </li>
-          </ol>
-        </section>
       </div>
     </main>
   );

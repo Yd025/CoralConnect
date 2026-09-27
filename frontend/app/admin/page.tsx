@@ -117,9 +117,6 @@ export default function AdminPage() {
             </svg>
             CoralConnect
           </a>
-          <nav className="landing-nav" aria-label="Site">
-            <a href="/">The reef</a>
-          </nav>
           <div className="landing-tools">
             <span>HackGT booth</span>
             <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
@@ -137,7 +134,7 @@ export default function AdminPage() {
             <form className="stack" onSubmit={onCreate}>
               <label>
                 Challenge
-                <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
+                <select value={challengeId} onChange={(event) => onChallenge(event.target.value)}>
                   {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, build: false, files: [], beats: [] }]).map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.title} · {item.turnCount || item.beats.length || 2} turns
