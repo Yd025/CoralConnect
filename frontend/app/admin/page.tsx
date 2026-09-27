@@ -135,7 +135,7 @@ export default function AdminPage() {
               <label>
                 Challenge
                 <select value={challengeId} onChange={(event) => setChallengeId(event.target.value)}>
-                  {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, beats: [] }]).map((item) => (
+                  {(challenges.length ? challenges : [{ id: "farm-water", title: "The thirsty farm", brief: "", hint: "", turnCount: 2, targetTokens: 200, build: false, files: [], beats: [] }]).map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.title} · {item.turnCount || item.beats.length || 2} turns
                     </option>

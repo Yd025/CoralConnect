@@ -11,6 +11,11 @@ export type Beat = {
   targetTokens: number;
 };
 
+export type ProjectFile = {
+  name: string;
+  body: string;
+};
+
 export type Challenge = {
   id: string;
   title: string;
@@ -18,6 +23,8 @@ export type Challenge = {
   hint: string;
   turnCount: number;
   targetTokens: number;
+  build: boolean;
+  files: ProjectFile[];
   beats: Beat[];
 };
 
@@ -32,6 +39,7 @@ export type Thread = {
   done: boolean;
   turnLimit: number;
   cardId?: string;
+  files: ProjectFile[];
   messages: ChatMessage[];
 };
 
@@ -68,6 +76,9 @@ export type Squad = {
   prompt: string;
   promptAuthorId: string | null;
   promptUpdatedAt: number;
+  readyIds: string[];
+  startedAt: number;
+  scored: boolean;
   score: number;
   lastGrade: Grade | null;
 };

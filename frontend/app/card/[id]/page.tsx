@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GradeBadge } from "@/components/GradeBadge";
+import { TeamMark } from "@/components/TeamMark";
 import { getCard, type ResultCard } from "@/lib/api";
 import type { Grade } from "@/lib/types";
 
@@ -35,7 +36,9 @@ export default function CardPage() {
       {!card ? <h1>{error || "Loading this result…"}</h1> : null}
       {card ? (
         <section className="panel stack share-card">
-          <h1>{card.names.join(" and ")}</h1>
+          {card.kind === "collaborate" ? <TeamMark names={card.names} /> : null}
+          <h1>{card.team || card.names.join(" and ")}</h1>
+          {card.team ? <p className="board__members">{card.names.join(" and ")}</p> : null}
           <p>{card.challenge}</p>
           <div className="code-block">
             <GradeBadge grade={(card.grade || null) as Grade | null} />

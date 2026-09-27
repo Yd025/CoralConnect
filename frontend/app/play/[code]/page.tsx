@@ -7,7 +7,7 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { LiveVerdict } from "@/components/LiveVerdict";
 import { Receipt } from "@/components/Receipt";
 import { reefPresence } from "@/components/reef/FallbackReef";
-import { leaveSession, joinSession, submitPrompt } from "@/lib/api";
+import { getSession, leaveSession, joinSession, submitPrompt, tapStart } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
 import { estimateTokens } from "@/lib/reef";
 import type { Identity, ReefBand, Submission, Thread } from "@/lib/types";
@@ -26,6 +26,8 @@ export default function PlayPage() {
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [latest, setLatest] = useState<Submission | null>(null);
+  const [openFile, setOpenFile] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const draftTimer = useRef<number | null>(null);
   const sawPrompt = useRef(false);
   const logRef = useRef<HTMLDivElement | null>(null);
@@ -58,13 +60,36 @@ export default function PlayPage() {
     : [];
   const partner = squadMates.find((player) => player.id !== identity?.playerId);
   const paired = session?.mode !== "collaborate" || squadMates.length >= 2;
-  const canPlay = session?.mode === "collaborate" ? paired && session.status !== "ended" : session?.status === "playing";
+  const buildRound = Boolean(session?.challenge?.build);
+  const started = !buildRound || Boolean(squad?.startedAt);
+  const canPlay = session?.mode === "collaborate" ? paired && started && session.status !== "ended" : session?.status === "playing";
+  const readyIds = squad?.readyIds ?? [];
+  const iAmReady = Boolean(identity && readyIds.includes(identity.playerId));
+  const waitingOn = squadMates.find((player) => !readyIds.includes(player.id));
+  const deadline = squad?.startedAt ? squad.startedAt * 1000 + 120_000 : 0;
+  const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
+  const projectFiles = thread?.files?.length ? thread.files : session?.challenge?.files ?? [];
+  const shownFile = projectFiles.find((file) => file.name === openFile) ?? projectFiles[0];
   const beats = session?.challenge?.beats ?? [];
   const beat = beats[Math.min(thread?.step ?? 0, Math.max(beats.length - 1, 0))];
   const turnCount = thread?.turnLimit || session?.turnsAllowed || session?.challenge?.turnCount || beats.length || 1;
   const turnNumber = Math.min((thread?.step ?? 0) + 1, turnCount);
+
+  useEffect(() => {
+    if (!deadline || thread?.done) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [deadline, thread?.done]);
+
+  useEffect(() => {
+    if (!deadline || thread?.done || remaining > 0) return;
+    const timer = window.setTimeout(() => {
+      void getSession(code).then(ingest).catch(() => undefined);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [deadline, thread?.done, remaining, code, ingest]);
 
   useEffect(() => {
     if (!squad || !identity) return;
@@ -120,6 +145,20 @@ export default function PlayPage() {
       ingest(result.session);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Submit failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onStart() {
+    if (!identity) return;
+    setBusy(true);
+    setLocalError(null);
+    try {
+      const data = await tapStart(code, identity);
+      ingest(data.session);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not start.");
     } finally {
       setBusy(false);
     }
@@ -418,13 +457,30 @@ export default function PlayPage() {
             <section className="panel beacon">
               {paired && squad?.creature ? (
                 <>
-                  <p className="eyebrow">Find your pair</p>
-                  <strong>{squad.creature}</strong>
-                  <p>Ask who else has {squad.creature} on their phone. Your pair can start now. The rest of the room does not wait.</p>
+                  <p className="eyebrow">{buildRound && started ? "Team" : "Find your pair"}</p>
+                  <strong>{buildRound ? `Team ${squad.creature}` : squad.creature}</strong>
+                  {buildRound && !started ? (
+                    <p>Find {partner?.name ?? "your partner"} in the room. When you are together, both of you tap Start.</p>
+                  ) : buildRound && started && !thread?.done ? (
+                    <p>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")} left. Name the file and the function. Grok edits that file.</p>
+                  ) : buildRound && thread?.done ? (
+                    <p>The round is over.</p>
+                  ) : (
+                    <p>Ask who else has {squad.creature} on their phone. Your pair can start now. The rest of the room does not wait.</p>
+                  )}
                   {partner ? (
-                    <p className="muted">They build {partner.builds} and care about {partner.cares}.</p>
+                    <p className="muted">{partner.name} builds {partner.builds} and cares about {partner.cares}.</p>
                   ) : null}
-                  {squad.shared ? <p>{squad.shared}</p> : null}
+                  {squad.shared && !buildRound ? <p>{squad.shared}</p> : null}
+                  {buildRound && !started ? (
+                    iAmReady ? (
+                      <p>Waiting for {waitingOn?.name ?? "your partner"} to tap Start.</p>
+                    ) : (
+                      <button className="btn" type="button" disabled={busy} onClick={() => void onStart()}>
+                        {busy ? "Starting…" : "Start"}
+                      </button>
+                    )
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -445,6 +501,9 @@ export default function PlayPage() {
           {identity && paired && session.mode === "collaborate" && squad?.closing && (thread?.done || session.status === "ended") ? (
             <section className="panel beacon">
               <p className="eyebrow">Talk about the environment</p>
+              {squad.scored ? (
+                <p>Team {squad.creature} scored {squad.score} for prompting.</p>
+              ) : null}
               <p>{squad.closing}</p>
               {thread?.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
               {thread?.done ? (
@@ -470,26 +529,49 @@ export default function PlayPage() {
                   {piece ? <p className="eyebrow">{piece.role}</p> : null}
                   <p className="eyebrow">{sourceTitle}</p>
                   <p>{beat.ask}</p>
-                  <pre className="fixture">{sourceBody}</pre>
-                  {piece ? (
+                  {buildRound && piece ? <p>{piece.body}</p> : null}
+                  {buildRound && projectFiles.length > 0 ? (
+                    <>
+                      <div className="file-tabs">
+                        {projectFiles.map((file) => (
+                          <button
+                            className={shownFile?.name === file.name ? "file-tab is-on" : "file-tab"}
+                            key={file.name}
+                            type="button"
+                            onClick={() => setOpenFile(file.name)}
+                          >
+                            {file.name}
+                          </button>
+                        ))}
+                      </div>
+                      {shownFile ? <pre className="fixture">{shownFile.body}</pre> : null}
+                    </>
+                  ) : (
+                    <pre className="fixture">{sourceBody}</pre>
+                  )}
+                  {piece && !buildRound ? (
                     <button className="btn-ghost" type="button" onClick={includeSource}>
                       Include your piece
                     </button>
                   ) : null}
                   <p className="muted small">
-                    {piece
-                      ? "Your pair can't see this piece. Put in the part the model needs. Pasting all of it costs tokens too."
-                      : "Quote the lines the model needs. Long-press to copy from the file. Pasting all of it costs tokens too."}
+                    {buildRound
+                      ? "Both of you can read every file. Your prompt should name your file and your function."
+                      : piece
+                        ? "Your pair can't see this piece. Put in the part the model needs. Pasting all of it costs tokens too."
+                        : "Quote the lines the model needs. Long-press to copy from the file. Pasting all of it costs tokens too."}
                   </p>
                 </section>
               ) : null}
               <label>
                 <span className="play-label">
-                  {session.mode === "collaborate" ? "Shared message" : "Your message"}
+                  {buildRound ? "Prompt Grok" : session.mode === "collaborate" ? "Shared message" : "Your message"}
                 </span>
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
-              {session.mode === "collaborate" && squad ? (
+              {buildRound && squad ? (
+                <p className="muted">Your partner has a different function. The app works when both files are edited.</p>
+              ) : session.mode === "collaborate" && squad ? (
                 <p className="muted">Your partner has a different piece. The shared message needs both.</p>
               ) : null}
               <LiveVerdict

@@ -1,10 +1,12 @@
 import { GradeBadge } from "@/components/GradeBadge";
+import { TeamMark } from "@/components/TeamMark";
 import { personLine } from "@/lib/connection";
 import type { GameSession, Player } from "@/lib/types";
 
 export function Leaderboard({ session, compact = false }: { session: GameSession; compact?: boolean }) {
   const roster = session.players.filter((player) => player.id !== "p_rehearsal");
   const connecting = session.mode === "collaborate";
+  const holdScore = connecting && Boolean(session.challenge?.build);
   const rows = connecting
     ? session.squads.length > 0
       ? session.squads
@@ -12,47 +14,51 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
             const members = squad.playerIds
               .map((id) => session.players.find((player) => player.id === id))
               .filter((player): player is Player => Boolean(player));
+            const names = members.map((player) => player.name);
             return {
               id: squad.id,
-              name: squad.creature || squad.name || squad.memberNames.join(" · "),
-              detail: members.map((player) => `${player.name} · ${personLine(player.builds, player.cares)}`).join("  ×  "),
-              why: [
-                squad.creature ? "This pair plays on their own." : "Waiting for a second person.",
-                squad.shared,
-              ].filter(Boolean).join(" "),
+              name: squad.creature ? `Team ${squad.creature}` : "Looking",
+              detail: names.join(" and "),
+              names,
+              why: "",
               score: squad.score,
-              grade: squad.lastGrade,
+              grade: squad.scored ? squad.lastGrade : null,
+              scored: !holdScore || squad.scored,
             };
           })
           .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
       : roster
           .map((player) => ({
             id: player.id,
-            name: player.name,
-            detail: personLine(player.builds, player.cares),
-            why: "Waiting to be matched.",
+            name: "Looking",
+            detail: player.name,
+            names: [player.name],
+            why: "",
             score: player.score,
-            grade: player.lastGrade,
+            grade: null as Player["lastGrade"],
+            scored: !holdScore,
           }))
-          .sort((a, b) => a.name.localeCompare(b.name))
+          .sort((a, b) => a.detail.localeCompare(b.detail))
     : roster
         .map((player) => ({
           id: player.id,
           name: player.name,
           detail: personLine(player.builds, player.cares),
+          names: [] as string[],
           why: "",
           score: player.score,
           grade: player.lastGrade,
+          scored: true,
         }))
         .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 
   return (
     <section className={compact ? "board board-compact" : "board"}>
       <header className="board__head">
-        <h2>{connecting ? "Who's connecting" : "Carbon efficiency"}</h2>
+        <h2>{connecting ? "Teams" : "Carbon efficiency"}</h2>
         <p>
           {connecting
-            ? "Same animal, same pair. Each pair starts when they find each other."
+            ? "The score is the team's prompting total, and it shows up when the round ends."
             : "One round, up to 10. Higher means the model did less extra work."}
         </p>
       </header>
@@ -63,13 +69,16 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
           {rows.map((row, index) => (
             <li key={row.id}>
               <span className="board__rank">{index + 1}</span>
-              <span>
-                <strong>{row.name}</strong>
-                <small>{row.detail}</small>
-                {row.why ? <small className="connection-why">{row.why}</small> : null}
+              <span className="board__who">
+                {row.names.length > 0 ? <TeamMark names={row.names} /> : null}
+                <span>
+                  <strong className={connecting ? "board__team" : undefined}>{row.name}</strong>
+                  {row.detail ? <small className={connecting ? "board__members" : undefined}>{row.detail}</small> : null}
+                  {row.why ? <small className="connection-why">{row.why}</small> : null}
+                </span>
               </span>
               <GradeBadge grade={row.grade} />
-              <b>{row.score}</b>
+              <b>{row.scored ? row.score : "—"}</b>
             </li>
           ))}
         </ol>

@@ -95,6 +95,7 @@ def health() -> dict:
         "imageModel": settings.grok_image_model,
         "imagesEnabled": configured and settings.grok_images,
         "grokRoles": [
+            "edit the pair's project files",
             "answer the player's prompt",
             "judge that prompt from the solver API call",
             "pair people from what they build and what they want the work to care about",
@@ -203,10 +204,13 @@ async def create_session(body: CreateBody):
 
 
 @app.get("/api/sessions/{code}")
-def read_session(code: str):
-    session = store.get(code)
-    if session is None:
+async def read_session(code: str):
+    if store.get(code) is None:
         return JSONResponse({"error": "No game with that code."}, status_code=404)
+    try:
+        session = await game.sweep_pair_clocks(code)
+    except GameError as exc:
+        return _error(exc)
     return {"session": public_session(session)}
 
 
@@ -234,6 +238,15 @@ async def join(code: str, body: JoinBody):
 async def leave(code: str, body: PlayerBody):
     try:
         session = await game.leave(code, body.playerId, body.playerToken)
+    except GameError as exc:
+        return _error(exc)
+    return {"session": public_session(session)}
+
+
+@app.post("/api/sessions/{code}/ready")
+async def ready(code: str, body: PlayerBody):
+    try:
+        session = await game.tap_start(code, body.playerId, body.playerToken)
     except GameError as exc:
         return _error(exc)
     return {"session": public_session(session)}

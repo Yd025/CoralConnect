@@ -29,95 +29,7 @@ vague. If a sample lands in the wrong band, fix the fact patterns, not the test.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-# Every beat is graded against the same budget, so grades mean the same thing
-# in every round. See grading.py for how the budget turns into a grade.
-from .carbon import BUDGET_TOKENS
-
-
-@dataclass(frozen=True)
-class Fact:
-    """One thing the model needs from the latest message.
-
-    needs is a tuple of groups. Every group has to match somewhere in the
-    message, and a group matches if any one of its regexes does. Regexes are
-    case-insensitive. Most facts have a single group.
-    """
-
-    id: str
-    label: str
-    needs: tuple[tuple[str, ...], ...]
-
-
-@dataclass(frozen=True)
-class Samples:
-    """Server-only example prompts. Tests and the rehearsal buttons use them."""
-
-    adequate: str  # every fact, plus what you want. Should grade A+.
-    bare: str  # every fact, but no ask. Should grade A.
-    partial: str  # one fact left out, with an ask. Should grade C.
-    vague: str  # no facts. Should grade F.
-    leak: str = ""  # only for rounds with a credential. Always F.
-
-
-@dataclass(frozen=True)
-class Part:
-    """One collaborator's piece of a turn. anchor is server-only."""
-
-    role: str
-    title: str
-    body: str
-    anchor: str
-
-
-@dataclass(frozen=True)
-class Beat:
-    """One request in a thread."""
-
-    ask: str
-    fixture_title: str
-    fixture: str
-    facts: tuple[Fact, ...]
-    simulated_reply: str
-    samples: Samples
-    target_tokens: int = BUDGET_TOKENS
-    # Regexes that must never appear in a prompt (a credential, for example).
-    forbidden: tuple[str, ...] = ()
-    # Collaborate mode deals one part to each person in a pair. See Part.
-    parts: tuple[Part, ...] = ()
-
-    @property
-    def anchors(self) -> tuple[str, ...]:
-        """Plain-language fact list. The Grok reviewer reads this."""
-        return tuple(fact.label for fact in self.facts)
-
-
-@dataclass(frozen=True)
-class Challenge:
-    id: str
-    title: str
-    brief: str
-    hint: str
-    beats: tuple[Beat, ...]
-
-    @property
-    def target_tokens(self) -> int:
-        return self.beats[-1].target_tokens if self.beats else 0
-
-    @property
-    def example_efficient(self) -> tuple[str, ...]:
-        return tuple(beat.samples.adequate for beat in self.beats)
-
-    @property
-    def example_vague(self) -> tuple[str, ...]:
-        return tuple(beat.samples.vague for beat in self.beats)
-
-    def example_whole_file(self, step: int) -> str:
-        """What a player sends when they paste everything they have seen so far."""
-        pasted = "\n\n".join(beat.fixture for beat in self.beats[: step + 1])
-        return f"Fix this.\n\n{pasted}"
-
+from .round_types import Beat, Challenge, Fact, Part, Samples
 
 # A credential in any form other than a placeholder. "Bearer <token>",
 # "Bearer [redacted]", and "Bearer header" are fine.
@@ -1217,8 +1129,12 @@ DEV_CHALLENGES: tuple[Challenge, ...] = (
 )
 
 
-# Role-play problem sets first, so the admin dropdown opens on them.
-CHALLENGES: tuple[Challenge, ...] = PROBLEM_SETS + DEV_CHALLENGES
+# Imported last so this module can finish defining Challenge first.
+from .builds import BUILD_CHALLENGES  # noqa: E402
+
+# Build rounds first: that is what the pair room plays.
+CHALLENGES: tuple[Challenge, ...] = BUILD_CHALLENGES + PROBLEM_SETS + DEV_CHALLENGES
+BUILD_IDS = {challenge.id for challenge in BUILD_CHALLENGES}
 
 _BY_ID = {challenge.id: challenge for challenge in CHALLENGES}
 
@@ -1244,6 +1160,8 @@ def public_challenge(challenge: Challenge) -> dict:
         "hint": challenge.hint,
         "turnCount": len(challenge.beats),
         "targetTokens": challenge.target_tokens,
+        "build": bool(challenge.files),
+        "files": [{"name": name, "body": body} for name, body in challenge.files],
         "beats": [public_beat(beat) for beat in challenge.beats],
     }
 

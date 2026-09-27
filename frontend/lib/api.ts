@@ -82,6 +82,7 @@ export type ResultCard = {
   grade: string;
   challenge: string;
   room: string;
+  team?: string;
   createdAt: number;
 };
 
@@ -91,6 +92,13 @@ export function getCard(id: string) {
 
 export function getPairs() {
   return request<{ pairs: ResultCard[] }>("/api/pairs");
+}
+
+export function tapStart(code: string, identity: Identity) {
+  return request<{ session: GameSession }>(`/api/sessions/${encodeURIComponent(code)}/ready`, {
+    method: "POST",
+    body: JSON.stringify({ playerId: identity.playerId, playerToken: identity.playerToken }),
+  });
 }
 
 export function leaveSession(code: string, identity: Identity) {
