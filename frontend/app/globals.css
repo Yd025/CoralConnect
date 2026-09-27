@@ -784,7 +784,7 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #071820;
+  background: rgba(7, 24, 32, 0.78);
   border: 1px solid rgba(167, 230, 214, 0.2);
   border-radius: 22px;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
@@ -796,8 +796,13 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
-  background: #071820;
+  background: rgba(7, 24, 32, 0.72);
   flex: none;
+}
+.round-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
 }
 .chat-face { display: flex; flex: none; }
 .chat-face img { width: 46px; max-width: none; height: auto; display: block; }
@@ -948,7 +953,7 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 .reef--bleaching { background: #6d756c; }
 .reef--dead { background: #2e342c; }
 .reef__art, .reef__art svg, .reef__custom { position: absolute; inset: 0; width: 100%; height: 100%; }
-.reef__custom { object-fit: cover; z-index: 1; }
+.reef__custom { object-fit: cover; z-index: 1; transition: filter 0.8s ease; }
 .fallback-reef { display: block; }
 .reef--stressed .reef__art:not(.is-custom) .fallback-coral { filter: saturate(0.65) brightness(0.9); }
 .reef--bleaching .reef__art:not(.is-custom) .fallback-coral { filter: saturate(0.2) brightness(1.18); }
@@ -963,7 +968,7 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   background:
     radial-gradient(circle at 50% 100%, rgba(48, 42, 24, 0.55), transparent 55%),
     linear-gradient(180deg, rgba(20, 18, 12, 0.05), rgba(32, 28, 16, 0.72));
-  opacity: calc((100 - var(--health)) / 108);
+  opacity: calc((100 - var(--health)) / 70);
   transition: opacity 0.8s ease;
 }
 .reef__flash {

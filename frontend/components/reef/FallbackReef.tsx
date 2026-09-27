@@ -3,36 +3,22 @@
 import { useEffect, useState } from "react";
 import type { ReefBand } from "@/lib/types";
 
-export function useReefAsset(src: string) {
-  const [ok, setOk] = useState(false);
-
-  useEffect(() => {
-    let cancel = false;
-    setOk(false);
-    fetch(src)
-      .then((response) => {
-        if (cancel) return;
-        const type = response.headers.get("content-type") || "";
-        setOk(response.ok && !type.includes("text/html"));
-      })
-      .catch(() => {
-        if (!cancel) setOk(false);
-      });
-    return () => {
-      cancel = true;
-    };
-  }, [src]);
-
-  return ok;
-}
+const REEF_BANDS: ReefBand[] = ["thriving", "stressed", "bleaching", "dead"];
 
 export function BandArt({ band }: { band: ReefBand }) {
-  const src = `/reef/${band}.svg`;
-  const custom = useReefAsset(src);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+    for (const name of REEF_BANDS) {
+      const image = new Image();
+      image.src = `/reef/${name}.svg`;
+    }
+  }, [band]);
+
   return (
-    <div className={custom ? "reef__art is-custom" : "reef__art"}>
-      <FallbackReef band={band} />
-      {custom ? <img className="reef__custom" src={src} alt="" /> : null}
+    <div className={failed ? "reef__art" : "reef__art is-custom"}>
+      {failed ? <FallbackReef band={band} /> : <img className="reef__custom" src={`/reef/${band}.svg`} alt="" onError={() => setFailed(true)} />}
     </div>
   );
 }

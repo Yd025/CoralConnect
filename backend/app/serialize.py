@@ -134,13 +134,15 @@ def public_event(event: ReefEvent) -> dict:
 
 def public_session(session: Session) -> dict:
     challenge = get_challenge(session.challenge_id)
+    # Compete phones should not receive the problem until the host starts the round.
+    reveal_challenge = challenge is not None and not (session.mode == "compete" and session.status == "lobby")
     return {
         "code": session.code,
         "mode": session.mode,
         "status": session.status,
         "playerMin": player_bounds(session.mode)[0],
         "playerMax": player_bounds(session.mode)[1],
-        "challenge": public_challenge(challenge) if challenge else None,
+        "challenge": public_challenge(challenge) if reveal_challenge and challenge else None,
         "reefHealth": session.reef_health,
         "reefBand": reef_band(session.reef_health),
         "players": [public_player(p, session, challenge) for p in session.players],

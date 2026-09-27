@@ -514,6 +514,19 @@ def test_rehearsal_bot_is_never_paired_with_a_real_player():
     assert sent.status_code == 200
 
 
+def test_compete_hides_the_challenge_until_the_host_starts():
+    client = TestClient(app)
+    code, admin = _new_game(client)
+    lobby = client.get(f"/api/sessions/{code}").json()["session"]
+    assert lobby["status"] == "lobby"
+    assert lobby["challenge"] is None
+    _join(client, code, "Ada")
+    client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin})
+    playing = client.get(f"/api/sessions/{code}").json()["session"]
+    assert playing["status"] == "playing"
+    assert playing["challenge"]["title"]
+
+
 def test_an_ended_game_needs_next_group_before_it_starts_again():
     client = TestClient(app)
     code, admin = _new_game(client)

@@ -9,7 +9,7 @@ import { Receipt } from "@/components/Receipt";
 import { reefPresence } from "@/components/reef/FallbackReef";
 import { getSession, leaveSession, joinSession, submitPrompt, tapStart } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
-import { estimateTokens } from "@/lib/reef";
+import { estimateTokens, reefLabel } from "@/lib/reef";
 import type { Identity, ReefBand, Submission, Thread } from "@/lib/types";
 import { useSession } from "@/lib/useSession";
 
@@ -205,6 +205,8 @@ export default function PlayPage() {
 
   const tokens = estimateTokens(prompt);
   const compete = session?.mode === "compete";
+  const challengeOpen = session?.status === "playing" || session?.status === "ended";
+  const clock = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
 
   if (compete && session) {
     const ask = beat?.ask;
@@ -217,11 +219,11 @@ export default function PlayPage() {
               <img src="/reef/05-otto-octopus.svg" alt="" />
             </a>
             <div className="chat-id">
-              <strong>Turn {turnNumber} of {turnCount}</strong>
+              <strong>{challengeOpen && session.challenge?.title ? session.challenge.title : "Waiting to start"}</strong>
               <span>{code}</span>
             </div>
             <div className="chat-health health-inline">
-              <span>Reef {session.reefHealth}</span>
+              <span>{reefLabel(session.reefBand)} · {session.reefHealth}</span>
               <i><b style={{ width: `${session.reefHealth}%` }} /></i>
             </div>
             <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
@@ -240,14 +242,16 @@ export default function PlayPage() {
           <div className="chat-log" ref={logRef}>
             {error || localError ? <p className="error">{localError || error}</p> : null}
 
-            <div className="chat-msg is-grok">
-              <span className="chat-msg__who">Model</span>
-              {session.challenge?.title ? <p className="chat-msg__title">{session.challenge.title}</p> : null}
-              {session.challenge?.brief ? <p>{session.challenge.brief}</p> : null}
-              {session.challenge?.hint ? <p className="muted">{session.challenge.hint}</p> : null}
-            </div>
+            {challengeOpen && session.challenge ? (
+              <div className="chat-msg is-grok">
+                <span className="chat-msg__who">Model</span>
+                {session.challenge.title ? <p className="chat-msg__title">{session.challenge.title}</p> : null}
+                {session.challenge.brief ? <p>{session.challenge.brief}</p> : null}
+                {session.challenge.hint ? <p className="muted">{session.challenge.hint}</p> : null}
+              </div>
+            ) : null}
 
-            {ask && sourceBody ? (
+            {challengeOpen && ask && sourceBody ? (
               <SourceNote title={sourceTitle} ask={ask} body={sourceBody} onInclude={identity ? includeSource : undefined} />
             ) : null}
 
@@ -374,6 +378,7 @@ export default function PlayPage() {
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
         <div className="topbar-end">
+          {buildRound && started && !thread?.done ? <strong className="round-clock">{clock}</strong> : null}
           <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
           {identity ? (
             <button className="leave-btn" type="button" onClick={() => void leaveRoom("/")}>
@@ -391,9 +396,7 @@ export default function PlayPage() {
           <section className="panel stack">
             <h1>{session.challenge?.title}</h1>
             <p>{session.challenge?.brief}</p>
-            <p className="muted">
-              Turn {turnNumber} of {turnCount}. {session.challenge?.hint}
-            </p>
+            <p className="muted">{session.challenge?.hint}</p>
             <div className="health-inline">
               <span>Shared reef · {session.reefHealth}</span>
               <i><b style={{ width: `${session.reefHealth}%` }} /></i>
