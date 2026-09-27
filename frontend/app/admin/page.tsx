@@ -75,8 +75,29 @@ export default function AdminPage() {
   }
 
   async function copy(value: string, label: string) {
-    await navigator.clipboard.writeText(value);
-    setCopied(label);
+    if (!value) return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const area = document.createElement("textarea");
+        area.value = value;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.top = "0";
+        area.style.left = "0";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+      }
+      setCopied(label);
+      window.setTimeout(() => setCopied(""), 2000);
+    } catch {
+      setError("Could not copy that link.");
+    }
   }
 
   const play = saved && origin ? playUrl(origin, saved.code) : "";
@@ -188,10 +209,10 @@ export default function AdminPage() {
                   Phone link host
                   <input value={host} onChange={(event) => updateHost(event.target.value)} />
                 </label>
-                <p className="link-line">{play}</p>
+                <p className="link-line">{stage}</p>
                 <div className="btn-row">
-                  <button className="btn btn-ghost" type="button" onClick={() => copy(play, "play")}>
-                    {copied === "play" ? "Copied" : "Copy join link"}
+                  <button className="btn btn-ghost" type="button" onClick={() => copy(stage, "stage")}>
+                    {copied === "stage" ? "Copied" : "Copy stage link"}
                   </button>
                   <button className="btn" type="button" onClick={() => window.open(stage, "coral-stage")}>
                     Open main stage

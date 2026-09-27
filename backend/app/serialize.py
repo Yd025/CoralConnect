@@ -45,7 +45,9 @@ def public_squad(squad: Squad, players: list[Player]) -> dict:
         "id": squad.id,
         "name": squad.name,
         "playerIds": squad.player_ids,
-        "memberNames": [names.get(pid, "Someone") for pid in squad.player_ids],
+        "memberNames": list(squad.member_names)
+        if squad.scored and squad.member_names
+        else [names.get(pid, "Someone") for pid in squad.player_ids],
         "shared": squad.shared,
         "distinct": squad.distinct,
         "creature": squad.creature,

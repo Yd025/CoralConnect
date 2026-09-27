@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { joinSession, openCollaborate } from "@/lib/api";
+import { joinSession, leaveSession, openCollaborate } from "@/lib/api";
 import { BUILDS, CARES, personLine } from "@/lib/connection";
 import { useSession } from "@/lib/useSession";
 
@@ -19,8 +19,27 @@ export default function CollaboratePage() {
   useEffect(() => {
     let stop = false;
     openCollaborate()
-      .then((data) => {
-        if (!stop) setCode(data.session.code);
+      .then(async (data) => {
+        if (stop) return;
+        const room = data.session.code;
+        const raw = window.localStorage.getItem(`coral-player:${room}`);
+        if (raw) {
+          try {
+            const saved = JSON.parse(raw) as { playerId?: string; playerToken?: string; name?: string };
+            const squad = data.session.squads.find((item) => saved.playerId && item.playerIds.includes(saved.playerId));
+            if (saved.playerId && saved.playerToken && squad && !squad.scored) {
+              router.replace(`/play/${room}`);
+              return;
+            }
+            if (saved.playerId && saved.playerToken && squad?.scored) {
+              await leaveSession(room, { playerId: saved.playerId, playerToken: saved.playerToken, name: saved.name || "" });
+            }
+          } catch {
+            /* A finished phone fills in a new name instead of reopening the old pair. */
+          }
+          window.localStorage.removeItem(`coral-player:${room}`);
+        }
+        if (!stop) setCode(room);
       })
       .catch((err: Error) => {
         if (!stop) setError(err.message);
@@ -28,11 +47,12 @@ export default function CollaboratePage() {
     return () => {
       stop = true;
     };
-  }, []);
+  }, [router]);
 
   const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
-  const waiting = session?.squads.filter((squad) => squad.playerIds.length < 2).length ?? 0;
-  const paired = session?.squads.filter((squad) => squad.creature).length ?? 0;
+  const openSquads = session?.squads.filter((squad) => !squad.scored) ?? [];
+  const waiting = openSquads.filter((squad) => squad.playerIds.length < 2).length;
+  const paired = openSquads.filter((squad) => squad.creature).length;
 
   async function onJoin(event: FormEvent) {
     event.preventDefault();
@@ -73,7 +93,7 @@ export default function CollaboratePage() {
           <p className="muted">Nobody is waiting yet. You can be the first.</p>
         ) : (
           <ul className="connection-people">
-            {(session?.squads ?? []).map((squad) => {
+            {openSquads.map((squad) => {
               const members = squad.playerIds
                 .map((id) => roster.find((player) => player.id === id))
                 .filter((player) => Boolean(player));

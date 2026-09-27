@@ -346,7 +346,13 @@ def _pick_waiter(session: Session, player: Player) -> Squad | None:
     waiters = [
         squad
         for squad in session.squads
-        if len(squad.player_ids) == 1 and squad.id != REHEARSAL_SQUAD_ID and player.id not in squad.player_ids
+        if (
+            len(squad.player_ids) == 1
+            and not squad.scored
+            and not squad.started_at
+            and squad.id != REHEARSAL_SQUAD_ID
+            and player.id not in squad.player_ids
+        )
     ]
     if not waiters:
         return None
@@ -424,6 +430,7 @@ def _publish_pair(session: Session, squad: Squad, grade: str | None) -> None:
     thread.done = True
     squad.score = thread.score_sum
     squad.scored = True
+    squad.member_names = [person.name for person in session.players if person.id in squad.player_ids]
     if grade:
         squad.last_grade = grade
     else:
@@ -538,9 +545,11 @@ async def leave(code: str, player_id: str, player_token: str) -> Session:
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
-        session.players = [p for p in session.players if p.id != player.id]
         if session.mode == "collaborate":
-            _release_partner(session, player.id)
+            squad = next((item for item in session.squads if player.id in item.player_ids), None)
+            if squad is None or not squad.scored:
+                _release_partner(session, player.id)
+        session.players = [p for p in session.players if p.id != player.id]
         _persist(session)
     await _broadcast(session)
     return session
@@ -854,6 +863,8 @@ async def submit(
             actor = squad.name
             squad_id = squad.id
             if thread.done:
+                squad.scored = True
+                squad.member_names = [person.name for person in session.players if person.id in squad.player_ids]
                 _mint_card(session, thread, squad, player)
         else:
             thread.done = thread.step >= thread.turn_limit

@@ -59,6 +59,7 @@ class Squad:
     ready_ids: list[str] = field(default_factory=list)
     started_at: float = 0
     scored: bool = False
+    member_names: list[str] = field(default_factory=list)
 
 
 @dataclass

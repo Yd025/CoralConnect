@@ -14,7 +14,7 @@ export function Leaderboard({ session, compact = false }: { session: GameSession
             const members = squad.playerIds
               .map((id) => session.players.find((player) => player.id === id))
               .filter((player): player is Player => Boolean(player));
-            const names = members.map((player) => player.name);
+            const names = squad.scored && squad.memberNames.length ? squad.memberNames : members.map((player) => player.name);
             return {
               id: squad.id,
               name: squad.creature ? `Team ${squad.creature}` : "Looking",

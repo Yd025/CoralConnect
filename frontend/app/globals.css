@@ -1100,11 +1100,18 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 
 @media (max-width: 860px) {
   .hero, .admin-grid, .admin-layout, .play-grid, .mode-grid, .join, .steps { grid-template-columns: 1fr; }
-  .admin-layout { overflow: auto; }
-  .admin-desk, .admin-join { overflow: visible; }
-  .admin-roster { max-height: 220px; }
+  body:has(.admin-page) { height: auto; min-height: 100dvh; overflow: auto; }
+  .admin-page.landing { height: auto; min-height: 100dvh; overflow: visible; }
+  .admin-page .shell { height: auto; overflow: visible; padding-bottom: 32px; }
+  .admin-layout { display: flex; flex-direction: column; overflow: visible; flex: none; }
+  .admin-desk, .admin-join { overflow: visible; height: auto; flex: none; }
+  .admin-desk .btn-row, .admin-join .btn-row { flex-direction: column; }
+  .admin-desk .btn-row > button, .admin-join .btn-row > button { flex: none; width: 100%; }
+  .admin-join .code-block { flex-direction: column; align-items: flex-start; }
+  .admin-roster { flex: none; min-height: auto; max-height: none; overflow: visible; }
   .landing .shell { width: min(100% - 28px, 1240px); }
   .landing-top { display: flex; flex-wrap: nowrap; }
+  .admin-page .landing-top { flex-wrap: wrap; align-items: flex-start; }
   .landing-nav { display: none; }
   .landing-tools span { display: none; }
   .landing h1 { font-size: clamp(1.7rem, 7.4vw, 2.35rem); }

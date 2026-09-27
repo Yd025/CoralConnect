@@ -722,6 +722,50 @@ def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
     assert set(card["names"]) == {"Adelin", "Yidan"}
 
 
+def test_a_finished_pair_stays_put_when_someone_plays_again():
+    client = TestClient(app)
+    code, ada, yidan = _pair_on(client)
+    for person in (ada, yidan):
+        client.post(
+            f"/api/sessions/{code}/ready",
+            json={"playerId": person["player"]["id"], "playerToken": person["playerToken"]},
+        )
+    client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "In messages.py, add send_message(room, user, text). Save a real message and return it. A blank message is not saved.",
+        },
+    )
+    client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": yidan["player"]["id"],
+            "playerToken": yidan["playerToken"],
+            "prompt": "In presence.py, add who_is_here(room). Return the people in that room, sorted.",
+        },
+    )
+    left = client.post(
+        f"/api/sessions/{code}/leave",
+        json={"playerId": ada["player"]["id"], "playerToken": ada["playerToken"]},
+    ).json()["session"]
+    finished = left["squads"][0]
+    assert finished["scored"] is True
+    assert finished["memberNames"] == ["Adelin", "Yidan"]
+    assert ada["player"]["id"] not in {player["id"] for player in left["players"]}
+
+    jane = client.post(
+        f"/api/sessions/{code}/join",
+        json={"name": "Jane2", "builds": "Apps", "cares": "Planet"},
+    ).json()["session"]
+    again = next(squad for squad in jane["squads"] if not squad["scored"])
+    assert again["id"] != finished["id"]
+    assert again["playerIds"] != finished["playerIds"]
+    frozen = next(squad for squad in jane["squads"] if squad["id"] == finished["id"])
+    assert frozen["memberNames"] == ["Adelin", "Yidan"]
+
+
 def test_build_round_closes_when_two_minutes_pass():
     client = TestClient(app)
     code, ada, yidan = _pair_on(client)
