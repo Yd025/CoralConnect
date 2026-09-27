@@ -20,7 +20,21 @@ export default function CollaboratePage() {
     let stop = false;
     openCollaborate()
       .then((data) => {
-        if (!stop) setCode(data.session.code);
+        if (stop) return;
+        const room = data.session.code;
+        const raw = window.localStorage.getItem(`coral-player:${room}`);
+        if (raw) {
+          try {
+            const saved = JSON.parse(raw) as { playerId?: string; playerToken?: string };
+            if (saved.playerId && saved.playerToken) {
+              router.replace(`/play/${room}`);
+              return;
+            }
+          } catch {
+            window.localStorage.removeItem(`coral-player:${room}`);
+          }
+        }
+        setCode(room);
       })
       .catch((err: Error) => {
         if (!stop) setError(err.message);
@@ -28,7 +42,7 @@ export default function CollaboratePage() {
     return () => {
       stop = true;
     };
-  }, []);
+  }, [router]);
 
   const roster = session?.players.filter((player) => player.id !== "p_rehearsal") ?? [];
   const waiting = session?.squads.filter((squad) => squad.playerIds.length < 2).length ?? 0;
@@ -36,7 +50,7 @@ export default function CollaboratePage() {
 
   async function onJoin(event: FormEvent) {
     event.preventDefault();
-    if (!code) return;
+    if (!code || busy) return;
     setBusy(true);
     setError(null);
     try {

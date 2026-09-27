@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import secrets
@@ -15,7 +16,7 @@ from .carbon import FORMULA
 from .challenges import get_challenge, public_challenges
 from .config import settings
 from .game import GameError
-from .grading import beat_for
+from .grading import beat_for, build_prompt_score
 from .hub import hub
 from .serialize import public_session, public_submission
 from .store import store
@@ -123,6 +124,7 @@ async def judge_prompt(body: JudgeBody, x_judge_key: str = Header(default="")):
     context = body.context or JudgeContext()
     history = [item.model_dump() for item in context.history]
     beat = None
+    challenge = None
     if context.challengeId:
         challenge = get_challenge(context.challengeId)
         if challenge is None:
@@ -162,6 +164,8 @@ async def judge_prompt(body: JudgeBody, x_judge_key: str = Header(default="")):
         note=note,
     )
     verdict["modeUsed"] = mode
+    if challenge is not None and challenge.files and context.gameMode == "collaborate":
+        verdict["score"] = build_prompt_score(result, body.prompt)
     return verdict
 
 
@@ -181,7 +185,7 @@ def read_card(card_id: str):
 @app.get("/api/pairs")
 def pair_board():
     rows = [card for card in store.cards.values() if card.get("kind") == "collaborate"]
-    rows.sort(key=lambda card: card.get("createdAt") or 0, reverse=True)
+    rows.sort(key=lambda card: (-(card.get("score") or 0), card.get("team") or "", -(card.get("createdAt") or 0)))
     return {"pairs": rows}
 
 
@@ -322,7 +326,11 @@ async def socket(code: str, websocket: WebSocket):
             data = await websocket.receive_json()
             if not isinstance(data, dict):
                 continue
-            if data.get("type") == "draft":
+            if data.get("type") == "hello":
+                player_id = str(data.get("playerId") or "")
+                if await game.note_presence(normalized, player_id, str(data.get("playerToken") or "")):
+                    hub.identify(normalized, websocket, player_id)
+            elif data.get("type") == "draft":
                 await game.update_draft(
                     normalized,
                     str(data.get("playerId") or ""),
@@ -334,4 +342,6 @@ async def socket(code: str, websocket: WebSocket):
     except Exception:
         logger.debug("socket closed for %s", normalized, exc_info=True)
     finally:
-        hub.remove(normalized, websocket)
+        owner = hub.remove(normalized, websocket)
+        if owner and not hub.online(owner[0], owner[1]):
+            asyncio.create_task(game.drop_absent_later(owner[0], owner[1]))

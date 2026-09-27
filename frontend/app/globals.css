@@ -426,9 +426,46 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 }
 .partner-match span { color: var(--muted); font-size: 0.78rem; }
 .landing-stage { overflow: hidden; }
-.podium { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.podium li { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; }
-.board-page { max-width: 720px; margin: 0 auto; padding: 28px 16px 64px; }
+.board-page { width: min(880px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 72px; }
+.standings-top .topbar { margin-bottom: 18px; }
+.standings-top h1 { margin: 0 0 8px; font-size: clamp(2.4rem, 6vw, 4rem); }
+.standings-lede { max-width: 36rem; margin-top: 0; }
+.standings { margin-top: 22px; }
+.standings__head, .standing {
+  display: grid;
+  grid-template-columns: 4.2rem minmax(0, 1fr) 7.5rem;
+  gap: 12px;
+  align-items: center;
+}
+.standings__head {
+  padding: 0 18px 8px;
+  color: var(--sand);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+.standings__head span:last-child, .standing__score { text-align: right; }
+.standings ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.standing {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 18px;
+}
+.standing.is-1 { border-color: rgba(240, 215, 164, 0.85); background: linear-gradient(90deg, rgba(240, 215, 164, 0.16), var(--panel) 42%); }
+.standing.is-2 { border-color: rgba(214, 228, 232, 0.55); }
+.standing.is-3 { border-color: rgba(205, 127, 92, 0.7); }
+.standing__rank { font-family: var(--font-display), Georgia, serif; font-size: 1.8rem; color: var(--sand); }
+.standing__who { display: flex; align-items: center; gap: 12px; min-width: 0; color: inherit; text-decoration: none; }
+.standing__score { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.standing__score b { font-family: var(--font-display), Georgia, serif; font-size: 2rem; font-weight: 560; line-height: 1; }
+.standings__empty {
+  margin: 0;
+  padding: 28px 18px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+}
 .share-card h1 { margin-top: 0; }
 .hero-join {
   display: flex;

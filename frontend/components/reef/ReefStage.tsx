@@ -75,7 +75,7 @@ export function ReefStage({
         </div>
       </aside>
 
-      {showClock ? <RoundTimer startedAt={session.startedAt} active /> : null}
+      {showClock ? <RoundTimer startedAt={session.startedAt} active seconds={session.roundSeconds || 90} /> : null}
       <header className={showClock ? "reef__hud has-clock" : "reef__hud"}>
         <div>
           <p className="eyebrow">CoralConnect · {session.mode === "collaborate" ? "Pairs start on their own" : "One round · up to 10"}</p>

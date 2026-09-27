@@ -75,7 +75,7 @@ export default function HomePage() {
               <div className="panel stack choice">
                 <p className="eyebrow">Together</p>
                 <h2>Work with a partner</h2>
-                <p className="muted">Two questions, then someone who is already waiting. You share one prompt, and you can play more than once.</p>
+                <p className="muted">Two questions, then someone who is already waiting. Each phone has its own prompt. You can play more than once.</p>
                 <div className="partner-match">
                   <p><strong>You</strong><span>On your phone</span></p>
                   <p><strong>A partner</strong><span>Already waiting</span></p>
