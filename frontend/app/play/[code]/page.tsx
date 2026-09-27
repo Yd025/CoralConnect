@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
@@ -17,8 +17,8 @@ export default function PlayPage() {
   const router = useRouter();
   const params = useParams<{ code: string }>();
   const code = String(params.code || "").toUpperCase();
-  const { session, connected, error, sendDraft, ingest } = useSession(code);
   const [identity, setIdentity] = useState<Identity | null>(null);
+  const { session, connected, error, sendDraft, ingest } = useSession(code, identity);
   const [name, setName] = useState("");
   const [builds, setBuilds] = useState("");
   const [cares, setCares] = useState("");
@@ -30,6 +30,11 @@ export default function PlayPage() {
   const [now, setNow] = useState(() => Date.now());
   const draftTimer = useRef<number | null>(null);
   const sawPrompt = useRef(false);
+  // When this phone last typed in the shared prompt, and whether the partner is typing now.
+  const lastTyped = useRef(0);
+  const lastRemote = useRef<string | null>(null);
+  const typingTimer = useRef<number | null>(null);
+  const [partnerTyping, setPartnerTyping] = useState(false);
   const logRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -98,10 +103,31 @@ export default function PlayPage() {
       sawPrompt.current = true;
       return;
     }
+    // One shared box: take the partner's text, but never while this phone is mid-sentence.
+    if (Date.now() - lastTyped.current < 2000) return;
     if (squad.promptAuthorId && squad.promptAuthorId !== identity.playerId) {
       setPrompt(squad.prompt);
     }
   }, [squad, identity]);
+
+  useEffect(() => {
+    if (!squad || !identity) return;
+    const fromPartner = Boolean(squad.promptAuthorId && squad.promptAuthorId !== identity.playerId);
+    const changed = lastRemote.current !== null && squad.prompt !== lastRemote.current;
+    lastRemote.current = squad.prompt;
+    if (fromPartner && changed && squad.prompt) {
+      setPartnerTyping(true);
+      if (typingTimer.current) window.clearTimeout(typingTimer.current);
+      typingTimer.current = window.setTimeout(() => setPartnerTyping(false), 3000);
+    }
+  }, [squad, identity]);
+
+  useEffect(
+    () => () => {
+      if (typingTimer.current) window.clearTimeout(typingTimer.current);
+    },
+    [],
+  );
 
   const remembered = useMemo(() => {
     if (!session || !identity) return null;
@@ -179,6 +205,7 @@ export default function PlayPage() {
 
   function onPrompt(value: string) {
     setPrompt(value);
+    lastTyped.current = Date.now();
     if (session?.mode !== "collaborate" || !identity) return;
     if (draftTimer.current) window.clearTimeout(draftTimer.current);
     const current = identity;
@@ -210,6 +237,10 @@ export default function PlayPage() {
 
   if (compete && session) {
     const ask = beat?.ask;
+    const currentAsk =
+      challengeOpen && ask && sourceBody ? (
+        <SourceNote title={sourceTitle} ask={ask} body={sourceBody} onInclude={identity ? includeSource : undefined} current />
+      ) : null;
     return (
       <main className="compete-play">
         <CompeteScene band={session.reefBand} health={session.reefHealth} />
@@ -244,20 +275,18 @@ export default function PlayPage() {
 
             {challengeOpen && session.challenge ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Model</span>
+                <span className="chat-msg__who">Round</span>
                 {session.challenge.title ? <p className="chat-msg__title">{session.challenge.title}</p> : null}
                 {session.challenge.brief ? <p>{session.challenge.brief}</p> : null}
                 {session.challenge.hint ? <p className="muted">{session.challenge.hint}</p> : null}
               </div>
             ) : null}
 
-            {challengeOpen && ask && sourceBody ? (
-              <SourceNote title={sourceTitle} ask={ask} body={sourceBody} onInclude={identity ? includeSource : undefined} />
-            ) : null}
+            {!identity && currentAsk}
 
             {!identity && tableFull ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Model</span>
+                <span className="chat-msg__who">Table</span>
                 <p>This table is full. Compete holds up to 10 players.</p>
               </div>
             ) : null}
@@ -302,31 +331,38 @@ export default function PlayPage() {
 
             {identity && session.status === "lobby" ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Model</span>
+                <span className="chat-msg__who">Table</span>
                 <p>You're in, {identity.name}. This round starts when the table says go. {roster.length} of {playerMax} here.</p>
               </div>
             ) : null}
 
-            {thread?.messages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={message.role === "user" ? "chat-msg is-you" : "chat-msg is-grok"}
-              >
-                <span className="chat-msg__who">{message.role === "user" ? "You" : "Model"}</span>
-                <MessageBody text={message.content} />
-              </div>
-            ))}
+            {/* Each turn's task sits right above the message that answered it. */}
+            {thread?.messages.map((message, index) => {
+              const turn = thread.messages.slice(0, index).filter((item) => item.role === "user").length;
+              const pastBeat = message.role === "user" && turn < beats.length ? beats[turn] : null;
+              return (
+                <Fragment key={`${message.role}-${index}`}>
+                  {pastBeat ? <SourceNote title={pastBeat.fixtureTitle} ask={pastBeat.ask} body={pastBeat.fixture} /> : null}
+                  <div className={message.role === "user" ? "chat-msg is-you" : "chat-msg is-grok"}>
+                    <span className="chat-msg__who">{message.role === "user" ? "You" : "Grok"}</span>
+                    <MessageBody text={message.content} />
+                  </div>
+                </Fragment>
+              );
+            })}
 
             {shown ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Model</span>
+                <span className="chat-msg__who">Judge</span>
                 <ResultCard shown={shown} />
               </div>
             ) : null}
 
+            {identity && !thread?.done ? currentAsk : null}
+
             {identity && session.status === "playing" && thread?.done ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Model</span>
+                <span className="chat-msg__who">Table</span>
                 <p>This round is finished. Save the card, or leave the room.</p>
                 {thread.cardId ? <a className="btn" href={`/card/${thread.cardId}`}>Save this result</a> : null}
               </div>
@@ -334,7 +370,7 @@ export default function PlayPage() {
 
             {session.status === "ended" ? (
               <div className="chat-msg is-grok">
-                <span className="chat-msg__who">Model</span>
+                <span className="chat-msg__who">Table</span>
                 <p>This round is over. Check the big screen for the reef you left behind.</p>
               </div>
             ) : null}
@@ -496,9 +532,6 @@ export default function PlayPage() {
                   <p>Hold your phone up. The next person in shares your animal. Other pairs can already be playing.</p>
                 </>
               )}
-              {squad?.promptAuthorId && squad.promptAuthorId !== identity.playerId ? (
-                <p className="muted">Your pair just changed the prompt.</p>
-              ) : null}
             </section>
           ) : null}
 
@@ -568,12 +601,17 @@ export default function PlayPage() {
               ) : null}
               <label>
                 <span className="play-label">
-                  {buildRound ? "Your prompt" : session.mode === "collaborate" ? "Shared message" : "Your message"}
+                  {session.mode === "collaborate" ? "Shared prompt" : "Your message"}
                 </span>
                 <textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} />
               </label>
+              {session.mode === "collaborate" && partnerTyping ? (
+                <p className="muted typing-note">{partner?.name ?? "Your partner"} is typing in the shared prompt.</p>
+              ) : null}
               {buildRound && squad ? (
-                <p className="muted">Your partner has a different function. The app works when both files are edited.</p>
+                <p className="muted">
+                  You both see this box. Your partner has a different function, so take turns: one of you sends, then the other.
+                </p>
               ) : session.mode === "collaborate" && squad ? (
                 <p className="muted">Your partner has a different piece. The shared message needs both.</p>
               ) : null}
@@ -633,16 +671,18 @@ function SourceNote({
   ask,
   body,
   onInclude,
+  current = false,
 }: {
   title?: string;
   ask: string;
   body: string;
   onInclude?: () => void;
+  current?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="chat-msg is-grok">
-      <span className="chat-msg__who">Model</span>
+    <div className={current ? "chat-msg is-grok is-task" : "chat-msg is-grok"}>
+      <span className="chat-msg__who">{current ? "Your turn" : "Task"}</span>
       <p>{ask}</p>
       <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
         {open ? "Hide the source" : "See the source"}
@@ -678,23 +718,33 @@ function CompeteScene({ band, health }: { band: ReefBand; health: number }) {
   );
 }
 
+// Same words as the live verdict while typing (components/LiveVerdict.tsx).
+const VERDICT_LABEL: Record<string, string> = {
+  efficient: "Efficient",
+  okay: "Okay",
+  wasteful: "Wasteful",
+  horrible: "Horrible",
+};
+
+function verdictWhy(shown: Submission): string {
+  if (shown.leaked) return "The message included a secret. It was removed before the model or anyone else saw it.";
+  if (shown.lookupTokens > 0) return "The message left facts out, so the model had to look them up, and the reef paid for it.";
+  if (shown.reasonable) return "The facts were in the message, so the model did no extra search.";
+  return "The message made the model do extra work.";
+}
+
 function ResultCard({ shown }: { shown: Submission }) {
   const [open, setOpen] = useState(false);
   const problems = !shown.reasonable;
+  const label = VERDICT_LABEL[shown.verdict] ?? (shown.reasonable ? "Efficient" : "Too much work");
   return (
     <section className="panel result">
       <div className="code-block">
         <GradeBadge grade={shown.grade} />
         <strong>{shown.score}</strong>
       </div>
-      <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>
-        {shown.reasonable ? "Reasonable prompt" : "Too much work"}
-      </p>
-      <p>
-        {shown.reasonable
-          ? "The source was in the message, so the model did no extra search."
-          : "The source was missing, so the model searched and the reef paid for it."}
-      </p>
+      <p className={shown.reasonable ? "verdict is-good" : "verdict is-bad"}>{label}</p>
+      <p>{verdictWhy(shown)}</p>
       <button className="btn-ghost" type="button" onClick={() => setOpen((value) => !value)}>
         {open ? "Hide the details" : problems ? "See the problems" : "See the answer"}
       </button>
@@ -723,7 +773,9 @@ function ResultCard({ shown }: { shown: Submission }) {
             <p className="muted">That solver call searched the web {shown.serverSideTools} time{shown.serverSideTools === 1 ? "" : "s"}.</p>
           ) : null}
           <p className="muted">The score on the board is the average of your turns. Every turn still changes the reef.</p>
-          <pre>{shown.aiResponse}</pre>
+          <div className="result-answer">
+            <MessageBody text={shown.aiResponse} />
+          </div>
         </div>
       ) : null}
     </section>
@@ -742,7 +794,7 @@ function ThreadLog({ thread }: { thread: Thread }) {
       {open
         ? thread.messages.map((message, index) => (
             <p key={`${message.role}-${index}`}>
-              <strong>{message.role === "user" ? "You" : "Model"}</strong>
+              <strong>{message.role === "user" ? "You" : "Grok"}</strong>
               {message.content}
             </p>
           ))

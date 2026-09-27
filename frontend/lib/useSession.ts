@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSession, wsUrl } from "./api";
-import type { GameSession, ReefEvent } from "./types";
+import type { GameSession, Identity, ReefEvent } from "./types";
 
-export function useSession(code: string | null) {
+// identity: the player on this phone, if any. The socket tells the server who
+// it is, so a phone that closes (or walks away) stops holding a room open.
+export function useSession(code: string | null, identity: Identity | null = null) {
   const [session, setSession] = useState<GameSession | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,6 +15,15 @@ export function useSession(code: string | null) {
   const hydrated = useRef(false);
   const revision = useRef(0);
   const socketRef = useRef<WebSocket | null>(null);
+  const identityRef = useRef<Identity | null>(identity);
+  identityRef.current = identity;
+
+  const sayHello = useCallback(() => {
+    const socket = socketRef.current;
+    const who = identityRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN || !who) return;
+    socket.send(JSON.stringify({ type: "hello", playerId: who.playerId, playerToken: who.playerToken }));
+  }, []);
 
   const ingest = useCallback((next: GameSession) => {
     if (next.revision < revision.current) return;
@@ -53,7 +64,9 @@ export function useSession(code: string | null) {
       const socket = new WebSocket(wsUrl(code));
       socketRef.current = socket;
       socket.onopen = () => {
-        if (!stop) setConnected(true);
+        if (stop) return;
+        setConnected(true);
+        sayHello();
       };
       socket.onclose = () => {
         if (stop) return;
@@ -87,7 +100,12 @@ export function useSession(code: string | null) {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [code, ingest]);
+  }, [code, ingest, sayHello]);
+
+  // Joining happens after the socket is open, so say hello again when the identity arrives.
+  useEffect(() => {
+    sayHello();
+  }, [identity?.playerId, identity?.playerToken, sayHello]);
 
   const sendDraft = useCallback((playerId: string, playerToken: string, text: string) => {
     const socket = socketRef.current;

@@ -49,11 +49,15 @@ export default function CollaboratePage() {
     };
   }, [router]);
 
+  // Only people who are still here: not finished, and their phone is still open.
   const roster = (session?.players.filter((player) => player.id !== "p_rehearsal") ?? []).filter((player) => {
     const squad = session?.squads.find((item) => item.playerIds.includes(player.id));
-    return !squad?.scored;
+    return !squad?.scored && player.connected;
   });
-  const openSquads = session?.squads.filter((squad) => !squad.scored) ?? [];
+  const openSquads =
+    session?.squads.filter(
+      (squad) => !squad.scored && squad.playerIds.some((id) => roster.some((player) => player.id === id)),
+    ) ?? [];
   const waiting = openSquads.filter((squad) => squad.playerIds.length < 2).length;
   const paired = openSquads.filter((squad) => squad.creature).length;
 

@@ -321,12 +321,13 @@ Steps 0 to 2 work with no API key at all. Steps 3 and 4 need the Grok key; test 
 ## 10. Risks and open questions
 
 - **Grok may search even when the prompt is good,** because the solver has web search turned on. That turns a good prompt into a C. Send one good prompt from a real phone with the key set before the demo; the rehearsal buttons never call Grok. If Grok searches, make the "don't search when the source is here" line in `grok.py`'s `SYSTEM` stronger.
-- **Reviewer latency.** Keep a timeout and fall back to the rules. Never block the reef on Grok.
+- **Reviewer latency.** Keep a timeout and fall back to the rules. Never block the reef on Grok. The game now runs the reviewer at the same time as the solver, the solver waits `GROK_TIMEOUT` seconds (default 15) before one retry without web search, and the retry keeps the reply cap.
 - **Tokenizer mismatch.** Until we use Grok's tokenizer, label counts "about".
 - **The plugin only runs when Claude calls it** in Claude Desktop. Write the tool description carefully, and show the Claude Code hook as the always-on version.
 - **Privacy.** Prompts are logged for labeling. Redact secrets, keep the log out of git (`backend/data/` is already ignored), and delete it after the event.
-- **Deploy check.** `deploy/Caddyfile` sends `/api/*` and `/ws/*` to `workgate:8080`, but `docker-compose.yml` names the backend service `api`. Make sure the production compose names it `workgate`, or change the Caddyfile.
-- **HTTPS.** The plugin installs from a plain-HTTP address. If the Caddyfile's `:80` is replaced with a domain name that points at the server (with ports 80 and 443 open), Caddy sets up HTTPS on its own. Then the install command and `/api/judge` can both use `https://`.
+- **Deploy check.** `deploy/Caddyfile` sends `/api/*` and `/ws/*` to `workgate:8080`. `docker-compose.prod.yml` names the backend `workgate` to match (the dev `docker-compose.yml` calls it `api`). Steps are in `deploy/README.md`.
+- **HTTPS.** `deploy/Caddyfile` already uses the domain name, so Caddy sets up HTTPS on its own once ports 80 and 443 are open on the server and in the cloud firewall. Then the install command and `/api/judge` can both use `https://`.
+- **Spend.** The booth URL is public. `GROK_CALLS_PER_MINUTE`, `GROK_IMAGES_PER_HOUR`, and `SESSIONS_PER_IP` cap what one table or one script can spend. Past the cap a turn is still graded by the rules.
 
 ---
 

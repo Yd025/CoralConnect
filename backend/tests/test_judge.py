@@ -199,7 +199,30 @@ def test_bad_requests_are_rejected():
     assert client.post("/api/judge", json={"prompt": ""}).status_code == 422
     assert client.post("/api/judge", json={"prompt": "x", "mode": "slow"}).status_code == 422
     assert client.post("/api/judge", json={"prompt": "x", "context": {"challengeId": "nope"}}).status_code == 400
-    assert client.post("/api/judge", json={"prompt": "x", "context": {"challengeId": "farm-water", "turn": 5}}).status_code == 400
+    assert client.post("/api/judge", json={"prompt": "x", "context": {"challengeId": "farm-water", "turn": 11}}).status_code == 422
+
+
+def test_turns_past_the_written_beats_use_the_last_beat():
+    # A pair can keep prompting until the clock runs out, so the phone's live
+    # verdict asks about turn 2 of a one-beat round. It used to get a 400 and
+    # sit on "Checking your message..." for the rest of the round.
+    client = TestClient(app)
+    beat = get_challenge("farm-water").beats[-1]
+    last = client.post(
+        "/api/judge",
+        json={"prompt": beat.samples.adequate, "context": {"challengeId": "farm-water", "turn": len(get_challenge("farm-water").beats)}},
+    )
+    later = client.post(
+        "/api/judge",
+        json={"prompt": beat.samples.adequate, "context": {"challengeId": "farm-water", "turn": 4}},
+    )
+    assert later.status_code == 200
+    assert later.json()["grade"] == last.json()["grade"]
+    pair = client.post(
+        "/api/judge",
+        json={"prompt": "x", "context": {"challengeId": "team-chat", "turn": 2, "gameMode": "collaborate"}},
+    )
+    assert pair.status_code == 200
 
 
 # ---------------------------------------------------------------------------

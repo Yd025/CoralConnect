@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
+import time
+import weakref
+from collections import deque
 
 import httpx
 
@@ -190,17 +194,78 @@ def live() -> bool:
     return bool(settings.xai_api_key)
 
 
+class _Budget:
+    """Counts calls in a sliding window. A limit of 0 means no cap."""
+
+    def __init__(self, window: float) -> None:
+        self.window = window
+        self.calls: deque[float] = deque()
+
+    def take(self, limit: int) -> bool:
+        if limit <= 0:
+            return True
+        now = time.monotonic()
+        while self.calls and now - self.calls[0] > self.window:
+            self.calls.popleft()
+        if len(self.calls) >= limit:
+            return False
+        self.calls.append(now)
+        return True
+
+    def reset(self) -> None:
+        self.calls.clear()
+
+
+# Spending caps for the whole server. The booth URL is public, so anyone can
+# open a game and send prompts. These keep one busy table (or one script) from
+# draining the key: past the cap a turn is still graded by the rules, and the
+# reply is the round's written answer.
+_calls = _Budget(60.0)
+_images = _Budget(3600.0)
+_gates: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = weakref.WeakKeyDictionary()
+
+
+def _gate() -> asyncio.Semaphore:
+    """At most GROK_CONCURRENCY Grok calls in flight, per event loop."""
+    loop = asyncio.get_running_loop()
+    gate = _gates.get(loop)
+    if gate is None:
+        gate = asyncio.Semaphore(max(1, settings.grok_concurrency))
+        _gates[loop] = gate
+    return gate
+
+
+def _spend() -> bool:
+    if _calls.take(settings.grok_calls_per_minute):
+        return True
+    logger.warning("Grok spending cap reached (%s calls a minute). Using the written answer.", settings.grok_calls_per_minute)
+    return False
+
+
+def reset_limits() -> None:
+    _calls.reset()
+    _images.reset()
+
+
 def _clip_reply(text: str, limit: int = 700) -> str:
-    """Keep a live reply to a few sentences so the phone does not fill with an essay."""
-    cleaned = " ".join((text or "").split())
+    """Keep a live reply to a few sentences so the phone does not fill with an essay.
+
+    Line breaks and code fences survive, so the phone can still render a short
+    snippet. A fence cut in half is closed again.
+    """
+    lines = [line.rstrip() for line in (text or "").strip().splitlines()]
+    cleaned = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
     if len(cleaned) <= limit:
         return cleaned
     cut = cleaned[:limit]
-    for mark in (". ", "! ", "? "):
-        spot = cut.rfind(mark)
-        if spot >= 180:
-            return cut[: spot + 1].strip()
-    return cut.rstrip() + "…"
+    spot = max(cut.rfind("\n"), *(cut.rfind(mark) + 1 for mark in (". ", "! ", "? ")))
+    if spot >= 180:
+        cut = cut[:spot].rstrip()
+    else:
+        cut = cut.rstrip() + "…"
+    if cut.count("```") % 2 == 1:
+        cut += "\n```"
+    return cut
 
 
 def asks_back(answer: str) -> bool:
@@ -249,10 +314,12 @@ async def complete(messages: list[dict], fallback: str) -> tuple[str, bool, dict
     }
     if not settings.xai_api_key:
         return fallback, True, request, empty_trace()
-    payload = await _post_responses(request, timeout=28)
+    payload = await _post_responses(request, timeout=settings.grok_timeout)
     if payload is None:
-        plain = {key: value for key, value in request.items() if key not in {"tools", "max_output_tokens"}}
-        payload = await _post_responses(plain, timeout=22)
+        # One retry without web search. It keeps the reply cap: an uncapped
+        # retry is how a "2 or 3 sentence" answer turned into 2,000 tokens.
+        plain = {key: value for key, value in request.items() if key != "tools"}
+        payload = await _post_responses(plain, timeout=min(settings.grok_timeout, 10.0))
         request = plain
     if payload is None:
         return fallback, True, request, empty_trace()
@@ -303,7 +370,7 @@ async def edit_project(
             }
         },
     }
-    payload = await _post_responses(body, timeout=25)
+    payload = await _post_responses(body, timeout=max(settings.grok_timeout, 20.0))
     if payload is None:
         return fallback_files, fallback_note, True, empty_trace()
     parsed = _json_object(_output_text(payload)) or {}
@@ -366,16 +433,19 @@ async def review_prompt(packet: dict) -> dict | None:
 
 
 async def _post_responses(body: dict, *, timeout: float) -> dict | None:
+    if not _spend():
+        return None
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                f"{settings.xai_base}/responses",
-                headers={
-                    "Authorization": f"Bearer {settings.xai_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=body,
-            )
+        async with _gate():
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(
+                    f"{settings.xai_base}/responses",
+                    headers={
+                        "Authorization": f"Bearer {settings.xai_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=body,
+                )
         if response.status_code >= 400:
             logger.warning("Grok call failed: %s %s", response.status_code, response.text[:300])
             return None
@@ -403,18 +473,19 @@ def _people_lines(people: list[dict]) -> str:
 
 
 async def _ask_json(prompt: str, label: str) -> dict | None:
-    if not settings.xai_api_key:
+    if not settings.xai_api_key or not _spend():
         return None
     try:
-        async with httpx.AsyncClient(timeout=12) as client:
-            response = await client.post(
-                f"{settings.xai_base}/responses",
-                headers={
-                    "Authorization": f"Bearer {settings.xai_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={"model": settings.grok_model, "input": prompt},
-            )
+        async with _gate():
+            async with httpx.AsyncClient(timeout=12) as client:
+                response = await client.post(
+                    f"{settings.xai_base}/responses",
+                    headers={
+                        "Authorization": f"Bearer {settings.xai_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"model": settings.grok_model, "input": prompt},
+                )
         if response.status_code >= 400:
             logger.warning("Grok %s failed: %s", label, response.status_code)
             return None
@@ -478,9 +549,11 @@ async def describe_pair(people: list[dict]) -> dict | None:
         return None
     prompt = (
         "These two people have to find each other in a room, then work together. "
-        "Write one sentence on what they share, one sentence on what only one of them brings, "
+        "Write one sentence on what they share, one sentence on what each of them brings, "
         "and one question they should ask each other out loud about the environment after the task. "
         "Use what they build and what they care about. "
+        "If both picked the same answer, say they both did. Never write that only one of them "
+        "builds or cares about something the other also picked. "
         "Do not mention reefs, carbon, tokens, or prompts.\n"
         f"People:\n{_people_lines(people)}\n"
         'Return only JSON: {"shared": "...", "distinct": "...", "closing": "..."}'
@@ -512,22 +585,25 @@ async def imagine(kind: str, actor: str) -> str | None:
         return None
     # Names are overlaid in HTML. Image models render text badly.
     del actor
+    if not _images.take(settings.grok_images_per_hour) or not _spend():
+        return None
     try:
-        async with httpx.AsyncClient(timeout=28) as client:
-            response = await client.post(
-                f"{settings.xai_base}/images/generations",
-                headers={
-                    "Authorization": f"Bearer {settings.xai_api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": settings.grok_image_model,
-                    "prompt": prompt,
-                    "aspect_ratio": "1:1",
-                    "quality": "low",
-                    "response_format": "url",
-                },
-            )
+        async with _gate():
+            async with httpx.AsyncClient(timeout=28) as client:
+                response = await client.post(
+                    f"{settings.xai_base}/images/generations",
+                    headers={
+                        "Authorization": f"Bearer {settings.xai_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": settings.grok_image_model,
+                        "prompt": prompt,
+                        "aspect_ratio": "1:1",
+                        "quality": "low",
+                        "response_format": "url",
+                    },
+                )
         if response.status_code >= 400:
             logger.warning("Grok Imagine failed: %s %s", response.status_code, response.text[:300])
             return None

@@ -140,7 +140,11 @@ export default function AdminPage() {
           </a>
           <div className="landing-tools">
             <span>HackGT booth</span>
-            <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
+            {saved ? (
+              <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Connecting"}</span>
+            ) : (
+              <span className="pill">No game yet</span>
+            )}
           </div>
         </header>
 

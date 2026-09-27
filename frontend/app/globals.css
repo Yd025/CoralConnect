@@ -1215,3 +1215,28 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 @media (max-width: 760px) {
   .reef__footnote { justify-items: start; }
 }
+
+/* Booth fixes from the live test (claude/live-site-test.md) */
+/* Podium: the name and the builds/cares line on separate lines. */
+.podium li > span { min-width: 0; }
+.podium small { display: block; color: var(--muted); }
+/* Result card: long code or a wide receipt line can't push the card off a phone screen. */
+.result, .result-details, .result-details > * { min-width: 0; }
+.result pre, .result-answer pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.result-answer { display: grid; gap: 8px; }
+.result-answer p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The task for the turn you're on stands out from earlier ones. */
+.chat-msg.is-task { border-color: rgba(233, 213, 160, 0.55); }
+/* Keep the hero text readable when the whale swims behind it. */
+.landing .hero h1,
+.landing .hero .lede,
+.landing .hero .hero-kicker {
+  text-shadow: 0 2px 14px rgba(2, 15, 29, 0.9), 0 0 3px rgba(2, 15, 29, 0.8);
+}
+.typing-note { margin: 0; font-style: italic; }
+/* Phone chat header: the round's title gets the row, the reef meter drops below it. */
+@media (max-width: 480px) {
+  .chat-head { flex-wrap: wrap; row-gap: 6px; }
+  .chat-head .chat-health { order: 5; flex: 1 0 100%; width: auto; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+  .chat-id strong { font-size: 1.1rem; }
+}
