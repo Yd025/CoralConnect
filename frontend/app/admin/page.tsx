@@ -131,7 +131,7 @@ export default function AdminPage() {
             <div>
               <p className="hero-kicker"><i />Booth console</p>
               <h1 id="admin-title">Open a compete room.</h1>
-              <p className="lede">One live round, up to 10 people, each prompting alone.</p>
+              <p className="lede">One live round, up to 10 people, each prompting alone. The clock runs for 2 minutes.</p>
             </div>
             {error ? <p className="error">{error}</p> : null}
             <form className="stack" onSubmit={onCreate}>

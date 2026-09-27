@@ -722,6 +722,34 @@ def test_build_round_waits_for_both_starts_then_edits_and_scores_once():
     assert set(card["names"]) == {"Adelin", "Yidan"}
 
 
+def test_compete_round_lasts_two_minutes():
+    client = TestClient(app)
+    created = client.post("/api/sessions", json={"mode": "compete", "challengeId": "farm-water"}).json()
+    code = created["session"]["code"]
+    admin = created["adminToken"]
+    ada = client.post("/api/sessions/" + code + "/join", json={"name": "Ada", "builds": "Apps", "cares": "Planet"}).json()
+    started = client.post(f"/api/sessions/{code}/start", headers={"X-Admin-Token": admin}).json()["session"]
+    assert started["startedAt"] > 0
+    assert started["roundSeconds"] == 120
+    assert started["status"] == "playing"
+
+    session = store.get(code)
+    session.started_at = 1
+    store.save()
+    late = client.post(
+        f"/api/sessions/{code}/submit",
+        json={
+            "playerId": ada["player"]["id"],
+            "playerToken": ada["playerToken"],
+            "prompt": "Water the dry plots.",
+        },
+    )
+    assert late.status_code == 409
+    assert "2 minutes" in late.json()["error"]
+    closed = client.get(f"/api/sessions/{code}").json()["session"]
+    assert closed["status"] == "ended"
+
+
 def test_build_round_closes_when_two_minutes_pass():
     client = TestClient(app)
     code, ada, yidan = _pair_on(client)

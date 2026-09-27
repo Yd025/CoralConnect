@@ -6,6 +6,7 @@ import { GradeBadge } from "@/components/GradeBadge";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LiveVerdict } from "@/components/LiveVerdict";
 import { Receipt } from "@/components/Receipt";
+import { RoundTimer, useRoundRemaining } from "@/components/RoundTimer";
 import { reefPresence } from "@/components/reef/FallbackReef";
 import { getSession, leaveSession, joinSession, submitPrompt, tapStart } from "@/lib/api";
 import { BUILDS, CARES } from "@/lib/connection";
@@ -27,7 +28,6 @@ export default function PlayPage() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [latest, setLatest] = useState<Submission | null>(null);
   const [openFile, setOpenFile] = useState("");
-  const [now, setNow] = useState(() => Date.now());
   const draftTimer = useRef<number | null>(null);
   const sawPrompt = useRef(false);
   const logRef = useRef<HTMLDivElement | null>(null);
@@ -66,8 +66,6 @@ export default function PlayPage() {
   const readyIds = squad?.readyIds ?? [];
   const iAmReady = Boolean(identity && readyIds.includes(identity.playerId));
   const waitingOn = squadMates.find((player) => !readyIds.includes(player.id));
-  const deadline = squad?.startedAt ? squad.startedAt * 1000 + 120_000 : 0;
-  const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : 0;
   const ownerId = session?.mode === "collaborate" ? me?.squadId : identity?.playerId;
   const thread = session?.threads?.find((item) => item.ownerId === ownerId) ?? null;
   const projectFiles = thread?.files?.length ? thread.files : session?.challenge?.files ?? [];
@@ -76,20 +74,19 @@ export default function PlayPage() {
   const beat = beats[Math.min(thread?.step ?? 0, Math.max(beats.length - 1, 0))];
   const turnCount = thread?.turnLimit || session?.turnsAllowed || session?.challenge?.turnCount || beats.length || 1;
   const turnNumber = Math.min((thread?.step ?? 0) + 1, turnCount);
+  const clockStart = session?.mode === "compete" ? session.startedAt || 0 : buildRound ? squad?.startedAt || 0 : 0;
+  const clockActive = session?.mode === "compete"
+    ? session.status === "playing"
+    : Boolean(buildRound && started && !thread?.done && session?.status !== "ended");
+  const remaining = useRoundRemaining(clockStart, clockActive);
 
   useEffect(() => {
-    if (!deadline || thread?.done) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, [deadline, thread?.done]);
-
-  useEffect(() => {
-    if (!deadline || thread?.done || remaining > 0) return;
+    if (!clockStart || !clockActive || remaining == null || remaining > 0) return;
     const timer = window.setTimeout(() => {
       void getSession(code).then(ingest).catch(() => undefined);
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [deadline, thread?.done, remaining, code, ingest]);
+  }, [clockStart, clockActive, remaining, code, ingest]);
 
   useEffect(() => {
     if (!squad || !identity) return;
@@ -210,6 +207,7 @@ export default function PlayPage() {
     const ask = beat?.ask;
     return (
       <main className="compete-play">
+        <RoundTimer startedAt={session.startedAt} active={session.status === "playing"} />
         <CompeteScene band={session.reefBand} health={session.reefHealth} />
         <section className="chat" aria-label="Chat with Grok">
           <header className="chat-head">
@@ -371,6 +369,7 @@ export default function PlayPage() {
 
   return (
     <main className="phone">
+      <RoundTimer startedAt={clockStart} active={clockActive} />
       <div className="topbar">
         <a className="brand" href="/">CoralConnect</a>
         <span className={connected ? "pill is-live" : "pill"}>{connected ? "Live" : "Reconnecting"}</span>
@@ -445,7 +444,7 @@ export default function PlayPage() {
           {identity && session.status === "lobby" && session.mode !== "collaborate" ? (
             <section className="panel stack">
               <h2>You're in, {identity.name}.</h2>
-              <p>This is one round for the room, up to 10 people. It starts when the table says go.</p>
+              <p>This is one round for the room, up to 10 people. It starts when the table says go, and you have 2 minutes.</p>
               <p className="muted">{roster.length} of {playerMax} here.</p>
               <button className="btn-ghost" type="button" onClick={() => void leaveRoom("/")}>
                 Leave
@@ -462,7 +461,7 @@ export default function PlayPage() {
                   {buildRound && !started ? (
                     <p>Find {partner?.name ?? "your partner"} in the room. When you are together, both of you tap Start.</p>
                   ) : buildRound && started && !thread?.done ? (
-                    <p>{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")} left. Name the file and the function. Grok edits that file.</p>
+                    <p>Name the file and the function. Grok edits that file.</p>
                   ) : buildRound && thread?.done ? (
                     <p>The round is over.</p>
                   ) : (

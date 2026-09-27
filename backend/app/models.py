@@ -156,6 +156,7 @@ class Session:
     created_at: float
     threads: list[Thread] = field(default_factory=list)
     revision: int = 0
+    started_at: float = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

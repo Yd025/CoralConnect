@@ -189,6 +189,8 @@ export type GameSession = {
   threads: Thread[];
   turnsAllowed: number;
   createdAt: number;
+  startedAt: number;
+  roundSeconds: number;
   revision: number;
 };
 

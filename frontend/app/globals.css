@@ -714,6 +714,25 @@ body:has(.admin-page) { height: 100dvh; overflow: hidden; }
 }
 
 .phone { width: min(520px, calc(100% - 28px)); margin: 0 auto; padding: 18px 0 28px; display: grid; gap: 14px; }
+.phone:has(.round-timer) { padding-top: 58px; }
+.round-timer {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 40;
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--sand);
+  background: rgba(3, 22, 28, 0.82);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  pointer-events: none;
+}
+.compete-play:has(.round-timer) { padding-top: 72px; }
 body:has(.compete-play) { height: 100dvh; overflow: hidden; }
 .compete-play {
   position: relative;
@@ -1040,6 +1059,7 @@ body:has(.compete-play) { height: 100dvh; overflow: hidden; }
   gap: 16px;
   align-items: flex-start;
 }
+.reef__hud.has-clock { top: 72px; }
 .reef__hud h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 3rem); text-shadow: 0 8px 24px rgba(0,0,0,0.35); }
 .health { min-width: 160px; text-align: right; }
 .health span { display: block; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.72rem; color: var(--sand); }

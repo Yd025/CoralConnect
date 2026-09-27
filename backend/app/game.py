@@ -101,6 +101,7 @@ def _clear_round(session: Session, *, keep_players: bool) -> None:
     session.events = []
     session.squads = []
     session.reef_health = 100
+    session.started_at = 0
     if not keep_players:
         session.players = []
         return
@@ -458,6 +459,14 @@ async def sweep_pair_clocks(code: str) -> Session:
         for squad in session.squads:
             if _expire_squad(session, squad, challenge):
                 changed = True
+        if (
+            session.mode == "compete"
+            and session.status == "playing"
+            and session.started_at
+            and time.time() >= session.started_at + ROUND_SECONDS
+        ):
+            session.status = "ended"
+            changed = True
         if changed:
             _persist(session)
     if changed:
@@ -559,6 +568,7 @@ async def start(code: str, admin_token: str) -> Session:
         elif len(connected) < minimum or len(connected) > maximum:
             raise GameError(409, "Compete needs 1 to 10 players before the round starts.")
         session.status = "playing"
+        session.started_at = time.time()
         _persist(session)
     await _broadcast(session)
     return session
@@ -691,16 +701,26 @@ async def submit(
         raise GameError(400, "That prompt is past the 8,000 character limit.")
 
     clock_closed = False
+    compete_closed = False
     async with store.lock:
         session = _must(code)
         player = _player(session, player_id, player_token)
         if session.status == "ended":
             raise GameError(409, "This game has ended. Ask the table for a new QR code.")
+        if (
+            session.mode == "compete"
+            and player.id != REHEARSAL_PLAYER_ID
+            and session.started_at
+            and time.time() >= session.started_at + ROUND_SECONDS
+        ):
+            session.status = "ended"
+            _persist(session)
+            compete_closed = True
         if session.mode == "collaborate" and player.id != REHEARSAL_PLAYER_ID:
             squad_now = _squad_for(session, player)
             if squad_now is None or len(squad_now.player_ids) < 2:
                 raise GameError(409, "Find the other person with your animal before you send a prompt.")
-        elif session.status != "playing":
+        elif session.status != "playing" and not compete_closed:
             raise GameError(409, "Wait for the host to start the round. Compete is one round for the room.")
         challenge = get_challenge(session.challenge_id)
         if challenge is None:
@@ -740,7 +760,7 @@ async def submit(
         jobs = _job_map(challenge)
         check = challenge.check
 
-    if clock_closed:
+    if clock_closed or compete_closed:
         await _broadcast(session)
         raise GameError(409, "The 2 minutes are up.")
 
