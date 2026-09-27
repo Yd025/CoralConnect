@@ -59,7 +59,7 @@ export default function CollaboratePage() {
       <p className="eyebrow">Find a pair</p>
       <h1>Wait here for someone else.</h1>
       <p className="muted">
-        No booth code and no admin. Answer two taps. We pair you with someone waiting who builds the same kind of thing or cares about the same thing. You both get the same animal. Find that person, then both tap Start. You have 2 minutes. When you finish, you can pair again. The pair board at /pairs keeps every result.
+        No booth code and no host. Answer two taps. We pair you with someone waiting who builds the same kind of thing or cares about the same thing. You both get the same animal. Find that person, then both tap Start. You have 2 minutes. When you finish, you can pair again. The pair board at /pairs keeps every result.
       </p>
       {error ? <p className="error">{error}</p> : null}
 
